@@ -35,7 +35,7 @@ defmodule FriendsOfPhoenix.Debug.MixProject do
       main: "FriendsOfPhoenix.Debug",
       source_ref: "v#{@version}",
       source_url: "https://github.com/mcrumm/debug",
-      nest_modules_by_prefix: [FriendsOfPhoenix.Debug]
+      nest_modules_by_prefix: [FriendsOfPhoenix]
     ]
   end
 

@@ -30,7 +30,7 @@ defmodule FriendsOfPhoenix.Debug do
 
     * Add `if Mix.env() == :dev, do: plug(#{inspect(__MODULE__)}, :router)` to your `:browser` pipeline in your Router.
 
-    * For LiveView debugging, add ` if Mix.env() == :dev, do: on_mount({#{inspect(__MODULE__)}, __MODULE__})` to
+    * For LiveView debugging, add ` if Mix.env() == :dev, do: on_mount({#{inspect(__MODULE__.Live)}, __MODULE__})` to
       the body of the `:live_view` function in your `_web.ex` file.
 
   """
