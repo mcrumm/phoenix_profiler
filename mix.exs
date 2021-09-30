@@ -26,6 +26,7 @@ defmodule FriendsOfPhoenix.Debug.MixProject do
       {:phoenix, "~> 1.6.0"},
       {:phoenix_live_view, "~> 0.16",
        github: "phoenixframework/phoenix_live_view", optional: true},
+      {:jason, "~> 1.0", only: [:dev, :test, :docs]},
       {:ex_doc, "~> 0.25", only: :docs}
     ]
   end
