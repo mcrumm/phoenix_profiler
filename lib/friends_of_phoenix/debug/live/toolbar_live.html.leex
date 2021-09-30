@@ -1,0 +1,21 @@
+<section id="toolbar">
+  <section class="dbg-btn-group">
+    <button type="button" aria-label="Status" class="dbg-btn status">
+      <%= @status.code %>
+    </button>
+    <button type="button" aria-label="Route" class="dbg-btn route">
+      <%= @route_phrase %>
+    </button>
+    <button type="button" aria-label="Duration" class="dbg-btn measurement duration">
+      <span class="value"><%= @duration.value %></span>
+      <span class="unit"><%= @duration.unit %></span>
+    </button>
+  </section>
+  <section class="dbg-btn-group dbg-ctrl-group">
+    <aside class="dbg-btn logo" aria-hidden="true"></aside>
+    <button type="button" aria-label="Version" class="dbg-btn vsn"><%= @vsn %></button>
+    <button type="button" aria-label="Close" class="dbg-btn close">
+      <span aria-hidden="true">×</span>
+    </button>
+  </section>
+</section>
