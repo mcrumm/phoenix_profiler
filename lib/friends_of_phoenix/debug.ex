@@ -80,8 +80,8 @@ defmodule FriendsOfPhoenix.Debug do
 
     conn
     |> Plug.Conn.assign(@token_key, token)
-    |> Phoenix.Controller.put_root_layout(false)
-    |> Phoenix.Controller.put_layout(false)
+    |> Phoenix.Controller.put_root_layout({Debug.View, "root.html"})
+    |> Phoenix.Controller.put_layout({Debug.View, "app.html"})
     |> Phoenix.LiveView.Controller.live_render(Debug.ToolbarLive, session: session)
     |> halt()
   end
