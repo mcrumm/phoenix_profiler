@@ -34,25 +34,30 @@ defmodule FriendsOfPhoenix.Debug do
       the body of the `:live_view` function in your `_web.ex` file.
 
   """
+  import Plug.Conn
+  alias FriendsOfPhoenix.Debug
 
   @doc """
   Sends an entry to the debug server for the given `token`.
   """
-  defdelegate put_entry(token, namespace, info), to: __MODULE__.Server
+  defdelegate put_entry(token, namespace, info), to: Debug.Server
+
+  @doc """
+  Returns a list of entries recorded for the given `token`.
+  """
+  defdelegate entries(token), to: Debug.Server
 
   @doc false
   def start_debug_server do
     token = generate_token()
 
     DynamicSupervisor.start_child(
-      __MODULE__.DynamicSupervisor,
-      {__MODULE__.Server, [token: token]}
+      Debug.DynamicSupervisor,
+      {Debug.Server, [token: token]}
     )
 
     {:ok, token}
   end
-
-  import Plug.Conn
 
   @behaviour Plug
   @config_key :fophx_debug
@@ -77,25 +82,20 @@ defmodule FriendsOfPhoenix.Debug do
     |> Plug.Conn.assign(@token_key, token)
     |> Phoenix.Controller.put_root_layout(false)
     |> Phoenix.Controller.put_layout(false)
-    |> Phoenix.LiveView.Controller.live_render(__MODULE__.ToolbarLive, session: session)
+    |> Phoenix.LiveView.Controller.live_render(Debug.ToolbarLive, session: session)
     |> halt()
   end
 
   @impl Plug
   def call(conn, :router) do
     endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(:fophx_debug_bar) || []
+    config = endpoint.config(@config_key) || []
 
     before_send_inject_debug_bar(conn, endpoint, config)
   end
 
   @impl Plug
   def call(conn, _), do: conn
-
-  @doc """
-  Returns a list of entries recorded for the given `token`.
-  """
-  defdelegate entries(token), to: __MODULE__.Server
 
   defp before_send_inject_debug_bar(conn, endpoint, config) do
     register_before_send(conn, fn conn ->
