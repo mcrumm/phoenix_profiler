@@ -18,19 +18,15 @@ defmodule FriendsOfPhoenix.Debug do
 
   ## Getting Started
 
-  To use the debug toolbar, your app must meet the following requirements:
+  > Note you must have `Phoenix.LiveView` installed and configured.
 
-    * You must have [`LiveView`](`Phoenix.LiveView`) installed and configured.
-
-  To install the debug toolbar, you need the following steps:
-
-    * Add fophx_debug to your mix.exs:
+  First, add `fophx_debug` to your mix.exs:
 
     ```elixir
     {:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
     ```
 
-    * Add `plug #{inspect(__MODULE__)}` at the bottom of the `if code_reloading? do` block in your Endpoint:
+  Next, add the plug at the bottom of the `if code_reloading? do` block in your Endpoint:
 
     ```elixir
     # Code reloading can be explicitly enabled under the
@@ -126,7 +122,6 @@ defmodule FriendsOfPhoenix.Debug do
     |> halt()
   end
 
-  # TODO: Inject JS to get LiveView connected (phoenix, phoenix_html, phoenix_live_view, app)
   @impl Plug
   def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, session_opts) do
     conn = Plug.Conn.fetch_query_params(conn)
@@ -146,6 +141,8 @@ defmodule FriendsOfPhoenix.Debug do
 
   @impl Plug
   def call(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
+    # this clause is to ignore the phoenix live reload iframe in case someone installs
+    # the toolbar plug above the LiveReloader plug in their Endpoint.
     conn
   end
 
