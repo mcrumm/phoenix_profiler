@@ -15,6 +15,7 @@ defmodule FriendsOfPhoenix.Debug do
 
   * Replace LiveDashboard
   * Run in production
+  * Multi-node (for now)
 
   ## Getting Started
 
