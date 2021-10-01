@@ -1,16 +1,16 @@
 defmodule FriendsOfPhoenix.Debug.View do
   # Acts as a View for toolbar layout rendering
   @moduledoc false
-  use Phoenix.Component
+  import Phoenix.LiveView.Helpers
 
   def render("app.html", assigns) do
-    ~H"""
+    ~L"""
     <%= @inner_content %>
     """
   end
 
   def render("root.html", assigns) do
-    ~H"""
+    ~L"""
     <!DOCTYPE html>
     <html>
     <head>
