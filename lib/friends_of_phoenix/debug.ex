@@ -24,12 +24,33 @@ defmodule FriendsOfPhoenix.Debug do
 
   To install the debug toolbar, you need the following steps:
 
-    * Add `{:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}` to your mix.exs.
+    * Add fophx_debug to your mix.exs:
 
-    * Add `plug #{inspect(__MODULE__)}` at the bottom of the `if code_reloading? do` block in your Endpoint.
+    ```elixir
+    {:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
+    ```
 
-    * For LiveView debugging, add ` if Mix.env() == :dev, do: on_mount({#{inspect(__MODULE__.Live)}, __MODULE__})` to
-      the body of the `:live_view` function in your `_web.ex` file.
+    * Add `plug #{inspect(__MODULE__)}` at the bottom of the `if code_reloading? do` block in your Endpoint:
+
+    ```elixir
+    # Code reloading can be explicitly enabled under the
+    # :code_reloader configuration of your endpoint.
+    if code_reloading? do
+      socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
+      plug Phoenix.LiveReloader
+      plug Phoenix.CodeReloader
+      plug Phoenix.Ecto.CheckRepoStatus, otp_app: :hello
+      plug FriendsOfPhoenix.Debug # <-- add this
+    end
+    ```
+
+  Optionally, for LiveView (v0.17+) debugging, you can mount [`LiveDebug`](`FriendsOfPhoenix.LiveDebug`).
+
+    ```elixir
+      if Mix.env() == :dev do
+        on_mount {FriendsOfPhoenix.LiveDebug, __MODULE__}
+      end
+    ```
 
   """
   import Plug.Conn

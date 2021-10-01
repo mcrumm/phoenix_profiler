@@ -7,6 +7,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) and function_exported?(Phoenix.LiveView
 
     Add it to your `:live_view` callback in your `_web.ex` module:
 
+          # lib/hello_web.ex
           def live_view do
             quote do
               use Phoenix.LiveView,
@@ -14,7 +15,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) and function_exported?(Phoenix.LiveView
 
               # Add this block to your LiveView
               if Mix.env() == :dev do
-                on_mount {FriendsOfPhoenix.Debug, __MODULE__}
+                on_mount {FriendsOfPhoenix.LiveDebug, __MODULE__}
               end
 
               unquote(view_helpers())
@@ -23,9 +24,13 @@ if Code.ensure_loaded?(Phoenix.LiveView) and function_exported?(Phoenix.LiveView
 
     Or, you can put it directly on a LiveView module:
 
+          # lib/hello_web/live/hello_live.ex
           defmodule HelloLive do
             use Phoenix.LiveView
-            if Mix.env() == :dev, do: on_mount({FriendsOfPhoenix.Debug, __MODULE__})
+
+            if Mix.env() == :dev do
+              on_mount {FriendsOfPhoenix.LiveDebug, __MODULE__}
+            end
 
           end
 
