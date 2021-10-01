@@ -26,7 +26,7 @@ defmodule FriendsOfPhoenix.Debug do
 
     * Add `{:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}` to your mix.exs.
 
-    * Add `plug #{inspect(__MODULE__)}` at the top of your `if code_reloading? do` block in your Endpoint.
+    * Add `plug #{inspect(__MODULE__)}` at the bottom of the `if code_reloading? do` block in your Endpoint.
 
     * For LiveView debugging, add ` if Mix.env() == :dev, do: on_mount({#{inspect(__MODULE__.Live)}, __MODULE__})` to
       the body of the `:live_view` function in your `_web.ex` file.
