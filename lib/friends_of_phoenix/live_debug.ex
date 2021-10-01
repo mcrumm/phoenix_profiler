@@ -33,14 +33,30 @@ defmodule FriendsOfPhoenix.LiveDebug do
 
         end
 
-  ### Legacy Versions
+  ### Older Versions
 
   Note for LiveView < 0.17, if you would like to use LiveDebug,
   you may do so by invoking the hook function manually from your
-  [`mount/3`](`c:Phoenix.LiveView.mount/3`) callback:
+  [`mount/3`](`c:Phoenix.LiveView.mount/3`) callback. However,
+  to ensure the debug code cannot be invoked outside of the dev
+  environment, it is recommended to create a separate module:
+
+      defmodule MyLiveDebug do
+        @moduledoc "Allows LiveDebug in the dev environment"
+
+        if Mix.env() == :dev do
+          defdelegate on_mount(view, params, session, socket),
+            to: #{inspect(__MODULE__)}
+        else
+          def on_mount(_, _, _, socket),
+            do: {:cont, socket}
+        end
+      end
+
+  Then, in your LiveView, invoke your
 
       def mount(params, session, socket) do
-        {:cont, socket} = #{inspect(__MODULE__)}.on_mount(__MODULE__, params, session, socket)
+        {:cont, socket} = MyLiveDebug.on_mount(__MODULE__, params, session, socket)
         # your mount code
       end
 
