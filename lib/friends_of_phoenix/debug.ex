@@ -20,15 +20,13 @@ defmodule FriendsOfPhoenix.Debug do
 
   To use the debug toolbar, your app must meet the following requirements:
 
-    * You must have `plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]` in your Endoint.
+    * You must have [`LiveView`](`Phoenix.LiveView`) installed and configured.
 
   To install the debug toolbar, you need the following steps:
 
-    * Add `{:friends_of_phoenix_debug, "~> 0.1.0", runtime: Mix.env() == :dev}` to your mix.exs.
+    * Add `{:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}` to your mix.exs.
 
-    * Add `plug #{inspect(__MODULE__)}, :endpoint` at the top of your code_reloading? block in your Endpoint.
-
-    * Add `if Mix.env() == :dev, do: plug(#{inspect(__MODULE__)}, :router)` to your `:browser` pipeline in your Router.
+    * Add `plug #{inspect(__MODULE__)}` at the top of your `if code_reloading? do` block in your Endpoint.
 
     * For LiveView debugging, add ` if Mix.env() == :dev, do: on_mount({#{inspect(__MODULE__.Live)}, __MODULE__})` to
       the body of the `:live_view` function in your `_web.ex` file.
@@ -73,7 +71,7 @@ defmodule FriendsOfPhoenix.Debug do
 
   # TODO: Inject JS to get LiveView connected (phoenix, phoenix_html, phoenix_live_view, app)
   @impl Plug
-  def call(%Plug.Conn{path_info: ["fophx", "debug_bar", "frame" | _suffix]} = conn, :endpoint) do
+  def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, _) do
     conn = Plug.Conn.fetch_query_params(conn)
     token = conn.params["token"] || raise "token not found in iframe request"
     session = %{to_string(@token_key) => token}
@@ -87,17 +85,21 @@ defmodule FriendsOfPhoenix.Debug do
   end
 
   @impl Plug
-  def call(conn, :router) do
-    endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(@config_key) || []
-
-    before_send_inject_debug_bar(conn, endpoint, config)
+  def call(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
+    conn
   end
 
   @impl Plug
-  def call(conn, _), do: conn
+  def call(conn, _) do
+    start_time = System.monotonic_time()
+    :telemetry.execute([:fophx, :debug, :start], %{system_time: System.system_time()}, %{})
+    endpoint = conn.private.phoenix_endpoint
+    config = endpoint.config(@config_key) || []
 
-  defp before_send_inject_debug_bar(conn, endpoint, config) do
+    before_send_inject_debug_bar(conn, endpoint, start_time, config)
+  end
+
+  defp before_send_inject_debug_bar(conn, endpoint, start_time, config) do
     register_before_send(conn, fn conn ->
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
@@ -108,9 +110,15 @@ defmodule FriendsOfPhoenix.Debug do
           body = [page, debug_assets_tag(conn, endpoint, token, config), "</body>" | rest]
           conn = put_in(conn.resp_body, body)
 
+          conn =
+            conn
+            |> Plug.Conn.put_private(@token_key, token)
+            |> Plug.Conn.put_session(@token_key, token)
+
+          duration = System.monotonic_time() - start_time
+          :telemetry.execute([:fophx, :debug, :stop], %{duration: duration}, %{conn: conn})
+
           conn
-          |> Plug.Conn.put_private(@token_key, token)
-          |> Plug.Conn.put_session(@token_key, token)
         else
           conn
         end
@@ -134,9 +142,7 @@ defmodule FriendsOfPhoenix.Debug do
 
   defp debug_assets_tag(conn, endpoint, token, config) do
     path =
-      conn.private.phoenix_endpoint.path(
-        "/fophx/debug_bar/frame#{suffix(endpoint)}?token=#{token}"
-      )
+      conn.private.phoenix_endpoint.path("/fophx/debug/frame#{suffix(endpoint)}?token=#{token}")
 
     attrs =
       Keyword.merge(

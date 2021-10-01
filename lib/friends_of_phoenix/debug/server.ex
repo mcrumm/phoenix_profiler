@@ -39,7 +39,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
     :ok =
       :telemetry.attach(
         {Debug, token},
-        [:phoenix, :endpoint, :stop],
+        [:fophx, :debug, :stop],
         &__MODULE__.__handle_event__/4,
         %{
           token: token
@@ -70,7 +70,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
 
   @doc false
   def __handle_event__(
-        [:phoenix, :endpoint, :stop],
+        [:fophx, :debug, :stop],
         %{duration: duration},
         %{conn: %{private: %{@token_key => token}} = conn},
         %{token: token}
