@@ -34,6 +34,7 @@ defmodule FriendsOfPhoenix.Debug do
   """
   import Plug.Conn
   alias FriendsOfPhoenix.Debug
+  require Logger
 
   @doc """
   Sends an entry to the debug server for the given `token`.
@@ -49,10 +50,13 @@ defmodule FriendsOfPhoenix.Debug do
   def start_debug_server do
     token = generate_token()
 
-    DynamicSupervisor.start_child(
-      Debug.DynamicSupervisor,
-      {Debug.Server, [token: token]}
-    )
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        Debug.DynamicSupervisor,
+        {Debug.Server, [token: token]}
+      )
+
+    Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
 
     {:ok, token}
   end
