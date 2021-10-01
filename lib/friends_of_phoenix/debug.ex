@@ -40,7 +40,7 @@ defmodule FriendsOfPhoenix.Debug do
       plug Phoenix.LiveReloader
       plug Phoenix.CodeReloader
       plug Phoenix.Ecto.CheckRepoStatus, otp_app: :hello
-      plug FriendsOfPhoenix.Debug # <-- add this
+      plug FriendsOfPhoenix.Debug, @session_options # <-- add this
     end
     ```
 
@@ -85,23 +85,58 @@ defmodule FriendsOfPhoenix.Debug do
   @behaviour Plug
   @config_key :fophx_debug
   @token_key :fophx_debug
+  @live_socket_path_default "/live"
 
   @doc """
   Returns the key used when storing the debug token.
   """
   def token_key, do: @token_key
 
+  phoenix_path = Application.app_dir(:phoenix, "priv/static/phoenix.js")
+  live_view_path = Application.app_dir(:phoenix_live_view, "priv/static/phoenix_live_view.js")
+
+  @external_resource phoenix_path
+  @external_resource live_view_path
+
+  @phoenix_js File.read!(phoenix_path)
+  @live_view_js File.read!(live_view_path)
+
   @impl Plug
-  def init(opts), do: opts
+  def init(opts), do: Plug.Session.init(opts)
+
+  @impl Plug
+  def call(%Plug.Conn{path_info: ["fophx", "debug.js" | _]} = conn, session_opts) do
+    endpoint = conn.private.phoenix_endpoint
+    config = endpoint.config(:fophx_debug)
+    url = config[:live_socket_path] || @live_socket_path_default
+
+    conn
+    |> Plug.Session.call(session_opts)
+    |> Plug.Conn.fetch_session()
+    |> Phoenix.Controller.protect_from_forgery()
+    |> put_resp_content_type("text/html")
+    |> send_resp(200, [
+      @phoenix_js,
+      @live_view_js,
+      ?\n,
+      ~s<var csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");\n>,
+      ~s<var liveSocket = new LiveView.LiveSocket("#{url}", Phoenix.Socket, { params: { _csrf_token: csrfToken } });\n>,
+      ~s<liveSocket.connect();\n>
+    ])
+    |> halt()
+  end
 
   # TODO: Inject JS to get LiveView connected (phoenix, phoenix_html, phoenix_live_view, app)
   @impl Plug
-  def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, _) do
+  def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, session_opts) do
     conn = Plug.Conn.fetch_query_params(conn)
     token = conn.params["token"] || raise "token not found in iframe request"
     session = %{to_string(@token_key) => token}
 
     conn
+    |> Plug.Session.call(session_opts)
+    |> Plug.Conn.fetch_session()
+    |> Phoenix.Controller.protect_from_forgery()
     |> Plug.Conn.assign(@token_key, token)
     |> Phoenix.Controller.put_root_layout({Debug.View, "root.html"})
     |> Phoenix.Controller.put_layout({Debug.View, "app.html"})
