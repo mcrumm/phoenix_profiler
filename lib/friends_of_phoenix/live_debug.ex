@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Phoenix.LiveView) and function_exported?(Phoenix.LiveView, :on_mount, 1) do
+if Code.ensure_loaded?(Phoenix.LiveView) and function_exported?(Phoenix.LiveView, :attach_hook, 4) do
   defmodule FriendsOfPhoenix.LiveDebug do
     @moduledoc """
     Inject debug tools into a LiveView (v0.17+) process.
