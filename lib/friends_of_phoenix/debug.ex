@@ -41,7 +41,7 @@ defmodule FriendsOfPhoenix.Debug do
     end
     ```
 
-  Optionally, for LiveView (v0.17+) debugging, you can mount [`LiveDebug`](`FriendsOfPhoenix.LiveDebug`).
+  Optionally, for LiveView debugging, you can mount [`LiveDebug`](`FriendsOfPhoenix.LiveDebug`).
 
     ```elixir
       if Mix.env() == :dev do
