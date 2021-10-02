@@ -88,17 +88,17 @@ defmodule FriendsOfPhoenix.LiveProfiler do
   """
   import Phoenix.LiveView
   alias FriendsOfPhoenix.Debug
-  require Logger
 
   @behaviour Plug
 
-  @session_key :fophx_debug
+  @private_key :fophx_debug
+  @session_key "fophx_debug"
 
   @impl Plug
   def init(opts), do: opts
 
   @impl Plug
-  def call(%Plug.Conn{private: %{@session_key => token}} = conn, _) do
+  def call(%Plug.Conn{private: %{@private_key => token}} = conn, _) do
     Plug.Conn.put_session(conn, @session_key, token)
   end
 
@@ -117,7 +117,8 @@ defmodule FriendsOfPhoenix.LiveProfiler do
   end
 
   defp apply_debug_hooks(socket, _connected? = true, view_module, token, _params, _session) do
-    Debug.put_entry(token, __MODULE__, %{
+    Debug.track(socket, token, %{
+      kind: :profile,
       phoenix_live_action: socket.assigns.live_action,
       root_view: socket.private[:root_view],
       transport_pid: transport_pid(socket),

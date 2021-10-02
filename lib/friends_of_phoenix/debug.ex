@@ -9,15 +9,15 @@ defmodule FriendsOfPhoenix.Debug do
   alias FriendsOfPhoenix.Debug
   require Logger
 
-  @doc """
-  Sends an entry to the debug server for the given `token`.
-  """
-  defdelegate put_entry(token, namespace, info), to: Debug.Server
-
-  @doc """
-  Returns a list of entries recorded for the given `token`.
-  """
-  defdelegate entries(token), to: Debug.Server
+  @doc false
+  def track(%Phoenix.LiveView.Socket{} = socket, token, meta)
+      when is_binary(token) and token != "" and is_map(meta) do
+    if Phoenix.LiveView.connected?(socket) do
+      Debug.Presence.track(self(), Debug.Server.topic(token), inspect(self()), meta)
+    else
+      {:error, :not_connected}
+    end
+  end
 
   @doc false
   def start_debug_server(token) do

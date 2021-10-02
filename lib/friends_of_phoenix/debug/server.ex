@@ -3,6 +3,8 @@ defmodule FriendsOfPhoenix.Debug.Server do
   @moduledoc false
   use GenServer, restart: :temporary
   alias FriendsOfPhoenix.Debug
+  alias Phoenix.PubSub
+  alias Phoenix.Socket.Broadcast
 
   @token_key Debug.token_key()
 
@@ -17,25 +19,43 @@ defmodule FriendsOfPhoenix.Debug.Server do
     Module.concat([Debug, Server, token])
   end
 
-  def entries(token) do
-    token |> server_name() |> Process.whereis() |> GenServer.call(:entries)
+  @doc """
+  Returns the `Debug.PubSub` topic for the given `token`.
+  """
+  def topic(token) when is_binary(token) and token != "" do
+    "fophx_debug:#{token}"
   end
 
-  def put_entry(pid, namespace, info)
-      when is_pid(pid) and is_atom(namespace) and is_map(info) do
-    IO.inspect({namespace, info}, label: "Putting entry for #{inspect(pid)}")
-    GenServer.call(pid, {:put_entry, namespace, info})
-  end
+  @doc """
+  Returns a map of info collected by the Plug.
+  """
+  def info(token) do
+    case Process.whereis(server_name(token)) do
+      server when is_pid(server) ->
+        GenServer.call(server, :fophx_debug_info)
 
-  def put_entry(token, namespace, info)
-      when is_binary(token) and is_atom(namespace) and is_map(info) do
-    token |> server_name() |> Process.whereis() |> put_entry(namespace, info)
+      _ ->
+        IO.warn("""
+        Tried to retrieve request info for token #{token}, but the server is not running.
+
+        If you are seeing this message after restarting the server in the dev environment,
+        it is likely safe to ignore. Debug processes are ephemeral, so if the server was
+        killed, then you are seeing this warning due to the stale session cookie sent from
+        your browser.
+
+        If the debug toolbar is not rendered, refresh the page to reload.
+        """)
+
+        %{}
+    end
   end
 
   ## Server
 
   @impl GenServer
   def init(token) do
+    :ok = PubSub.subscribe(Debug.PubSub, topic(token))
+
     :ok =
       :telemetry.attach(
         {Debug, token},
@@ -46,24 +66,24 @@ defmodule FriendsOfPhoenix.Debug.Server do
         }
       )
 
-    {:ok, %{token: token, entries: %{}}}
+    {:ok, %{token: token, debug_info: %{}}}
   end
 
   @impl GenServer
-
-  def handle_call({:put_entry, Debug = namespace, info}, _from, state) do
-    :ok = :telemetry.detach({Debug, state.token})
-
-    {:reply, :ok, %{state | entries: Map.put(state.entries, namespace, info)}}
-  end
-
-  def handle_call({:put_entry, namespace, info}, _from, state) do
-    {:reply, :ok, %{state | entries: Map.put(state.entries, namespace, info)}}
+  def handle_call(:fophx_debug_info, _from, state) do
+    {:reply, state.debug_info, state}
   end
 
   @impl GenServer
-  def handle_call(:entries, _from, state) do
-    {:reply, state.entries, state}
+  def handle_call({:put_debug_info, info}, _from, state) do
+    {:reply, :ok, %{state | debug_info: info}}
+  end
+
+  @impl GenServer
+  def handle_info(%Broadcast{event: "presence_diff", payload: payload}, state) do
+    # %{joins: joins, leaves: leaves} = payload
+    IO.inspect(payload, label: "Got message:")
+    {:noreply, state}
   end
 
   ## Telemetry Handlers
@@ -75,7 +95,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
         %{conn: %{private: %{@token_key => token}} = conn},
         %{token: token}
       ) do
-    infos =
+    info =
       conn.private
       |> Map.take([
         :phoenix_action,
@@ -90,8 +110,10 @@ defmodule FriendsOfPhoenix.Debug.Server do
       |> Map.put(:status, conn.status)
       |> Map.put(:duration, duration)
 
-    put_entry(token, Debug, infos)
-    :ok
+    case Process.whereis(server_name(token)) do
+      pid when is_pid(pid) -> GenServer.call(pid, {:put_debug_info, info})
+      _ -> :ok
+    end
   end
 
   def __handle_event__(_, _, _, _), do: :ok

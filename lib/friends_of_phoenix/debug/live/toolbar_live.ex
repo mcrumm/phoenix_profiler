@@ -7,7 +7,8 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   @token_key "fophx_debug"
 
   def mount(_, %{@token_key => token}, socket) do
-    %{Debug => info} = Debug.entries(token)
+    info = Debug.Server.info(token)
+    Debug.track(socket, token, %{kind: :toolbar, pid: self()})
     route = route_info(info)
 
     {:ok,
@@ -23,13 +24,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
     Phoenix.Router.route_info(router, method, path, host)
   end
 
-  defp route_info(other) do
-    raise ArgumentError, """
-    Expected DebugBar entry from plug, got:
-
-        #{inspect(other)}
-    """
-  end
+  defp route_info(_), do: %{}
 
   defp toolbar_text(%{phoenix_live_view: {lv, _, _opts, _meta}, plug_opts: action})
        when is_atom(lv) and is_atom(action) do
