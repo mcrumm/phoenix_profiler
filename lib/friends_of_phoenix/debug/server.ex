@@ -66,7 +66,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
         }
       )
 
-    {:ok, %{token: token, debug_info: %{}}}
+    {:ok, %{token: token, debug_info: %{}, toolbar: nil, current_view: nil}}
   end
 
   @impl GenServer
@@ -80,11 +80,48 @@ defmodule FriendsOfPhoenix.Debug.Server do
   end
 
   @impl GenServer
-  def handle_info(%Broadcast{event: "presence_diff", payload: payload}, state) do
-    # %{joins: joins, leaves: leaves} = payload
-    IO.inspect(payload, label: "Got message:")
+  def handle_info(%Broadcast{event: "presence_diff", payload: _payload}, state) do
+    presences =
+      state.token
+      |> Debug.Server.topic()
+      |> Debug.Presence.list()
+      |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
+
+    # naive pid finding
+    toolbar = Enum.find_value(presences, &if(&1.kind == :toolbar, do: {&1.pid, &1.node}))
+    view = Enum.find(presences, &(&1.kind == :profile))
+
+    state =
+      state
+      |> maybe_put_toolbar(toolbar)
+      |> maybe_put_current_view(view)
+      |> maybe_call_view_changed(view)
+
     {:noreply, state}
   end
+
+  defp maybe_put_toolbar(state, nil), do: state
+  defp maybe_put_toolbar(%{toolbar: {pid, _}} = state, {pid, _}) when is_pid(pid), do: state
+
+  defp maybe_put_toolbar(%{toolbar: nil} = state, {pid, _} = name) when is_pid(pid) do
+    %{state | toolbar: name}
+  end
+
+  defp maybe_put_current_view(state, nil), do: state
+
+  defp maybe_put_current_view(state, %{pid: pid} = view) when is_pid(pid) do
+    %{state | current_view: view}
+  end
+
+  defp maybe_call_view_changed(
+         %{toolbar: {pid, _}, current_view: %{root_view: rv, phoenix_live_action: pla}} = state,
+         %{root_view: rv, phoenix_live_action: pla} = view
+       ) do
+    :ok = GenServer.call(pid, {:view_changed, view})
+    state
+  end
+
+  defp maybe_call_view_changed(state, _), do: state
 
   ## Telemetry Handlers
 

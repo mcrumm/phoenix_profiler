@@ -6,6 +6,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
 
   @token_key "fophx_debug"
 
+  @impl Phoenix.LiveView
   def mount(_, %{@token_key => token}, socket) do
     info = Debug.Server.info(token)
     Debug.track(socket, token, %{kind: :toolbar, pid: self()})
@@ -25,6 +26,11 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   end
 
   defp route_info(_), do: %{}
+
+  # From LiveProfiler presence
+  defp toolbar_text(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
+    [inspect(lv), ?\s, inspect(action)]
+  end
 
   defp toolbar_text(%{phoenix_live_view: {lv, _, _opts, _meta}, plug_opts: action})
        when is_atom(lv) and is_atom(action) do
@@ -55,5 +61,16 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
 
   defp status(status_code) do
     %{code: status_code, phrase: Plug.Conn.Status.reason_phrase(status_code)}
+  end
+
+  # TODO:
+  # [ ] monitor the LV process
+  # [ ] unmonitor when the process changes
+  # [ ] ignore regular DOWN messages for redirects
+  @impl Phoenix.LiveView
+  def handle_call({:view_changed, new_view}, _from, socket) do
+    IO.inspect(new_view, label: "LiveProfiler view changed")
+    new_phrase = toolbar_text(new_view)
+    {:reply, :ok, assign(socket, route_phrase: new_phrase)}
   end
 end
