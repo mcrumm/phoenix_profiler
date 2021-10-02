@@ -16,7 +16,6 @@ Importantly, the debug package is not:
 
 * Replacing LiveDashboard
 * Suitable for running in production
-* Enabled for Multi-node (right now)
 
 ## Installation
 

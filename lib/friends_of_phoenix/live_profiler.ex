@@ -122,7 +122,6 @@ defmodule FriendsOfPhoenix.LiveProfiler do
       phoenix_live_action: socket.assigns.live_action,
       root_view: socket.private[:root_view],
       transport_pid: transport_pid(socket),
-      view_pid: self(),
       view_module: view_module
     })
 
