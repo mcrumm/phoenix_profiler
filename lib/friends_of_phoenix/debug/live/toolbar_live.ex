@@ -11,6 +11,10 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
     socket = assign(socket, :token, token)
     socket = Debug.track(socket, token, %{kind: :toolbar})
 
+    if connected?(socket) do
+      :ok = Phoenix.PubSub.subscribe(Debug.PubSub, Debug.Server.topic(token))
+    end
+
     case Debug.Server.info(token) do
       {:ok, info} ->
         assign_toolbar(socket, info)
@@ -40,7 +44,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
      assign(socket, %{
        duration: duration(info.duration),
        status: status(info.status),
-       route_phrase: toolbar_text(route),
+       route_phrase: toolbar_text(socket, route),
        vsn: Application.spec(:phoenix)[:vsn]
      })}
   end
@@ -48,8 +52,6 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   defp route_info(%{host: host, method: method, path_info: path, phoenix_router: router}) do
     Phoenix.Router.route_info(router, method, path, host)
   end
-
-  defp route_info(_), do: %{}
 
   # From LiveProfiler presence
   defp toolbar_text(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
@@ -70,6 +72,10 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
     ??
   end
 
+  defp toolbar_text(%Phoenix.LiveView.Socket{} = socket, view) do
+    toolbar_text(view) ++ [?\s, socket.assigns.token]
+  end
+
   defp duration(duration) do
     duration = System.convert_time_unit(duration, :native, :microsecond)
 
@@ -87,14 +93,26 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
     %{code: status_code, phrase: Plug.Conn.Status.reason_phrase(status_code)}
   end
 
-  # TODO:
-  # [ ] monitor the LV process
-  # [ ] unmonitor when the process changes
-  # [ ] ignore regular DOWN messages for redirects
   @impl Phoenix.LiveView
-  def handle_cast({:view_changed, new_view}, socket) do
-    IO.inspect(new_view, label: "LiveProfiler view changed")
-    new_phrase = toolbar_text(new_view)
-    {:noreply, assign(socket, route_phrase: new_phrase)}
+  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
+    # TODO:
+    # on :profile join -> monitor process
+    # on :profile DOWN (abnormal) -> emerge errors on the toolbar
+    presences =
+      socket.assigns.token
+      |> Debug.Server.topic()
+      |> Debug.Presence.list()
+      |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
+
+    view_or_nil = Enum.find(presences, &(&1.kind == :profile))
+
+    {:noreply, assign_view(socket, view_or_nil)}
+  end
+
+  defp assign_view(socket, nil), do: socket
+
+  defp assign_view(socket, view) do
+    new_phrase = toolbar_text(socket, view)
+    assign(socket, :route_phrase, new_phrase)
   end
 end

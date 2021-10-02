@@ -80,11 +80,22 @@ defmodule FriendsOfPhoenix.Debug.Server do
     toolbar = Enum.find_value(presences, &if(&1.kind == :toolbar, do: {&1.pid, &1.node}))
     view = Enum.find(presences, &(&1.kind == :profile))
 
+    # TODO: new operation
+    #
+    # :profile presence
+    #   if the view changed, check for toolbar
+    #   yes toolbar -> no-op
+    #   no toolbar -> queue the change
+    #
+    # :toolbar presence
+    #   on join -> send any view changes in the queue
+    #   on leave -> remove toolbar from state
     state =
       state
       |> maybe_put_toolbar(toolbar)
       |> maybe_put_current_view(view)
-      |> maybe_cast_view_changed(view)
+
+    # |> maybe_cast_view_changed(view)
 
     {:noreply, state}
   end
@@ -101,19 +112,6 @@ defmodule FriendsOfPhoenix.Debug.Server do
   defp maybe_put_current_view(state, %{pid: pid} = view) when is_pid(pid) do
     %{state | current_view: view}
   end
-
-  defp maybe_cast_view_changed(
-         %{toolbar: {pid, _}, current_view: %{root_view: rv, phoenix_live_action: pla}} = state,
-         %{root_view: rv, phoenix_live_action: pla} = view
-       ) do
-    if Process.alive?(pid) do
-      GenServer.cast(pid, {:view_changed, view})
-    end
-
-    state
-  end
-
-  defp maybe_cast_view_changed(state, _), do: state
 
   ## Telemetry Handlers
 
