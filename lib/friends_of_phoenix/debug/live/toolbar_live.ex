@@ -8,8 +8,32 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
 
   @impl Phoenix.LiveView
   def mount(_, %{@token_key => token}, socket) do
-    info = Debug.Server.info(token)
-    Debug.track(socket, token, %{kind: :toolbar, pid: self()})
+    socket = assign(socket, :token, token)
+    socket = Debug.track(socket, token, %{kind: :toolbar})
+
+    case Debug.Server.info(token) do
+      {:ok, info} ->
+        assign_toolbar(socket, info)
+
+      {:error, :not_started} ->
+        assign_minimal_toolbar(socket)
+    end
+  end
+
+  defp assign_minimal_toolbar(socket) do
+    # Apply the minimal assigns when the debug server is not started.
+    # Usually this occurs after a node has been restarted and
+    # a request is received for a stale token.
+    {:ok,
+     assign(socket, %{
+       duration: nil,
+       status: nil,
+       route_phrase: "refresh to reconnect (ref:#{socket.assigns.token})",
+       vsn: Application.spec(:phoenix)[:vsn]
+     })}
+  end
+
+  defp assign_toolbar(socket, info) do
     route = route_info(info)
 
     {:ok,
@@ -68,9 +92,9 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   # [ ] unmonitor when the process changes
   # [ ] ignore regular DOWN messages for redirects
   @impl Phoenix.LiveView
-  def handle_call({:view_changed, new_view}, _from, socket) do
+  def handle_cast({:view_changed, new_view}, socket) do
     IO.inspect(new_view, label: "LiveProfiler view changed")
     new_phrase = toolbar_text(new_view)
-    {:reply, :ok, assign(socket, route_phrase: new_phrase)}
+    {:noreply, assign(socket, route_phrase: new_phrase)}
   end
 end

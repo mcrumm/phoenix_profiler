@@ -13,14 +13,17 @@ defmodule FriendsOfPhoenix.Debug do
   def track(%Phoenix.LiveView.Socket{} = socket, token, meta)
       when is_binary(token) and token != "" and is_map(meta) do
     if Phoenix.LiveView.connected?(socket) do
-      Debug.Presence.track(
-        self(),
-        Debug.Server.topic(token),
-        inspect(self()),
-        meta |> Map.put(:node, Node.self()) |> Map.put(:pid, self())
-      )
+      {:ok, ref} =
+        Debug.Presence.track(
+          self(),
+          Debug.Server.topic(token),
+          inspect(self()),
+          meta |> Map.put(:node, Node.self()) |> Map.put(:pid, self())
+        )
+
+      Phoenix.LiveView.assign(socket, :ref, ref)
     else
-      {:error, :not_connected}
+      socket
     end
   end
 

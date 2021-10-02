@@ -35,18 +35,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
         GenServer.call(server, :fophx_debug_info)
 
       _ ->
-        IO.warn("""
-        Tried to retrieve request info for token #{token}, but the server is not running.
-
-        If you are seeing this message after restarting the server in the dev environment,
-        it is likely safe to ignore. Debug processes are ephemeral, so if the server was
-        killed, then you are seeing this warning due to the stale session cookie sent from
-        your browser.
-
-        If the debug toolbar is not rendered, refresh the page to reload.
-        """)
-
-        %{}
+        {:error, :not_started}
     end
   end
 
@@ -71,7 +60,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
 
   @impl GenServer
   def handle_call(:fophx_debug_info, _from, state) do
-    {:reply, state.debug_info, state}
+    {:reply, {:ok, state.debug_info}, state}
   end
 
   @impl GenServer
@@ -95,7 +84,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
       state
       |> maybe_put_toolbar(toolbar)
       |> maybe_put_current_view(view)
-      |> maybe_call_view_changed(view)
+      |> maybe_cast_view_changed(view)
 
     {:noreply, state}
   end
@@ -103,7 +92,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
   defp maybe_put_toolbar(state, nil), do: state
   defp maybe_put_toolbar(%{toolbar: {pid, _}} = state, {pid, _}) when is_pid(pid), do: state
 
-  defp maybe_put_toolbar(%{toolbar: nil} = state, {pid, _} = name) when is_pid(pid) do
+  defp maybe_put_toolbar(state, {pid, _} = name) when is_pid(pid) do
     %{state | toolbar: name}
   end
 
@@ -113,15 +102,18 @@ defmodule FriendsOfPhoenix.Debug.Server do
     %{state | current_view: view}
   end
 
-  defp maybe_call_view_changed(
+  defp maybe_cast_view_changed(
          %{toolbar: {pid, _}, current_view: %{root_view: rv, phoenix_live_action: pla}} = state,
          %{root_view: rv, phoenix_live_action: pla} = view
        ) do
-    :ok = GenServer.call(pid, {:view_changed, view})
+    if Process.alive?(pid) do
+      GenServer.cast(pid, {:view_changed, view})
+    end
+
     state
   end
 
-  defp maybe_call_view_changed(state, _), do: state
+  defp maybe_cast_view_changed(state, _), do: state
 
   ## Telemetry Handlers
 

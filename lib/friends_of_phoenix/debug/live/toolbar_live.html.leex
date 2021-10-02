@@ -1,15 +1,15 @@
 <section id="toolbar">
-  <section class="dbg-btn-group">
+  <section class="dbg-btn-group"><%= if @status do %>
     <button type="button" aria-label="Status" class="dbg-btn status">
       <%= @status.code %>
-    </button>
+    </button><% end %><%= if @route_phrase do %>
     <button type="button" aria-label="Route" class="dbg-btn route">
       <%= @route_phrase %>
-    </button>
+    </button><% end %><%= if @duration do %>
     <button type="button" aria-label="Duration" class="dbg-btn measurement duration">
       <span class="value"><%= @duration.value %></span>
       <span class="unit"><%= @duration.unit %></span>
-    </button>
+    </button><% end %>
   </section>
   <section class="dbg-btn-group dbg-ctrl-group">
     <aside class="dbg-btn logo" aria-hidden="true"></aside>
