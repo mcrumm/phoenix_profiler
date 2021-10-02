@@ -2,7 +2,7 @@ defmodule FriendsOfPhoenix.Debug do
   @moduledoc """
   Debug Toolbar for Phoenix HTML requests.
 
-  ## Goals
+  The debug toolbar seeks to provide the following:
 
   * Reponse data (status code, headers?, session [y|n], etc.)
   * Route/Path - controller/action/view, live_view/live_action, etc.
@@ -11,43 +11,70 @@ defmodule FriendsOfPhoenix.Debug do
   * Debug assigns
   * Debug LiveView crashes
 
-  ### Non-Goals
+  Importantly, the debug package is not:
 
-  * Replace LiveDashboard
-  * Run in production
-  * Multi-node (for now)
+  * Replacing LiveDashboard
+  * Suitable for running in production
+  * Enabled for Multi-node (right now)
 
   ## Getting Started
 
   > Note you must have `Phoenix.LiveView` installed and configured.
 
-  First, add `fophx_debug` to your mix.exs:
+  First, add fophx_debug to your `mix.exs`:
 
-    ```elixir
-    {:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
-    ```
+  ```elixir
+  {:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
+  ```
 
-  Next, add the plug at the bottom of the `if code_reloading? do` block in your Endpoint:
+  Next, add the plug at the bottom of the `if code_reloading? do` block
+  on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
 
-    ```elixir
-    # Code reloading can be explicitly enabled under the
-    # :code_reloader configuration of your endpoint.
-    if code_reloading? do
-      socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
-      plug Phoenix.LiveReloader
-      plug Phoenix.CodeReloader
-      plug Phoenix.Ecto.CheckRepoStatus, otp_app: :hello
-      plug FriendsOfPhoenix.Debug, @session_options # <-- add this
-    end
-    ```
+  ```elixir
+  if code_reloading? do
+    # ...plugs...
+    plug #{inspect(__MODULE__)}, session: @session_options
+  end
+  ```
 
-  Optionally, for LiveView debugging, you can mount [`LiveDebug`](`FriendsOfPhoenix.LiveDebug`).
+  See the Plug Options section of the module docs for more.
 
-    ```elixir
-      if Mix.env() == :dev do
-        on_mount {FriendsOfPhoenix.LiveDebug, __MODULE__}
-      end
-    ```
+  ## LiveView Profiling
+
+  To enable LiveView debugging, add the LiveProfiler plug to the
+  `:browser` pipeline on your Router, typically found in
+  `lib/my_app_web/router.ex`:
+
+  ```elixir
+  pipeline :browser do
+    # ...plugs...
+    if Mix.env() == :dev, do: plug(FriendsOfPhoenix.LiveProfiler)
+  end
+  ```
+
+  ...and mount LiveProfiler on the `:live_view` function in your web module,
+  typically found at `lib/my_app_web.ex`:
+
+  ```elixir
+  # Add this after: use Phoenix.LiveView, ...
+  if Mix.env() == :dev do
+    on_mount {FriendsOfPhoenix.LiveProfiler, __MODULE__}
+  end
+  ```
+
+  See the [`LiveProfiler`](`FriendsOfPhoenix.LiveProfiler`) module docs for more mount options.
+
+  ## Plug Options
+
+  The #{inspect(__MODULE__)} Plug accepts the following options:
+
+    * `:live_socket_path` - The path to the LiveView socket.
+      Defaults to `"/live"`.
+
+    * `:session` - The session key is required and its value must
+      be the same as the options given to `Plug.Session`. If a tuple
+      `{Module, :function, [arg1, arg2, ...]}` is given, it will be invoked
+      at runtime and must return the session options.
 
   """
   import Plug.Conn
@@ -65,22 +92,14 @@ defmodule FriendsOfPhoenix.Debug do
   defdelegate entries(token), to: Debug.Server
 
   @doc false
-  def start_debug_server do
-    token = generate_token()
-
-    {:ok, pid} =
-      DynamicSupervisor.start_child(
-        Debug.DynamicSupervisor,
-        {Debug.Server, [token: token]}
-      )
-
-    Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
-
-    {:ok, token}
+  def start_debug_server(token) do
+    DynamicSupervisor.start_child(
+      Debug.DynamicSupervisor,
+      {Debug.Server, [token: token]}
+    )
   end
 
   @behaviour Plug
-  @config_key :fophx_debug
   @token_key :fophx_debug
   @live_socket_path_default "/live"
 
@@ -99,16 +118,35 @@ defmodule FriendsOfPhoenix.Debug do
   @live_view_js File.read!(live_view_path)
 
   @impl Plug
-  def init(opts), do: Plug.Session.init(opts)
+  def init(opts) do
+    session =
+      case opts[:session] do
+        {m, f, args} = mfa when is_atom(m) and is_atom(f) and is_list(args) -> mfa
+        opts -> Plug.Session.init(opts)
+      end
+
+    iframe_attrs =
+      case opts[:iframe_attrs] do
+        attrs when is_list(attrs) -> attrs
+        _ -> []
+      end
+
+    %{
+      session: session,
+      iframe_attrs: iframe_attrs,
+      live_socket_path: opts[:live_socket_path] || @live_socket_path_default
+    }
+  end
+
+  defp session_options({m, f, args}), do: apply(m, f, args)
+  defp session_options(opts), do: opts
 
   @impl Plug
-  def call(%Plug.Conn{path_info: ["fophx", "debug.js" | _]} = conn, session_opts) do
-    endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(:fophx_debug)
-    url = config[:live_socket_path] || @live_socket_path_default
+  def call(%Plug.Conn{path_info: ["fophx", "debug.js" | _]} = conn, config) do
+    %{live_socket_path: url} = config
 
     conn
-    |> Plug.Session.call(session_opts)
+    |> Plug.Session.call(session_options(config.session))
     |> Plug.Conn.fetch_session()
     |> Phoenix.Controller.protect_from_forgery()
     |> put_resp_content_type("text/html")
@@ -124,13 +162,13 @@ defmodule FriendsOfPhoenix.Debug do
   end
 
   @impl Plug
-  def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, session_opts) do
+  def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, opts) do
     conn = Plug.Conn.fetch_query_params(conn)
     token = conn.params["token"] || raise "token not found in iframe request"
     session = %{to_string(@token_key) => token}
 
     conn
-    |> Plug.Session.call(session_opts)
+    |> Plug.Session.call(session_options(opts.session))
     |> Plug.Conn.fetch_session()
     |> Phoenix.Controller.protect_from_forgery()
     |> Plug.Conn.assign(@token_key, token)
@@ -148,13 +186,13 @@ defmodule FriendsOfPhoenix.Debug do
   end
 
   @impl Plug
-  def call(conn, _) do
+  def call(conn, config) do
     start_time = System.monotonic_time()
     :telemetry.execute([:fophx, :debug, :start], %{system_time: System.system_time()}, %{})
-    endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(@config_key) || []
 
-    before_send_inject_debug_bar(conn, endpoint, start_time, config)
+    conn
+    |> put_private(@token_key, generate_token())
+    |> before_send_inject_debug_bar(conn.private.phoenix_endpoint, start_time, config)
   end
 
   defp before_send_inject_debug_bar(conn, endpoint, start_time, config) do
@@ -163,15 +201,12 @@ defmodule FriendsOfPhoenix.Debug do
         resp_body = IO.iodata_to_binary(conn.resp_body)
 
         if has_body?(resp_body) and :code.is_loaded(endpoint) do
-          {:ok, token} = start_debug_server()
+          token = conn.private.fophx_debug
+          {:ok, pid} = start_debug_server(token)
+          Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
           [page | rest] = String.split(resp_body, "</body>")
           body = [page, debug_assets_tag(conn, endpoint, token, config), "</body>" | rest]
           conn = put_in(conn.resp_body, body)
-
-          conn =
-            conn
-            |> Plug.Conn.put_private(@token_key, token)
-            |> Plug.Conn.put_session(@token_key, token)
 
           duration = System.monotonic_time() - start_time
           :telemetry.execute([:fophx, :debug, :stop], %{duration: duration}, %{conn: conn})
@@ -198,9 +233,8 @@ defmodule FriendsOfPhoenix.Debug do
 
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
-  defp debug_assets_tag(conn, endpoint, token, config) do
-    path =
-      conn.private.phoenix_endpoint.path("/fophx/debug/frame#{suffix(endpoint)}?token=#{token}")
+  defp debug_assets_tag(conn, _endpoint, token, config) do
+    path = conn.private.phoenix_endpoint.path("/fophx/debug/frame?token=#{token}")
 
     attrs =
       Keyword.merge(
@@ -208,7 +242,7 @@ defmodule FriendsOfPhoenix.Debug do
           src: path,
           style: "border:0px none;width:100%;"
         ],
-        Keyword.get(config, :iframe_attrs, [])
+        config.iframe_attrs
       )
 
     IO.iodata_to_binary([
@@ -256,6 +290,4 @@ defmodule FriendsOfPhoenix.Debug do
 
     Base.url_encode64(binary, padding: false)
   end
-
-  defp suffix(endpoint), do: endpoint.config(@config_key)[:suffix] || ""
 end
