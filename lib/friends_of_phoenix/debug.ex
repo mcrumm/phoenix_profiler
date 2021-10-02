@@ -1,82 +1,10 @@
 defmodule FriendsOfPhoenix.Debug do
-  @moduledoc """
-  Debug Toolbar for Phoenix HTML requests.
+  @external_resource "README.md"
+  @moduledoc @external_resource
+             |> File.read!()
+             |> String.split("<!-- MDOC !-->")
+             |> Enum.fetch!(1)
 
-  The debug toolbar seeks to provide the following:
-
-  * Reponse data (status code, headers?, session [y|n], etc.)
-  * Route/Path - controller/action/view, live_view/live_action, etc.
-  * Basic diagnostics - response time, heap size?
-  * Mailer preview
-  * Debug assigns
-  * Debug LiveView crashes
-
-  Importantly, the debug package is not:
-
-  * Replacing LiveDashboard
-  * Suitable for running in production
-  * Enabled for Multi-node (right now)
-
-  ## Getting Started
-
-  > Note you must have `Phoenix.LiveView` installed and configured.
-
-  First, add fophx_debug to your `mix.exs`:
-
-  ```elixir
-  {:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
-  ```
-
-  Next, add the plug at the bottom of the `if code_reloading? do` block
-  on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
-
-  ```elixir
-  if code_reloading? do
-    # ...plugs...
-    plug #{inspect(__MODULE__)}, session: @session_options
-  end
-  ```
-
-  See the Plug Options section of the module docs for more.
-
-  ## LiveView Profiling
-
-  To enable LiveView debugging, add the LiveProfiler plug to the
-  `:browser` pipeline on your Router, typically found in
-  `lib/my_app_web/router.ex`:
-
-  ```elixir
-  pipeline :browser do
-    # ...plugs...
-    if Mix.env() == :dev, do: plug(FriendsOfPhoenix.LiveProfiler)
-  end
-  ```
-
-  ...and mount LiveProfiler on the `:live_view` function in your web module,
-  typically found at `lib/my_app_web.ex`:
-
-  ```elixir
-  # Add this after: use Phoenix.LiveView, ...
-  if Mix.env() == :dev do
-    on_mount {FriendsOfPhoenix.LiveProfiler, __MODULE__}
-  end
-  ```
-
-  See the [`LiveProfiler`](`FriendsOfPhoenix.LiveProfiler`) module docs for more mount options.
-
-  ## Plug Options
-
-  The #{inspect(__MODULE__)} Plug accepts the following options:
-
-    * `:live_socket_path` - The path to the LiveView socket.
-      Defaults to `"/live"`.
-
-    * `:session` - The session key is required and its value must
-      be the same as the options given to `Plug.Session`. If a tuple
-      `{Module, :function, [arg1, arg2, ...]}` is given, it will be invoked
-      at runtime and must return the session options.
-
-  """
   import Plug.Conn
   alias FriendsOfPhoenix.Debug
   require Logger
