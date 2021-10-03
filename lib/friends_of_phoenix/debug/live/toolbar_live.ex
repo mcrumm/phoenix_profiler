@@ -15,38 +15,39 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
       :ok = Phoenix.PubSub.subscribe(Debug.PubSub, Debug.Server.topic(token))
     end
 
-    case Debug.Server.info(token) do
-      {:ok, info} ->
-        assign_toolbar(socket, info)
+    socket =
+      case Debug.Server.info(token) do
+        {:ok, info} ->
+          assign_toolbar(socket, info)
 
-      {:error, :not_started} ->
-        assign_minimal_toolbar(socket)
-    end
+        {:error, :not_started} ->
+          assign_minimal_toolbar(socket)
+      end
+
+    {:ok, assign(socket, :exits, [])}
   end
 
   defp assign_minimal_toolbar(socket) do
     # Apply the minimal assigns when the debug server is not started.
     # Usually this occurs after a node has been restarted and
     # a request is received for a stale token.
-    {:ok,
-     assign(socket, %{
-       duration: nil,
-       status: nil,
-       route_phrase: "refresh to reconnect (ref:#{socket.assigns.token})",
-       vsn: Application.spec(:phoenix)[:vsn]
-     })}
+    assign(socket, %{
+      duration: nil,
+      status: %{code: 0, phrase: "disconnected"},
+      route_phrase: nil,
+      vsn: Application.spec(:phoenix)[:vsn]
+    })
   end
 
   defp assign_toolbar(socket, info) do
     route = route_info(info)
 
-    {:ok,
-     assign(socket, %{
-       duration: duration(info.duration),
-       status: status(info.status),
-       route_phrase: toolbar_text(socket, route),
-       vsn: Application.spec(:phoenix)[:vsn]
-     })}
+    assign(socket, %{
+      duration: duration(info.duration),
+      status: status(info.status),
+      route_phrase: toolbar_text(socket, route),
+      vsn: Application.spec(:phoenix)[:vsn]
+    })
   end
 
   defp route_info(%{host: host, method: method, path_info: path, phoenix_router: router}) do
@@ -106,7 +107,67 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
 
     view_or_nil = Enum.find(presences, &(&1.kind == :profile))
 
+    socket = update_monitor(socket, view_or_nil)
+
     {:noreply, assign_view(socket, view_or_nil)}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info(
+        {:DOWN, ref, _, _pid, {:shutdown, :left}},
+        %{private: %{monitor_ref: ref}} = socket
+      ) do
+    {:noreply, clear_monitor(socket)}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info(
+        {:DOWN, ref, _, _pid, reason},
+        %{private: %{monitor_ref: ref}} = socket
+      ) do
+    exit_reason = {Phoenix.LiveView.Utils.random_id(), Exception.format_exit(reason)}
+    socket = update(socket, :exits, &[exit_reason | &1])
+
+    {:noreply, clear_monitor(socket)}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info(other, socket) do
+    IO.inspect(other, label: "ToolbarLive received an unknown message")
+    {:noreply, socket}
+  end
+
+  defp clear_monitor(%{private: private} = socket) do
+    private = private |> Map.delete(:monitor_ref) |> Map.delete(:lv_pid)
+    %{socket | private: private}
+  end
+
+  defp update_monitor(socket, nil) do
+    socket
+  end
+
+  defp update_monitor(%{private: %{lv_pid: pid}} = socket, %{pid: pid}) do
+    socket
+  end
+
+  defp update_monitor(%{private: %{monitor_ref: ref}} = socket, view) do
+    Process.demonitor(ref)
+    do_monitor_view(socket, view)
+  end
+
+  defp update_monitor(socket, view) do
+    do_monitor_view(socket, view)
+  end
+
+  defp do_monitor_view(socket, %{pid: pid}) do
+    ref = Process.monitor(pid)
+
+    private =
+      socket.private
+      |> Map.put(:monitor_ref, ref)
+      |> Map.put(:lv_pid, pid)
+
+    %{socket | private: private}
   end
 
   defp assign_view(socket, nil), do: socket

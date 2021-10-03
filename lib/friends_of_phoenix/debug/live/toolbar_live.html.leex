@@ -10,6 +10,11 @@
       <span class="value"><%= @duration.value %></span>
       <span class="unit"><%= @duration.unit %></span>
     </button><% end %>
+    <%= unless Enum.empty?(@exits) do %>
+    <button type="button" aria-label="Exits" class="dbg-btn measurement exits">
+      <span class="value"><%= length(@exits) %></span>
+      <span class="unit">exits</span>
+    </button><% end %>
   </section>
   <section class="dbg-btn-group dbg-ctrl-group">
     <aside class="dbg-btn logo" aria-hidden="true"></aside>
@@ -19,3 +24,9 @@
     </button>
   </section>
 </section>
+
+<ul id="exits" style="display:none;" phx-update="append">
+<%= for {ref, reason} <- @exits do %>
+<li id="<%= ref %>"><pre><%= reason %></pre></li>
+<% end %>
+</ul>
