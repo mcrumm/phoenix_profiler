@@ -71,7 +71,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
           {plug, action} -> [inspect(plug), ?\s, inspect(action)]
         end
 
-      %{req | plug: plug, action: inspect(action), plug_action: plug_action}
+      %{req | plug: inspect(plug), action: inspect(action), plug_action: plug_action}
     end)
   end
 
@@ -212,6 +212,6 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   defp assign_view(socket, nil), do: socket
 
   defp assign_view(socket, view) do
-    update_view(socket, route_info(view))
+    update_view(socket, view)
   end
 end

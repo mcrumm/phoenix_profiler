@@ -8,7 +8,7 @@
     <div class="phxweb-toolbar-info">
       <div class="phxweb-toolbar-info-item">
         <b>HTTP Status</b>
-        <span><%= @request.status_code%> <%= @request.status_phrase %></span>
+        <span><%= @request.status_code %> <%= @request.status_phrase %></span>
       </div>
       <div class="phxweb-toolbar-info-item">
         <b>Plug</b>
@@ -29,7 +29,7 @@
       <span class="phxweb-toolbar-label"><%= @duration.label %></span>
     </div>
   </div><% end %><%= unless Enum.empty?(@exits) do %>
-  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-errors" aria-label="Exits">
+  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-exits" aria-label="Exits">
     <div class="phxweb-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -37,7 +37,7 @@
       <span class="phxweb-toolbar-value"><%= @exits_count %></span>
       <span class="phxweb-toolbar-label">exit(s)</span>
     </div>
-    <div class="phxweb-toolbar-info"><%= for {ref, reason} <- @exits do %>
+    <div id="phxweb-toolbar-exits" class="phxweb-toolbar-info" phx-update="append"><%= for {ref, reason} <- @exits do %>
       <div id="<%= ref %>" class="phxweb-toolbar-info-item"><pre><%= reason %></pre></div><% end %>
     </div>
   </div><% end %>
@@ -47,33 +47,40 @@
       <div class="phxweb-toolbar-value"><%= @system.phoenix_version %></div>
     </div>
 
-    <div class="phx-toolbar-info" style="right: 0px;">
-      <div class="phx-toolbar-info-group">
-        <div class="phx-toolbar-info-item">
+    <div class="phxweb-toolbar-info" style="right: 36px;">
+      <div class="phxweb-toolbar-info-group">
+        <div class="phxweb-toolbar-info-item">
           <b>Profiler Token</b>
           <span><%= @token %></span>
         </div>
       </div>
 
-      <div class="phx-toolbar-info-group">
-        <div class="phx-toolbar-info-item">
+
+      <div class="phxweb-toolbar-info-group">
+        <div class="phxweb-toolbar-info-item">
           <b>Elixir Version</b>
           <span><a href="https://hexdocs.pm/elixir/<%= @system.elixir_version %>/"><%= @system.elixir_version %></a></span>
         </div>
-        <div class="phx-toolbar-info-item">
-          <b>OTP Version</b>
-          <span><%= @system.elixir_version %></span>
+        <div class="phxweb-toolbar-info-item">
+          <b>OTP Release</b>
+          <span><%= @system.otp_release %></span>
         </div>
       </div>
 
-      <div class="phx-toolbar-info-group">
-        <div class="phx-toolbar-info-item">
+      <div class="phxweb-toolbar-info-group">
+        <div class="phxweb-toolbar-info-item">
           <b>Resources</b>
-          <span><a href="https://hexdocs.pm/phoenix">Read Phoenix <%= @system.phoenix_version %> Docs</a></span>
+          <span><a href="https://hexdocs.pm/phoenix/<%= @system.phoenix_version %>">Read Phoenix <%= @system.phoenix_version %> Docs</a></span>
         </div>
-        <div class="phx-toolbar-info-item">
+        <div class="phxweb-toolbar-info-item">
           <b>Help</b>
-          <span><a href="https://hexdocs.pm/phoenix/community">Reach out to the Community</a></span>
+          <span><a href="https://hexdocs.pm/phoenix/community.html">Phoenix Community</a></span>
+        </div>
+      </div>
+
+      <div class="phxweb-toolbar-info-group">
+        <div class="phxweb-toolbar-info-item" style="text-align:center;font-size:9px;text-wrap:word-wrap;">
+          <span>The debug toolbar was built with 💜 by <a href="https://twitter.com/mcrumm">@mcrumm</a></span>
         </div>
       </div>
     </div>

@@ -132,8 +132,8 @@ defmodule FriendsOfPhoenix.Debug.View do
       height: var(--size-icon);
     }
 
-    .phxweb-toolbar-block .phxweb-toolbar-icon img,
-    .phxweb-toolbar-block .phxweb-toolbar-icon svg {
+    .phxweb-toolbar-panel .phxweb-toolbar-icon img,
+    .phxweb-toolbar-panel .phxweb-toolbar-icon svg {
       border-width: 0;
       position: relative;
       top: var(--size-2);
@@ -176,10 +176,28 @@ defmodule FriendsOfPhoenix.Debug.View do
       overflow-y: auto;
     }
 
+    .phxweb-toolbar-panel .phxweb-toolbar-info-item {
+      /* this 'border-bottom' trick is needed because 'margin-bottom' doesn't work for table rows */
+      border-bottom: solid transparent 3px;
+      display: table-row;
+    }
+
     .phxweb-toolbar-panel .phxweb-toolbar-info-group {
       margin-bottom: var(--size-1);
       padding-bottom: var(--size-1);
-      border-bottom: var(--size-px) solid var(--oc-color-gray-7);
+      border-bottom: var(--size-px) solid var(--oc-gray-7);
+    }
+
+    .phxweb-toolbar-panel .phxweb-toolbar-info-group:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .phxweb-toolbar-panel .phxweb-toolbar-info-item b {
+      display: table-cell;
+      font-size: 12px;
+      padding: var(--size-1) var(--size-2) var(--size-1) var(--size-0);
     }
 
     div.phxweb-toolbar .phxweb-toolbar-panel .phxweb-toolbar-info-item a {
@@ -218,7 +236,19 @@ defmodule FriendsOfPhoenix.Debug.View do
 
     /***** Panel: Exits *****/
 
+    .phxweb-toolbar-panel.phxweb-toolbar-panel-exits .phxweb-toolbar-label {
+      display: none;
+    }
+
+    .phxweb-toolbar-panel-exits .phxweb-toolbar-info {
+      left: 0;
+      max-width: 100% !important;
+      width: 100%;
+    }
+
     .phxweb-toolbar-panel-exits .phxweb-toolbar-info pre {
+      background-color: var(--oc-gray-8);
+      color: var(--oc-red-9);
       display: block;
       font-family: var(--font-mono);
       white-space: pre;
@@ -234,16 +264,16 @@ defmodule FriendsOfPhoenix.Debug.View do
       margin-top: var(--size-2);
     }
 
-    .phxweb-toolbar-panel-config .phxweb-toolbar-label:before {
-          content: '';
-          display: block;
-          height: var(--size-logo-height);
-          width: var(--size-logo-width);
-          background-size: auto 100%;
-          background-image: var(--logo-phoenix);
-          background-position: right 0;
-          background-repeat: no-repeat;
-      }
+    .phxweb-toolbar .phxweb-toolbar-panel-config .phxweb-toolbar-label:before {
+      content: '';
+      display: block;
+      height: var(--size-logo-height);
+      width: var(--size-logo-width);
+      background-size: auto 100%;
+      background-image: var(--logo-phoenix);
+      background-position: right 0;
+      background-repeat: no-repeat;
+    }
 
     /***** Close Button *****/
 
@@ -277,7 +307,7 @@ defmodule FriendsOfPhoenix.Debug.View do
       }
 
       .phxweb-toolbar-panel .phxweb-toolbar-icon img, .phxweb-toolbar-panel .phxweb-toolbar-icon svg {
-          top: var(--size-2);
+          top: 6px;
       }
 
       .phxweb-toolbar-panel-duration .phxweb-toolbar-icon svg, .phxweb-toolbar-panel-memory .phxweb-toolbar-icon svg {
