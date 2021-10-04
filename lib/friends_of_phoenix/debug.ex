@@ -44,15 +44,6 @@ defmodule FriendsOfPhoenix.Debug do
   """
   def token_key, do: @token_key
 
-  phoenix_path = Application.app_dir(:phoenix, "priv/static/phoenix.js")
-  live_view_path = Application.app_dir(:phoenix_live_view, "priv/static/phoenix_live_view.js")
-
-  @external_resource phoenix_path
-  @external_resource live_view_path
-
-  @phoenix_js File.read!(phoenix_path)
-  @live_view_js File.read!(live_view_path)
-
   @impl Plug
   def init(opts) do
     session =
@@ -61,57 +52,17 @@ defmodule FriendsOfPhoenix.Debug do
         opts -> Plug.Session.init(opts)
       end
 
-    iframe_attrs =
-      case opts[:iframe_attrs] do
+    toolbar_attrs =
+      case opts[:toolbar_attrs] do
         attrs when is_list(attrs) -> attrs
         _ -> []
       end
 
     %{
       session: session,
-      iframe_attrs: iframe_attrs,
+      toolbar_attrs: toolbar_attrs,
       live_socket_path: opts[:live_socket_path] || @live_socket_path_default
     }
-  end
-
-  defp session_options({m, f, args}), do: apply(m, f, args)
-  defp session_options(opts), do: opts
-
-  @impl Plug
-  def call(%Plug.Conn{path_info: ["fophx", "debug.js" | _]} = conn, config) do
-    %{live_socket_path: url} = config
-
-    conn
-    |> Plug.Session.call(session_options(config.session))
-    |> Plug.Conn.fetch_session()
-    |> Phoenix.Controller.protect_from_forgery()
-    |> put_resp_content_type("text/html")
-    |> send_resp(200, [
-      @phoenix_js,
-      @live_view_js,
-      ?\n,
-      ~s<var csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");\n>,
-      ~s<var liveSocket = new LiveView.LiveSocket("#{url}", Phoenix.Socket, { params: { _csrf_token: csrfToken } });\n>,
-      ~s<liveSocket.connect();\n>
-    ])
-    |> halt()
-  end
-
-  @impl Plug
-  def call(%Plug.Conn{path_info: ["fophx", "debug", "frame" | _suffix]} = conn, opts) do
-    conn = Plug.Conn.fetch_query_params(conn)
-    token = conn.params["token"] || raise "token not found in iframe request"
-    session = %{to_string(@token_key) => token}
-
-    conn
-    |> Plug.Session.call(session_options(opts.session))
-    |> Plug.Conn.fetch_session()
-    |> Phoenix.Controller.protect_from_forgery()
-    |> Plug.Conn.assign(@token_key, token)
-    |> Phoenix.Controller.put_root_layout({Debug.View, "root.html"})
-    |> Phoenix.Controller.put_layout({Debug.View, "app.html"})
-    |> Phoenix.LiveView.Controller.live_render(Debug.ToolbarLive, session: session)
-    |> halt()
   end
 
   @impl Plug
@@ -137,17 +88,40 @@ defmodule FriendsOfPhoenix.Debug do
         resp_body = IO.iodata_to_binary(conn.resp_body)
 
         if has_body?(resp_body) and :code.is_loaded(endpoint) do
-          token = conn.private.fophx_debug
-          {:ok, pid} = start_debug_server(token)
-          Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
           [page | rest] = String.split(resp_body, "</body>")
-          body = [page, debug_assets_tag(conn, endpoint, token, config), "</body>" | rest]
-          conn = put_in(conn.resp_body, body)
 
-          duration = System.monotonic_time() - start_time
-          :telemetry.execute([:fophx, :debug, :stop], %{duration: duration}, %{conn: conn})
+          token = conn.private.fophx_debug
 
-          conn
+          with {:ok, pid} <- start_debug_server(token) do
+            Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
+
+            duration = System.monotonic_time() - start_time
+
+            info =
+              conn.private
+              |> Map.take([
+                :phoenix_action,
+                :phoenix_controller,
+                :phoenix_endpoint,
+                :phoenix_router,
+                :phoenix_view
+              ])
+              |> Map.put(:host, conn.host)
+              |> Map.put(:method, conn.method)
+              |> Map.put(:path_info, conn.path_info)
+              |> Map.put(:status, conn.status)
+              |> Map.put(:duration, duration)
+
+            :ok = GenServer.call(pid, {:put_debug_info, info})
+
+            body = [page, debug_assets_tag(conn, endpoint, token, config), "</body>" | rest]
+            conn = put_in(conn.resp_body, body)
+
+            conn
+          else
+            _ ->
+              conn
+          end
         else
           conn
         end
@@ -170,24 +144,24 @@ defmodule FriendsOfPhoenix.Debug do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_assets_tag(conn, _endpoint, token, config) do
-    path = conn.private.phoenix_endpoint.path("/fophx/debug/frame?token=#{token}")
-
     attrs =
       Keyword.merge(
-        [
-          src: path,
-          style: "border:0px none;width:100%;"
-        ],
-        config.iframe_attrs
+        config.toolbar_attrs,
+        id: "pwdt#{token}",
+        class: "phxweb-toolbar",
+        role: "region",
+        name: "Phoenix Web Debug Toolbar"
       )
 
-    IO.iodata_to_binary([
-      ~s[<div style="left: 0px; border: 0px none; height: 44px; position: fixed; width: 100%; bottom: 0px;">],
-      "<iframe",
-      attrs(attrs),
-      "></iframe>",
-      "</div>"
-    ])
+    Debug.View
+    |> Phoenix.View.render("toolbar.html", %{
+      conn: conn,
+      session: %{to_string(@token_key) => token},
+      token: token,
+      toolbar_attrs: attrs(attrs)
+    })
+    |> Phoenix.HTML.Safe.to_iodata()
+    |> IO.iodata_to_binary()
   end
 
   defp attrs(attrs) do

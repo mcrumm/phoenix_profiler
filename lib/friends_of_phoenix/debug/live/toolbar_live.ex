@@ -1,7 +1,7 @@
 defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   # The LiveView for the Debug Toolbar
   @moduledoc false
-  use Phoenix.LiveView, container: {:main, class: "fophx-dbg"}
+  use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
   alias FriendsOfPhoenix.Debug
 
   @token_key "fophx_debug"
@@ -24,7 +24,8 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
           assign_minimal_toolbar(socket)
       end
 
-    {:ok, assign(socket, :exits, [])}
+    {:ok, assign(socket, display: "block", exits: [], exits_count: 0, system: system()),
+     temporary_assigns: [exits: []]}
   end
 
   defp assign_minimal_toolbar(socket) do
@@ -33,65 +34,99 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
     # a request is received for a stale token.
     assign(socket, %{
       duration: nil,
-      status: %{code: 0, phrase: "disconnected"},
-      route_phrase: nil,
-      vsn: Application.spec(:phoenix)[:vsn]
+      request: %{
+        class: "disconnected",
+        status_code: ":|",
+        status_phrase: "Toolbar Disconnected",
+        plug: "n/a",
+        action: "n/a",
+        plug_action: "n/a"
+      }
     })
   end
 
   defp assign_toolbar(socket, info) do
-    route = route_info(info)
+    socket
+    |> apply_request(info)
+    |> update_view(route_info(info))
+    |> assign(:duration, duration(info.duration))
+  end
 
-    assign(socket, %{
-      duration: duration(info.duration),
-      status: status(info.status),
-      route_phrase: toolbar_text(socket, route),
-      vsn: Application.spec(:phoenix)[:vsn]
+  defp apply_request(socket, %{status: status}) do
+    assign(socket, :request, %{
+      class: request_class(status),
+      plug: nil,
+      action: nil,
+      plug_action: nil,
+      status_code: status,
+      status_phrase: Plug.Conn.Status.reason_phrase(status)
     })
   end
+
+  defp update_view(socket, route) do
+    update(socket, :request, fn req ->
+      plug_action =
+        case {plug, action} = plug_action(route) do
+          {nil, nil} -> "???"
+          {plug, action} -> [inspect(plug), ?\s, inspect(action)]
+        end
+
+      %{req | plug: plug, action: inspect(action), plug_action: plug_action}
+    end)
+  end
+
+  defp route_info(info) when map_size(info) == 0, do: %{}
 
   defp route_info(%{host: host, method: method, path_info: path, phoenix_router: router}) do
     Phoenix.Router.route_info(router, method, path, host)
   end
 
   # From LiveProfiler presence
-  defp toolbar_text(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
-    [inspect(lv), ?\s, inspect(action)]
+  defp plug_action(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
+    {lv, action}
   end
 
-  defp toolbar_text(%{phoenix_live_view: {lv, _, _opts, _meta}, plug_opts: action})
+  defp plug_action(%{phoenix_live_view: {lv, _, _opts, _meta}, plug_opts: action})
        when is_atom(lv) and is_atom(action) do
-    [inspect(lv), ?\s, inspect(action)]
+    {lv, action}
   end
 
-  defp toolbar_text(%{plug: controller, plug_opts: action}) when is_atom(action) do
-    [inspect(controller), ?\s, inspect(action)]
+  defp plug_action(%{plug: controller, plug_opts: action}) when is_atom(action) do
+    {controller, action}
   end
 
-  defp toolbar_text(other) do
-    IO.inspect(other, label: "unknown data for toolbar_text/1")
-    ??
-  end
-
-  defp toolbar_text(%Phoenix.LiveView.Socket{} = socket, view) do
-    toolbar_text(view) ++ [?\s, socket.assigns.token]
+  defp plug_action(other) do
+    IO.warn(other, label: "unknown data for plug_action/1")
+    {nil, nil}
   end
 
   defp duration(duration) do
     duration = System.convert_time_unit(duration, :native, :microsecond)
 
-    {value, unit} =
-      if duration > 1000 do
-        {duration |> div(1000) |> Integer.to_string(), "ms"}
-      else
-        {Integer.to_string(duration), "µs"}
-      end
-
-    %{value: value, unit: unit}
+    if duration > 1000 do
+      value = duration |> div(1000) |> Integer.to_string()
+      %{value: value, label: "ms", phrase: "#{value} milliseconds"}
+    else
+      value = Integer.to_string(duration)
+      %{value: value, label: "µs", phrase: "#{value} microseconds"}
+    end
   end
 
-  defp status(status_code) do
-    %{code: status_code, phrase: Plug.Conn.Status.reason_phrase(status_code)}
+  defp request_class(code) when is_integer(code) do
+    case code do
+      code when code >= 200 and code < 300 -> :green
+      code when code >= 400 and code < 500 -> :yello
+      code when code >= 500 and code < 600 -> :red
+      _ -> nil
+    end
+  end
+
+  defp system do
+    %{
+      elixir_version: System.version(),
+      phoenix_version: Application.spec(:phoenix)[:vsn],
+      otp_release: System.otp_release()
+    }
   end
 
   @impl Phoenix.LiveView
@@ -126,7 +161,11 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
         %{private: %{monitor_ref: ref}} = socket
       ) do
     exit_reason = {Phoenix.LiveView.Utils.random_id(), Exception.format_exit(reason)}
-    socket = update(socket, :exits, &[exit_reason | &1])
+
+    socket =
+      socket
+      |> update(:exits, &[exit_reason | &1])
+      |> update(:exits_count, &(&1 + 1))
 
     {:noreply, clear_monitor(socket)}
   end
@@ -173,7 +212,6 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   defp assign_view(socket, nil), do: socket
 
   defp assign_view(socket, view) do
-    new_phrase = toolbar_text(socket, view)
-    assign(socket, :route_phrase, new_phrase)
+    update_view(socket, route_info(view))
   end
 end
