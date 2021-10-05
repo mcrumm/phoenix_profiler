@@ -150,7 +150,8 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
       elixir_version: System.version(),
       phoenix_version: Application.spec(:phoenix)[:vsn],
       live_view_version: Application.spec(:phoenix_live_view)[:vsn],
-      otp_release: System.otp_release()
+      otp_release: System.otp_release(),
+      toolbar_version: Application.spec(:fophx_debug)[:vsn]
     }
   end
 
