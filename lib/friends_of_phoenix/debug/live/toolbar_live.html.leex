@@ -1,7 +1,7 @@
 <div class="phxweb-toolbar-container" style="display: <%= @display %>">
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-request" aria-label="Status, <%= @request.status_phrase %>">
     <div class="phxweb-toolbar-icon">
-      <span class="phxweb-toolbar-status <%= @request.class %>"><%= @request.status_code %></span>
+      <span class="phxweb-toolbar-status phxweb-toolbar-status-<%= @request.class %>"><%= @request.status_code %></span>
       <span class="phxweb-toolbar-label"> @</span>
       <span class="phxweb-toolbar-value"><%= @request.plug_action %></span>
     </div>
@@ -27,6 +27,12 @@
       </svg>
       <span class="phxweb-toolbar-value"><%= @duration.value %></span>
       <span class="phxweb-toolbar-label"><%= @duration.label %></span>
+    </div>
+    <div class="phxweb-toolbar-info">
+      <div class="phxweb-toolbar-info-item">
+        <b>Endpoint Duration</b>
+        <span><%= @duration.value %> <%= @duration.label %></span>
+      </div>
     </div>
   </div><% end %><%= unless Enum.empty?(@exits) do %>
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-exits" aria-label="Exits">
@@ -77,10 +83,10 @@
           <span><a href="https://hexdocs.pm/phoenix/community.html">Phoenix Community</a></span>
         </div>
       </div>
-
       <div class="phxweb-toolbar-info-group">
-        <div class="phxweb-toolbar-info-item" style="text-align:center;font-size:9px;text-wrap:word-wrap;">
-          <span>The debug toolbar was built with 💜 by <a href="https://twitter.com/mcrumm">@mcrumm</a></span>
+        <div class="phxweb-toolbar-info-item">
+          <b>Built with 💜 by</b>
+          <span><a href="https://twitter.com/mcrumm" style="text-decoration:none;">@mcrumm</a></span>
         </div>
       </div>
     </div>

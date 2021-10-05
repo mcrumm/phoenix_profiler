@@ -115,7 +115,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   defp request_class(code) when is_integer(code) do
     case code do
       code when code >= 200 and code < 300 -> :green
-      code when code >= 400 and code < 500 -> :yello
+      code when code >= 400 and code < 500 -> :yellow
       code when code >= 500 and code < 600 -> :red
       _ -> nil
     end
