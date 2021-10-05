@@ -7,7 +7,7 @@ defmodule PhoenixWeb.Debug.MixProject do
     [
       app: :phoenix_web_debug,
       version: @version,
-      elixir: "~> 1.12",
+      elixir: "~> 1.10",
       package: package(),
       deps: deps(),
       docs: docs()
