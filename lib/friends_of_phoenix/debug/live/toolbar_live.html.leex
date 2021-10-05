@@ -7,12 +7,14 @@
       </svg>
       <% _ -> %><%= @request.status_code %><% end %>
       </span>
+      <%= if @request.plug_action do %>
       <span class="phxweb-toolbar-label"> @</span>
       <span class="phxweb-toolbar-value"><%= @request.plug_action %></span>
+      <% end %>
     </div>
     <div class="phxweb-toolbar-info">
       <div class="phxweb-toolbar-info-item">
-        <b>HTTP Status</b>
+        <b>HTTP status</b>
         <span><%= @request.status_code %> <%= @request.status_phrase %></span>
       </div>
       <div class="phxweb-toolbar-info-item">
@@ -20,7 +22,7 @@
         <span><%= @request.plug %></span>
       </div>
       <div class="phxweb-toolbar-info-item">
-        <b>Action</b>
+        <b>Route action</b>
         <span><%= @request.action %></span>
       </div>
     </div>

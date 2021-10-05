@@ -7,7 +7,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   @token_key "fophx_debug"
 
   @impl Phoenix.LiveView
-  def mount(_, %{@token_key => token}, socket) do
+  def mount(_, %{@token_key => token}, %{private: private} = socket) do
     socket = assign(socket, :token, token)
     socket = Debug.track(socket, token, %{kind: :toolbar})
 
@@ -18,6 +18,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
     socket =
       case Debug.Server.info(token) do
         {:ok, info} ->
+          socket = %{socket | private: Map.put(private, :debuginfo, info)}
           assign_toolbar(socket, info)
 
         {:error, :not_started} ->
@@ -65,13 +66,30 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
 
   defp update_view(socket, route) do
     update(socket, :request, fn req ->
-      plug_action =
-        case {plug, action} = plug_action(route) do
-          {nil, nil} -> "???"
-          {plug, action} -> [inspect(plug), ?\s, inspect(action)]
+      {plug, action} = plug_action = plug_action(route)
+
+      short_name =
+        case plug_action do
+          {nil, nil} ->
+            nil
+
+          {plug, action} ->
+            plug_parts = Module.split(plug)
+
+            prefix =
+              socket.private.debuginfo.phoenix_router
+              |> Module.split()
+              |> Enum.reverse()
+              |> tl()
+              |> Enum.reverse()
+
+            # Builds the string "Plug :action"
+            # Attempts to remove the module path shared with the
+            # corresponding Phoenix Router.
+            (plug_parts -- prefix) ++ [?\s, inspect(action)]
         end
 
-      %{req | plug: inspect(plug), action: inspect(action), plug_action: plug_action}
+      %{req | plug: inspect(plug), action: inspect(action), plug_action: short_name}
     end)
   end
 
@@ -96,7 +114,13 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   end
 
   defp plug_action(other) do
-    IO.warn(other, label: "unknown data for plug_action/1")
+    IO.warn("""
+    unknown data for plug action, got:
+
+        #{inspect(other)}
+
+    """)
+
     {nil, nil}
   end
 
@@ -115,7 +139,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
   defp request_class(code) when is_integer(code) do
     case code do
       code when code >= 200 and code < 300 -> :green
-      code when code >= 400 and code < 500 -> :yellow
+      code when code >= 400 and code < 500 -> :red
       code when code >= 500 and code < 600 -> :red
       _ -> nil
     end
