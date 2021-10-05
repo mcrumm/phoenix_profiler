@@ -38,9 +38,9 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
       request: %{
         class: "disconnected",
         status_code: ":|",
-        status_phrase: "Toolbar Disconnected",
-        plug: nil,
-        action: nil,
+        status_phrase: "No Debug Session (refresh)",
+        plug: "n/a",
+        action: "n/a",
         plug_action: nil
       }
     })
