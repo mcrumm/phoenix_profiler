@@ -46,12 +46,6 @@ defmodule PhoenixWeb.Debug do
 
   @impl Plug
   def init(opts) do
-    session =
-      case opts[:session] do
-        {m, f, args} = mfa when is_atom(m) and is_atom(f) and is_list(args) -> mfa
-        opts -> Plug.Session.init(opts)
-      end
-
     toolbar_attrs =
       case opts[:toolbar_attrs] do
         attrs when is_list(attrs) -> attrs
@@ -59,7 +53,6 @@ defmodule PhoenixWeb.Debug do
       end
 
     %{
-      session: session,
       toolbar_attrs: toolbar_attrs,
       live_socket_path: opts[:live_socket_path] || @live_socket_path_default
     }

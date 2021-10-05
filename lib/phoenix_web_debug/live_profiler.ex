@@ -8,7 +8,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   ```elixir
   pipeline :browser do
-    # ...plugs...
+    # plugs...
     if Mix.env() == :dev do
       plug PhoenixWeb.LiveProfiler
     end
@@ -79,7 +79,7 @@ defmodule PhoenixWeb.LiveProfiler do
   def mount(params, session, socket) do
     {:cont, socket} = MyLiveProfiler.on_mount(__MODULE__, params, session, socket)
 
-    # ...mount...
+    # mount...
 
     {:ok, socket}
   end

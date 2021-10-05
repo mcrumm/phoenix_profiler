@@ -1,26 +1,21 @@
 # PhoenixWeb.Debug
 
 <!-- MDOC !-->
-The Debug Toolbar for Phoenix HTML requests.
+Provides a **development tool** that gives detailed information about the execution of any request.
 
-The toolbar seeks to provide the following:
+## Built-in Features
 
-* Response data (status code, headers?, session [y|n], etc.)
-* Route/Path - controller/action/view, live_view/live_action, etc.
-* Basic diagnostics - response time, heap size?
-* Mailer preview
-* Debug assigns
-* Debug LiveView crashes
+* HTTP Response metadata - status code, endpoint, router, controller/action, live_view/live_action, etc.
 
-Importantly, the debug package is not:
+* Basic diagnostics - response time, heap size (todo)
 
-* Replacing LiveDashboard
-* Suitable for running in production
+* Inspect LiveView crashes
+
+* Debug assigns (TODO)
+
+* Mailer preview shortcut (TODO)
 
 ## Installation
-
-> Note you must complete the [Phoenix LiveView installation](https://hexdocs.pm/phoenix_live_view/installation.html) before
-> installing the Debug package.
 
 Add phoenix_web_debug to your `mix.exs`:
 
@@ -35,8 +30,8 @@ on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
 
 ```elixir
 if code_reloading? do
-  # ...plugs...
-  plug PhoenixWeb.Debug, session: @session_options
+  # plugs...
+  plug PhoenixWeb.Debug
 end
 ```
 
@@ -44,15 +39,10 @@ end
 
 All configuration is done on the Plug. The following options are available:
 
-* `:session` - Required. The value must be the same as the
-  options given to `Plug.Session`. When given a tuple
-  `{Module, :function, [arg1, arg2, ...]}`, it will be invoked
-  at runtime and must return valid session options.
-
 * `:live_socket_path` - The path to the LiveView socket.
   Defaults to `"/live"`.
 
-* `:toolbar_attrs` - HTML attributes to be given to the iframe
+* `:toolbar_attrs` - HTML attributes to be given to the element
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
@@ -64,20 +54,43 @@ To enable LiveView debugging, add the LiveProfiler plug to the
 
 ```elixir
 pipeline :browser do
-  # ...plugs...
+  # plugs...
   if Mix.env() == :dev do
     plug PhoenixWeb.LiveProfiler
   end
 end
 ```
 
-...and mount LiveProfiler on the `:live_view` function in your web module,
-typically found at `lib/my_app_web.ex`:
+...and mount LiveProfiler for LiveView the `live_view` function in your web module,
+typically found at `lib/my_app_web.ex`.
+
+For example, if your `live_view` function looks like this:
 
 ```elixir
-# Add this after: use Phoenix.LiveView, ...
-if Mix.env() == :dev do
-  on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {HelloWeb.LayoutView, "live.html"}
+
+      unquote(view_helpers())
+    end
+  end
+```
+
+Change the function to:
+
+```elixir
+def live_view do
+  quote do
+    use Phoenix.LiveView,
+      layout: {HelloWeb.LayoutView, "live.html"}
+
+    if Mix.env() == :dev do
+      on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
+    end
+
+    unquote(view_helpers())
+  end
 end
 ```
 
