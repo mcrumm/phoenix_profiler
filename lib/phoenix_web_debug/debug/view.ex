@@ -1,10 +1,10 @@
-defmodule FriendsOfPhoenix.Debug.View do
+defmodule PhoenixWeb.Debug.View do
   # Acts as a View for toolbar layout rendering
   @moduledoc false
   import Phoenix.LiveView.Helpers
-  alias FriendsOfPhoenix.Debug
+  alias PhoenixWeb.Debug
 
-  toolbar_css_path = Application.app_dir(:fophx_debug, "priv/static/toolbar.css")
+  toolbar_css_path = Application.app_dir(:phoenix_web_debug, "priv/static/toolbar.css")
   @external_resource toolbar_css_path
 
   @toolbar_css File.read!(toolbar_css_path)

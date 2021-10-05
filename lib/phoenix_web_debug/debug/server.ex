@@ -1,8 +1,8 @@
-defmodule FriendsOfPhoenix.Debug.Server do
+defmodule PhoenixWeb.Debug.Server do
   # Debug server store info for the toolbar
   @moduledoc false
   use GenServer, restart: :temporary
-  alias FriendsOfPhoenix.Debug
+  alias PhoenixWeb.Debug
   alias Phoenix.PubSub
   alias Phoenix.Socket.Broadcast
 
@@ -23,7 +23,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
   Returns the `Debug.PubSub` topic for the given `token`.
   """
   def topic(token) when is_binary(token) and token != "" do
-    "fophx_debug:#{token}"
+    "#{@token_key}:#{token}"
   end
 
   @doc """
@@ -32,7 +32,7 @@ defmodule FriendsOfPhoenix.Debug.Server do
   def info(token) do
     case Process.whereis(server_name(token)) do
       server when is_pid(server) ->
-        GenServer.call(server, :fophx_debug_info)
+        GenServer.call(server, :fetch_debug_info)
 
       _ ->
         {:error, :not_started}
@@ -44,22 +44,11 @@ defmodule FriendsOfPhoenix.Debug.Server do
   @impl GenServer
   def init(token) do
     :ok = PubSub.subscribe(Debug.PubSub, topic(token))
-
-    :ok =
-      :telemetry.attach(
-        {Debug, token},
-        [:fophx, :debug, :stop],
-        &__MODULE__.__handle_event__/4,
-        %{
-          token: token
-        }
-      )
-
     {:ok, %{token: token, debug_info: %{}, toolbar: nil, current_view: nil}}
   end
 
   @impl GenServer
-  def handle_call(:fophx_debug_info, _from, state) do
+  def handle_call(:fetch_debug_info, _from, state) do
     {:reply, {:ok, state.debug_info}, state}
   end
 
@@ -95,8 +84,6 @@ defmodule FriendsOfPhoenix.Debug.Server do
       |> maybe_put_toolbar(toolbar)
       |> maybe_put_current_view(view)
 
-    # |> maybe_cast_view_changed(view)
-
     {:noreply, state}
   end
 
@@ -112,36 +99,4 @@ defmodule FriendsOfPhoenix.Debug.Server do
   defp maybe_put_current_view(state, %{pid: pid} = view) when is_pid(pid) do
     %{state | current_view: view}
   end
-
-  ## Telemetry Handlers
-
-  @doc false
-  def __handle_event__(
-        [:fophx, :debug, :stop],
-        %{duration: duration},
-        %{conn: %{private: %{@token_key => token}} = conn},
-        %{token: token}
-      ) do
-    info =
-      conn.private
-      |> Map.take([
-        :phoenix_action,
-        :phoenix_controller,
-        :phoenix_endpoint,
-        :phoenix_router,
-        :phoenix_view
-      ])
-      |> Map.put(:host, conn.host)
-      |> Map.put(:method, conn.method)
-      |> Map.put(:path_info, conn.path_info)
-      |> Map.put(:status, conn.status)
-      |> Map.put(:duration, duration)
-
-    case Process.whereis(server_name(token)) do
-      pid when is_pid(pid) -> GenServer.call(pid, {:put_debug_info, info})
-      _ -> :ok
-    end
-  end
-
-  def __handle_event__(_, _, _, _), do: :ok
 end

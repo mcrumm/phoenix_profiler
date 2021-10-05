@@ -1,10 +1,10 @@
-defmodule FriendsOfPhoenix.Debug.ToolbarLive do
+defmodule PhoenixWeb.Debug.ToolbarLive do
   # The LiveView for the Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias FriendsOfPhoenix.Debug
+  alias PhoenixWeb.Debug
 
-  @token_key "fophx_debug"
+  @token_key "pwdt"
 
   @impl Phoenix.LiveView
   def mount(_, %{@token_key => token}, %{private: private} = socket) do
@@ -151,7 +151,7 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
       phoenix_version: Application.spec(:phoenix)[:vsn],
       live_view_version: Application.spec(:phoenix_live_view)[:vsn],
       otp_release: System.otp_release(),
-      toolbar_version: Application.spec(:fophx_debug)[:vsn]
+      toolbar_version: Application.spec(:phoenix_web_debug)[:vsn]
     }
   end
 

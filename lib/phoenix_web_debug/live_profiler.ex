@@ -1,4 +1,4 @@
-defmodule FriendsOfPhoenix.LiveProfiler do
+defmodule PhoenixWeb.LiveProfiler do
   @moduledoc """
   Interactive profiler for LiveView processes.
 
@@ -10,7 +10,7 @@ defmodule FriendsOfPhoenix.LiveProfiler do
   pipeline :browser do
     # ...plugs...
     if Mix.env() == :dev do
-      plug FriendsOfPhoenix.LiveProfiler
+      plug PhoenixWeb.LiveProfiler
     end
   end
   ```
@@ -87,12 +87,12 @@ defmodule FriendsOfPhoenix.LiveProfiler do
 
   """
   import Phoenix.LiveView
-  alias FriendsOfPhoenix.Debug
+  alias PhoenixWeb.Debug
 
   @behaviour Plug
 
-  @private_key :fophx_debug
-  @session_key "fophx_debug"
+  @private_key :pwdt
+  @session_key Atom.to_string(@private_key)
 
   @impl Plug
   def init(opts), do: opts

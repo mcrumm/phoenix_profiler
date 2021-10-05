@@ -1,4 +1,4 @@
-# FriendsOfPhoenix.Debug
+# PhoenixWeb.Debug
 
 <!-- MDOC !-->
 The Debug Toolbar for Phoenix HTML requests.
@@ -22,10 +22,10 @@ Importantly, the debug package is not:
 > Note you must complete the [Phoenix LiveView installation](https://hexdocs.pm/phoenix_live_view/installation.html) before
 > installing the Debug package.
 
-Add fophx_debug to your `mix.exs`:
+Add phoenix_web_debug to your `mix.exs`:
 
 ```elixir
-{:fophx_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
+{:phoenix_web_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
 ```
 
 ## Usage
@@ -36,7 +36,7 @@ on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
 ```elixir
 if code_reloading? do
   # ...plugs...
-  plug FriendsOfPhoenix.Debug, session: @session_options
+  plug PhoenixWeb.Debug, session: @session_options
 end
 ```
 
@@ -66,7 +66,7 @@ To enable LiveView debugging, add the LiveProfiler plug to the
 pipeline :browser do
   # ...plugs...
   if Mix.env() == :dev do
-    plug FriendsOfPhoenix.LiveProfiler
+    plug PhoenixWeb.LiveProfiler
   end
 end
 ```
@@ -77,11 +77,11 @@ typically found at `lib/my_app_web.ex`:
 ```elixir
 # Add this after: use Phoenix.LiveView, ...
 if Mix.env() == :dev do
-  on_mount {FriendsOfPhoenix.LiveProfiler, __MODULE__}
+  on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
 end
 ```
 
-See the [`LiveProfiler`](`FriendsOfPhoenix.LiveProfiler`) module docs for more mount options.
+See the [`LiveProfiler`](`PhoenixWeb.LiveProfiler`) module docs for more mount options.
 
 <!-- MDOC !-->
 

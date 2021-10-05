@@ -1,8 +1,8 @@
-defmodule FriendsOfPhoenix.Debug.Application do
+defmodule PhoenixWeb.Debug.Application do
   @moduledoc false
 
   use Application
-  alias FriendsOfPhoenix.Debug
+  alias PhoenixWeb.Debug
 
   @impl true
   def start(_type, _args) do

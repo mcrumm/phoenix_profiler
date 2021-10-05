@@ -1,11 +1,11 @@
-defmodule FriendsOfPhoenix.Debug.MixProject do
+defmodule PhoenixWeb.Debug.MixProject do
   use Mix.Project
 
   @version "0.1.0"
 
   def project do
     [
-      app: :fophx_debug,
+      app: :phoenix_web_debug,
       version: @version,
       elixir: "~> 1.12",
       package: package(),
@@ -17,7 +17,7 @@ defmodule FriendsOfPhoenix.Debug.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {FriendsOfPhoenix.Debug.Application, []}
+      mod: {PhoenixWeb.Debug.Application, []}
     ]
   end
 
@@ -32,10 +32,9 @@ defmodule FriendsOfPhoenix.Debug.MixProject do
 
   defp docs do
     [
-      main: "FriendsOfPhoenix.Debug",
+      main: "PhoenixWeb.Debug",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/mcrumm/debug",
-      nest_modules_by_prefix: [FriendsOfPhoenix]
+      source_url: "https://github.com/mcrumm/phoenix_web_debug"
     ]
   end
 
@@ -43,8 +42,8 @@ defmodule FriendsOfPhoenix.Debug.MixProject do
     [
       maintainers: ["Michael Allen Crumm Jr."],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/mcrumm/debug"},
-      files: ~w(lib CHANGELOG.md LICENSE mix.exs README.md)
+      links: %{github: "https://github.com/mcrumm/phoenix_web_debug"},
+      files: ~w(lib priv CHANGELOG.md LICENSE mix.exs README.md)
     ]
   end
 end

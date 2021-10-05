@@ -1,4 +1,4 @@
-defmodule FriendsOfPhoenix.Debug do
+defmodule PhoenixWeb.Debug do
   @external_resource "README.md"
   @moduledoc @external_resource
              |> File.read!()
@@ -6,7 +6,7 @@ defmodule FriendsOfPhoenix.Debug do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias FriendsOfPhoenix.Debug
+  alias PhoenixWeb.Debug
   require Logger
 
   @doc false
@@ -36,7 +36,7 @@ defmodule FriendsOfPhoenix.Debug do
   end
 
   @behaviour Plug
-  @token_key :fophx_debug
+  @token_key :pwdt
   @live_socket_path_default "/live"
 
   @doc """
@@ -75,7 +75,6 @@ defmodule FriendsOfPhoenix.Debug do
   @impl Plug
   def call(conn, config) do
     start_time = System.monotonic_time()
-    :telemetry.execute([:fophx, :debug, :start], %{system_time: System.system_time()}, %{})
 
     conn
     |> put_private(@token_key, generate_token())
@@ -89,8 +88,7 @@ defmodule FriendsOfPhoenix.Debug do
 
         if has_body?(resp_body) and :code.is_loaded(endpoint) do
           [page | rest] = String.split(resp_body, "</body>")
-
-          token = conn.private.fophx_debug
+          token = conn.private[@token_key]
 
           with {:ok, pid} <- start_debug_server(token) do
             Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
