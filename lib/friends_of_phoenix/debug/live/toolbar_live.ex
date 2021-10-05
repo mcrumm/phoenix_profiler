@@ -38,9 +38,9 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
         class: "disconnected",
         status_code: ":|",
         status_phrase: "Toolbar Disconnected",
-        plug: "n/a",
-        action: "n/a",
-        plug_action: "n/a"
+        plug: nil,
+        action: nil,
+        plug_action: nil
       }
     })
   end
@@ -160,7 +160,11 @@ defmodule FriendsOfPhoenix.Debug.ToolbarLive do
         {:DOWN, ref, _, _pid, reason},
         %{private: %{monitor_ref: ref}} = socket
       ) do
-    exit_reason = {Phoenix.LiveView.Utils.random_id(), Exception.format_exit(reason)}
+    exit_reason = %{
+      ref: Phoenix.LiveView.Utils.random_id(),
+      reason: Exception.format_exit(reason),
+      at: Time.utc_now() |> Time.truncate(:second)
+    }
 
     socket =
       socket

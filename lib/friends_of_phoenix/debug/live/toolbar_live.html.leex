@@ -1,7 +1,12 @@
 <div class="phxweb-toolbar-container" style="display: <%= @display %>">
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-request" aria-label="Status, <%= @request.status_phrase %>">
     <div class="phxweb-toolbar-icon">
-      <span class="phxweb-toolbar-status phxweb-toolbar-status-<%= @request.class %>"><%= @request.status_code %></span>
+      <span class="phxweb-toolbar-status phxweb-toolbar-status-<%= @request.class %>"><%= case @request.status_code do %>
+      <%= ":|" -> %><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clip-rule="evenodd" />
+      </svg>
+      <% _ -> %><%= @request.status_code %><% end %>
+      </span>
       <span class="phxweb-toolbar-label"> @</span>
       <span class="phxweb-toolbar-value"><%= @request.plug_action %></span>
     </div>
@@ -22,8 +27,8 @@
   </div><%= if @duration do %>
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-duration" aria-label="Duration, <%= @duration.phrase %>">
     <div class="phxweb-toolbar-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
       </svg>
       <span class="phxweb-toolbar-value"><%= @duration.value %></span>
       <span class="phxweb-toolbar-label"><%= @duration.label %></span>
@@ -35,16 +40,20 @@
       </div>
     </div>
   </div><% end %><%= unless Enum.empty?(@exits) do %>
-  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-exits" aria-label="Exits">
+  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-exits phxweb-toolbar-status-red" aria-label="Exits">
     <div class="phxweb-toolbar-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
       </svg>
       <span class="phxweb-toolbar-value"><%= @exits_count %></span>
-      <span class="phxweb-toolbar-label">exit(s)</span>
     </div>
-    <div id="phxweb-toolbar-exits" class="phxweb-toolbar-info" phx-update="append"><%= for {ref, reason} <- @exits do %>
-      <div id="<%= ref %>" class="phxweb-toolbar-info-item"><pre><%= reason %></pre></div><% end %>
+    <div class="phxweb-toolbar-info">
+      <div id="phxweb-toolbar-exits" class="phxweb-toolbar-info-group" phx-update="prepend"><%= for %{at: at, ref: ref, reason: reason} <- @exits do %>
+        <div id="<%= ref %>" class="phxweb-toolbar-info-item">
+          <b><%= at %></b>
+          <span><pre><%= reason %></pre></span>
+        </div><% end %>
+      </div>
     </div>
   </div><% end %>
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-config phxweb-toolbar-panel-right" aria-label="Config">
@@ -84,16 +93,16 @@
         </div>
       </div>
       <div class="phxweb-toolbar-info-group">
-        <div class="phxweb-toolbar-info-item">
-          <b>Built with 💜 by</b>
-          <span><a href="https://twitter.com/mcrumm" style="text-decoration:none;">@mcrumm</a></span>
+        <div class="phxweb-toolbar-info-item attribution">
+          <b>Made with <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg> by</b>
+          <span><a href="https://twitter.com/mcrumm">@mcrumm</a></span>
         </div>
       </div>
     </div>
   </div>
   <button class="hide-button" type="button" id="phx-web-toolbar-hide-<%= @token %>>" title="Close Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxweb-toolbar-main-<%= @token %>" phx-click="hide">
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
     </svg>
   </button>
 </div>
