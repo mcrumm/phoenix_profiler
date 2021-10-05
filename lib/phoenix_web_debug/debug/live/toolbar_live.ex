@@ -29,6 +29,10 @@ defmodule PhoenixWeb.Debug.ToolbarLive do
      temporary_assigns: [exits: []]}
   end
 
+  def mount(_, _, socket) do
+    {:ok, assign_minimal_toolbar(socket)}
+  end
+
   defp assign_minimal_toolbar(socket) do
     # Apply the minimal assigns when the debug server is not started.
     # Usually this occurs after a node has been restarted and
