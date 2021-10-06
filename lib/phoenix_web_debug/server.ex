@@ -1,27 +1,27 @@
-defmodule PhoenixWeb.Debug.Server do
-  # Debug server store info for the toolbar
+defmodule PhoenixWeb.Profiler.Server do
+  # Profiler server store info for the toolbar
   @moduledoc false
   use GenServer, restart: :temporary
-  alias PhoenixWeb.Debug
+  alias PhoenixWeb.Profiler
   alias Phoenix.PubSub
   alias Phoenix.Socket.Broadcast
 
-  @token_key Debug.token_key()
+  @token_key Profiler.token_key()
 
   ## Client
 
   def start_link(opts) do
-    token = opts[:token] || raise "token is required to start the debug server"
-    info = opts[:debug_info] || %{}
+    token = opts[:token] || raise "token is required to start the profiler server"
+    info = opts[:profiler_info] || %{}
     GenServer.start_link(__MODULE__, {token, info}, name: server_name(token))
   end
 
   def server_name(token) when is_binary(token) do
-    Module.concat([Debug, Server, token])
+    Module.concat([Profiler, Server, token])
   end
 
   @doc """
-  Returns the `Debug.PubSub` topic for the given `token`.
+  Returns the `Profiler.PubSub` topic for the given `token`.
   """
   def topic(token) when is_binary(token) and token != "" do
     "#{@token_key}:#{token}"
@@ -33,7 +33,7 @@ defmodule PhoenixWeb.Debug.Server do
   def info(token) do
     case Process.whereis(server_name(token)) do
       server when is_pid(server) ->
-        GenServer.call(server, :fetch_debug_info)
+        GenServer.call(server, :fetch_profiler_info)
 
       _ ->
         {:error, :not_started}
@@ -43,22 +43,22 @@ defmodule PhoenixWeb.Debug.Server do
   ## Server
 
   @impl GenServer
-  def init({token, debug_info}) do
-    :ok = PubSub.subscribe(Debug.PubSub, topic(token))
-    {:ok, %{token: token, debug_info: debug_info, toolbar: nil, current_view: nil}}
+  def init({token, profiler_info}) do
+    :ok = PubSub.subscribe(Profiler.PubSub, topic(token))
+    {:ok, %{token: token, profiler_info: profiler_info, toolbar: nil, current_view: nil}}
   end
 
   @impl GenServer
-  def handle_call(:fetch_debug_info, _from, state) do
-    {:reply, {:ok, state.debug_info}, state}
+  def handle_call(:fetch_profiler_info, _from, state) do
+    {:reply, {:ok, state.profiler_info}, state}
   end
 
   @impl GenServer
   def handle_info(%Broadcast{event: "presence_diff", payload: _payload}, state) do
     presences =
       state.token
-      |> Debug.Server.topic()
-      |> Debug.Presence.list()
+      |> Profiler.Server.topic()
+      |> Profiler.Presence.list()
       |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
 
     # naive pid finding

@@ -1,24 +1,24 @@
-defmodule PhoenixWeb.Debug.ToolbarLive do
-  # The LiveView for the Debug Toolbar
+defmodule PhoenixWeb.Profiler.ToolbarLive do
+  # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.Debug
+  alias PhoenixWeb.Profiler
 
   @token_key "pwdt"
 
   @impl Phoenix.LiveView
   def mount(_, %{@token_key => token}, %{private: private} = socket) do
     socket = assign(socket, :token, token)
-    socket = Debug.track(socket, token, %{kind: :toolbar})
+    socket = Profiler.track(socket, token, %{kind: :toolbar})
 
     if connected?(socket) do
-      :ok = Phoenix.PubSub.subscribe(Debug.PubSub, Debug.Server.topic(token))
+      :ok = Phoenix.PubSub.subscribe(Profiler.PubSub, Profiler.Server.topic(token))
     end
 
     socket =
-      case Debug.Server.info(token) do
+      case Profiler.Server.info(token) do
         {:ok, info} ->
-          socket = %{socket | private: Map.put(private, :debuginfo, info)}
+          socket = %{socket | private: Map.put(private, :profilerinfo, info)}
           assign_toolbar(socket, info)
 
         {:error, :not_started} ->
@@ -34,7 +34,7 @@ defmodule PhoenixWeb.Debug.ToolbarLive do
   end
 
   defp assign_minimal_toolbar(socket) do
-    # Apply the minimal assigns when the debug server is not started.
+    # Apply the minimal assigns when the profiler server is not started.
     # Usually this occurs after a node has been restarted and
     # a request is received for a stale token.
     assign(socket, %{
@@ -42,7 +42,7 @@ defmodule PhoenixWeb.Debug.ToolbarLive do
       request: %{
         class: "disconnected",
         status_code: ":|",
-        status_phrase: "No Debug Session (refresh)",
+        status_phrase: "No Profiler Session (refresh)",
         plug: "n/a",
         action: "n/a",
         plug_action: nil
@@ -81,7 +81,7 @@ defmodule PhoenixWeb.Debug.ToolbarLive do
             plug_parts = Module.split(plug)
 
             prefix =
-              socket.private.debuginfo.phoenix_router
+              socket.private.profilerinfo.phoenix_router
               |> Module.split()
               |> Enum.reverse()
               |> tl()
@@ -155,7 +155,7 @@ defmodule PhoenixWeb.Debug.ToolbarLive do
       phoenix_version: Application.spec(:phoenix)[:vsn],
       live_view_version: Application.spec(:phoenix_live_view)[:vsn],
       otp_release: System.otp_release(),
-      toolbar_version: Application.spec(:phoenix_web_debug)[:vsn]
+      toolbar_version: Application.spec(:phoenix_web_profiler)[:vsn]
     }
   end
 
@@ -166,8 +166,8 @@ defmodule PhoenixWeb.Debug.ToolbarLive do
     # on :profile DOWN (abnormal) -> emerge errors on the toolbar
     presences =
       socket.assigns.token
-      |> Debug.Server.topic()
-      |> Debug.Presence.list()
+      |> Profiler.Server.topic()
+      |> Profiler.Presence.list()
       |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
 
     view_or_nil = Enum.find(presences, &(&1.kind == :profile))

@@ -1,9 +1,20 @@
 defmodule PhoenixWeb.LiveProfiler do
   @moduledoc """
   Interactive profiler for LiveView processes.
+
+  ## Example
+
+  Add the following on a LiveView to enable debugging:
+
+      if Mix.env() == :dev do
+        on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
+      end
+
+  See the LiveView Profiling section of the [`Profiler`](`PhoenixWeb.Profiler`) module docs.
+
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Debug
+  alias PhoenixWeb.Profiler
 
   @behaviour Plug
 
@@ -21,19 +32,19 @@ defmodule PhoenixWeb.LiveProfiler do
   def call(conn, _), do: conn
 
   def on_mount(view_module, params, %{@session_key => token} = session, socket) do
-    apply_debug_hooks(socket, connected?(socket), view_module, token, params, session)
+    apply_profiler_hooks(socket, connected?(socket), view_module, token, params, session)
   end
 
   def on_mount(_view_module, _params, _session, socket) do
     {:cont, socket}
   end
 
-  defp apply_debug_hooks(socket, _connected? = false, _view_module, _token, _params, _session) do
+  defp apply_profiler_hooks(socket, _connected? = false, _view_module, _token, _params, _session) do
     {:cont, socket}
   end
 
-  defp apply_debug_hooks(socket, _connected? = true, view_module, token, _params, _session) do
-    Debug.track(socket, token, %{
+  defp apply_profiler_hooks(socket, _connected? = true, view_module, token, _params, _session) do
+    Profiler.track(socket, token, %{
       kind: :profile,
       phoenix_live_action: socket.assigns.live_action,
       root_view: socket.private[:root_view],

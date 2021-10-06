@@ -1,8 +1,8 @@
-defmodule PhoenixWeb.DebugTest do
+defmodule PhoenixWeb.ProfilerTest do
   use ExUnit.Case
-  doctest PhoenixWeb.Debug
+  doctest PhoenixWeb.Profiler
 
   test "token_key/0" do
-    assert PhoenixWeb.Debug.token_key() == :pwdt
+    assert PhoenixWeb.Profiler.token_key() == :pwdt
   end
 end

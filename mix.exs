@@ -1,11 +1,11 @@
-defmodule PhoenixWeb.Debug.MixProject do
+defmodule PhoenixWeb.Profiler.MixProject do
   use Mix.Project
 
   @version "0.1.0"
 
   def project do
     [
-      app: :phoenix_web_debug,
+      app: :phoenix_web_profiler,
       version: @version,
       elixir: "~> 1.10",
       package: package(),
@@ -17,7 +17,7 @@ defmodule PhoenixWeb.Debug.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {PhoenixWeb.Debug.Application, []}
+      mod: {PhoenixWeb.Profiler.Application, []}
     ]
   end
 
@@ -32,9 +32,9 @@ defmodule PhoenixWeb.Debug.MixProject do
 
   defp docs do
     [
-      main: "PhoenixWeb.Debug",
+      main: "PhoenixWeb.Profiler",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/mcrumm/phoenix_web_debug"
+      source_url: "https://github.com/mcrumm/phoenix_web_profiler"
     ]
   end
 
@@ -42,7 +42,7 @@ defmodule PhoenixWeb.Debug.MixProject do
     [
       maintainers: ["Michael Allen Crumm Jr."],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/mcrumm/phoenix_web_debug"},
+      links: %{github: "https://github.com/mcrumm/phoenix_web_profiler"},
       files: ~w(lib priv CHANGELOG.md LICENSE mix.exs README.md)
     ]
   end

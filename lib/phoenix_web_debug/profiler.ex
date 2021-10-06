@@ -1,4 +1,4 @@
-defmodule PhoenixWeb.Debug do
+defmodule PhoenixWeb.Profiler do
   @external_resource "README.md"
   @moduledoc @external_resource
              |> File.read!()
@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Debug do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Debug
+  alias PhoenixWeb.Profiler
   require Logger
 
   @doc false
@@ -14,9 +14,9 @@ defmodule PhoenixWeb.Debug do
       when is_binary(token) and token != "" and is_map(meta) do
     if Phoenix.LiveView.connected?(socket) do
       {:ok, ref} =
-        Debug.Presence.track(
+        Profiler.Presence.track(
           self(),
-          Debug.Server.topic(token),
+          Profiler.Server.topic(token),
           inspect(self()),
           meta |> Map.put(:node, Node.self()) |> Map.put(:pid, self())
         )
@@ -31,10 +31,37 @@ defmodule PhoenixWeb.Debug do
   @token_key :pwdt
   @live_socket_path_default "/live"
 
-  @doc false
-  def start_debug_server(conn, extra \\ %{})
+  @doc """
+  Readies a given `conn` for profiling.
 
-  def start_debug_server(%Plug.Conn{private: %{@token_key => token}} = conn, extra) do
+  Raises if a debug token is already set on the conn.
+  """
+  def profile(%Plug.Conn{} = conn) do
+    put_debug_token(conn, generate_token())
+  end
+
+  @doc """
+  Puts a debug token on a given `conn`.
+
+  Raises if a token is already set.
+  """
+  def put_debug_token(%Plug.Conn{private: %{@token_key => token}}, _) do
+    raise ArgumentError, "Expected a conn without a debug token, got: #{inspect(token)}"
+  end
+
+  def put_debug_token(%Plug.Conn{} = conn, token) when is_binary(token) and token != "" do
+    put_private(conn, @token_key, token)
+  end
+
+  @doc """
+  Starts a profiler server for a given `conn`.
+
+  The `conn` must have already been provided a debug token,
+  for instance by invoking `profile/1`.
+  """
+  def start(conn, extra \\ %{})
+
+  def start(%Plug.Conn{private: %{@token_key => token}} = conn, extra) do
     request_info = Map.take(conn, [:host, :method, :path_info, :status])
 
     metadata =
@@ -46,7 +73,7 @@ defmodule PhoenixWeb.Debug do
         :phoenix_view
       ])
 
-    debug_info =
+    profiler_info =
       extra
       |> Map.new()
       |> Map.merge(request_info)
@@ -54,19 +81,19 @@ defmodule PhoenixWeb.Debug do
 
     with {:ok, pid} <-
            DynamicSupervisor.start_child(
-             Debug.DynamicSupervisor,
-             {Debug.Server, token: token, debug_info: debug_info}
+             Profiler.DynamicSupervisor,
+             {Profiler.Server, token: token, profiler_info: profiler_info}
            ) do
       {:ok, pid, token}
     end
   end
 
-  def start_debug_server(%Plug.Conn{} = _conn, _extra) do
-    raise "start_debug_server requires a token to be set on the conn"
+  def start(%Plug.Conn{} = _conn, _extra) do
+    raise "debug token required for Profiler.start/2"
   end
 
   @doc """
-  Returns the key used when storing the debug token.
+  Returns the key used when storing the profiler token.
   """
   def token_key, do: @token_key
 
@@ -96,14 +123,14 @@ defmodule PhoenixWeb.Debug do
     start_time = System.monotonic_time()
 
     conn
-    |> put_private(@token_key, generate_token())
-    |> before_send_inject_debug_bar(conn.private.phoenix_endpoint, start_time, config)
+    |> profile()
+    |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, start_time, config)
   end
 
   # HTML Injection
   # Copyright (c) 2018 Chris McCord
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
-  defp before_send_inject_debug_bar(conn, endpoint, start_time, config) do
+  defp before_send_inject_debug_toolbar(conn, endpoint, start_time, config) do
     register_before_send(conn, fn conn ->
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
@@ -112,10 +139,10 @@ defmodule PhoenixWeb.Debug do
           [page | rest] = String.split(resp_body, "</body>")
           duration = System.monotonic_time() - start_time
 
-          with {:ok, pid, token} <- start_debug_server(conn, %{duration: duration}) do
-            Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
+          with {:ok, pid, token} <- start(conn, %{duration: duration}) do
+            Logger.debug("Started profiler server at #{inspect(pid)} for token #{token}")
 
-            body = [page, debug_assets_tag(conn, endpoint, token, config), "</body>" | rest]
+            body = [page, profiler_assets_tag(conn, endpoint, token, config), "</body>" | rest]
             conn = put_in(conn.resp_body, body)
 
             conn
@@ -141,7 +168,7 @@ defmodule PhoenixWeb.Debug do
 
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
-  defp debug_assets_tag(conn, _endpoint, token, config) do
+  defp profiler_assets_tag(conn, _endpoint, token, config) do
     attrs =
       Keyword.merge(
         config.toolbar_attrs,
@@ -151,7 +178,7 @@ defmodule PhoenixWeb.Debug do
         name: "Phoenix Web Debug Toolbar"
       )
 
-    Debug.View
+    Profiler.View
     |> Phoenix.View.render("toolbar.html", %{
       conn: conn,
       session: %{to_string(@token_key) => token},

@@ -1,10 +1,10 @@
-defmodule PhoenixWeb.Debug.View do
+defmodule PhoenixWeb.Profiler.View do
   # Acts as a View for toolbar layout rendering
   @moduledoc false
   import Phoenix.LiveView.Helpers
-  alias PhoenixWeb.Debug
+  alias PhoenixWeb.Profiler
 
-  toolbar_css_path = Application.app_dir(:phoenix_web_debug, "priv/static/toolbar.css")
+  toolbar_css_path = Application.app_dir(:phoenix_web_profiler, "priv/static/toolbar.css")
   @external_resource toolbar_css_path
 
   @toolbar_css File.read!(toolbar_css_path)
@@ -14,10 +14,10 @@ defmodule PhoenixWeb.Debug.View do
 
     ~L"""
     <div <%= Phoenix.HTML.raw(@toolbar_attrs) %>>
-      <!-- START Phoenix Web Debug Toolbar -->
+      <!-- START Phoenix Web Profiler Toolbar -->
     <div id="phxweb-toolbar-clearer-<%= @token %>" class="phxweb-toolbar-clearer" style="display: block;"></div>
-    <%= live_render(@conn, Debug.ToolbarLive, session: @session) %>
-      <!-- END Phoenix Web Debug Toolbar -->
+    <%= live_render(@conn, Profiler.ToolbarLive, session: @session) %>
+      <!-- END Phoenix Web Profiler Toolbar -->
     </div>
     <style type="text/css"><%= Phoenix.HTML.raw(@toolbar_css) %></style>
     """

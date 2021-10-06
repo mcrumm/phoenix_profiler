@@ -1,4 +1,4 @@
-# PhoenixWeb.Debug
+# PhoenixWeb.Profiler
 
 <!-- MDOC !-->
 Provides a **development tool** that gives detailed information about the execution of any request.
@@ -11,7 +11,7 @@ Provides a **development tool** that gives detailed information about the execut
 
 * Inspect LiveView crashes
 
-* Debug assigns (TODO)
+* Profiler assigns (TODO)
 
 * Mailer preview shortcut (TODO)
 
@@ -19,24 +19,24 @@ Provides a **development tool** that gives detailed information about the execut
 
 To start using the profiler, you will need three steps:
 
-1. Add the `phoenix_web_debug` dependency
+1. Add the `phoenix_web_profiler` dependency
 2. Configure LiveView
-3. Add the PhoenixWeb.Debug Plug
+3. Add the PhoenixWeb.Profiler Plug
 
-### 1. Add the phoenix_web_debug dependency
+### 1. Add the phoenix_web_profiler dependency
 
-Add phoenix_web_debug to your `mix.exs`:
+Add phoenix_web_profiler to your `mix.exs`:
 
 ```elixir
-{:phoenix_web_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
+{:phoenix_web_profiler, "~> 0.1.0", runtime: Mix.env() == :dev}
 ```
 
 ### 2. Configure LiveView
 
 > If LiveView is already installed in your app, you may skip this section.
 
-The Phoenix Web Debug Toolbar is built on top of LiveView. If you plan to use LiveView in your application in the future, we recommend you follow [the official installation instructions](https://hexdocs.pm/phoenix_live_view/installation.html).
-This guide only covers the minimum steps necessary for the LiveProfiler itself to run.
+The Phoenix Web Profiler Toolbar is built on top of LiveView. If you plan to use LiveView in your application in the future, or if you wish to use the LiveProfiler, we recommend you follow [the official installation instructions](https://hexdocs.pm/phoenix_live_view/installation.html).
+This guide only covers the minimum steps necessary for the Profiler itself to run.
 
 Update your endpoint's configuration to include a signing salt. You can generate a signing salt by running `mix phx.gen.secret 32` (note Phoenix v1.5+ apps already have this configuration):
 
@@ -54,7 +54,7 @@ on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
 ```elixir
 if code_reloading? do
   # plugs...
-  plug PhoenixWeb.Debug
+  plug PhoenixWeb.Profiler
 end
 ```
 
