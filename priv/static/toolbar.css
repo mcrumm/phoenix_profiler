@@ -513,7 +513,7 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
   position: fixed;
   box-sizing: border-box;
   left: 0;
-  max-height: --var(--width-sm);
+  max-height: var(--width-xs);
   overflow-y: scroll;
 }
 
