@@ -4,11 +4,12 @@ defmodule PhoenixWeb.LiveProfiler do
 
   LiveProfiler performs two roles:
 
-  * As a Plug, to inject the debug token into the session of the
-    stateless HTTP response.
+  * As a Plug, LiveProfiler injects the debug token into the
+    session of the stateless HTTP response so it may be
+    picked up by the LiveView process on mount.
 
-  * As a LiveView lifecycle hook, to enable introspection of
-    the process under live profiling.
+  * As a LiveView lifecycle hook, LiveProfiler joins the
+    LiveView "process under profile" to the debug session.
 
   ## As a Plug
 
