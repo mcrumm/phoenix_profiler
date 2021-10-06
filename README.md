@@ -3,6 +3,8 @@
 <!-- MDOC !-->
 Provides a **development tool** that gives detailed information about the execution of any request.
 
+**Never** enable it on production servers as it exposes sensitive data about your web application.
+
 ## Built-in Features
 
 * HTTP Response metadata - status code, endpoint, router, controller/action, live_view/live_action, etc.
