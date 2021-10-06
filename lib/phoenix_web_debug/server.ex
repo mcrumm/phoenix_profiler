@@ -12,7 +12,8 @@ defmodule PhoenixWeb.Debug.Server do
 
   def start_link(opts) do
     token = opts[:token] || raise "token is required to start the debug server"
-    GenServer.start_link(__MODULE__, token, name: server_name(token))
+    info = opts[:debug_info] || %{}
+    GenServer.start_link(__MODULE__, {token, info}, name: server_name(token))
   end
 
   def server_name(token) when is_binary(token) do
@@ -42,19 +43,14 @@ defmodule PhoenixWeb.Debug.Server do
   ## Server
 
   @impl GenServer
-  def init(token) do
+  def init({token, debug_info}) do
     :ok = PubSub.subscribe(Debug.PubSub, topic(token))
-    {:ok, %{token: token, debug_info: %{}, toolbar: nil, current_view: nil}}
+    {:ok, %{token: token, debug_info: debug_info, toolbar: nil, current_view: nil}}
   end
 
   @impl GenServer
   def handle_call(:fetch_debug_info, _from, state) do
     {:reply, {:ok, state.debug_info}, state}
-  end
-
-  @impl GenServer
-  def handle_call({:put_debug_info, info}, _from, state) do
-    {:reply, :ok, %{state | debug_info: info}}
   end
 
   @impl GenServer

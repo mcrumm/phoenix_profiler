@@ -27,17 +27,43 @@ defmodule PhoenixWeb.Debug do
     end
   end
 
-  @doc false
-  def start_debug_server(token) do
-    DynamicSupervisor.start_child(
-      Debug.DynamicSupervisor,
-      {Debug.Server, [token: token]}
-    )
-  end
-
   @behaviour Plug
   @token_key :pwdt
   @live_socket_path_default "/live"
+
+  @doc false
+  def start_debug_server(conn, extra \\ %{})
+
+  def start_debug_server(%Plug.Conn{private: %{@token_key => token}} = conn, extra) do
+    request_info = Map.take(conn, [:host, :method, :path_info, :status])
+
+    metadata =
+      Map.take(conn.private, [
+        :phoenix_action,
+        :phoenix_controller,
+        :phoenix_endpoint,
+        :phoenix_router,
+        :phoenix_view
+      ])
+
+    debug_info =
+      extra
+      |> Map.new()
+      |> Map.merge(request_info)
+      |> Map.merge(metadata)
+
+    with {:ok, pid} <-
+           DynamicSupervisor.start_child(
+             Debug.DynamicSupervisor,
+             {Debug.Server, token: token, debug_info: debug_info}
+           ) do
+      {:ok, pid, token}
+    end
+  end
+
+  def start_debug_server(%Plug.Conn{} = _conn, _extra) do
+    raise "start_debug_server requires a token to be set on the conn"
+  end
 
   @doc """
   Returns the key used when storing the debug token.
@@ -81,29 +107,10 @@ defmodule PhoenixWeb.Debug do
 
         if has_body?(resp_body) and :code.is_loaded(endpoint) do
           [page | rest] = String.split(resp_body, "</body>")
-          token = conn.private[@token_key]
+          duration = System.monotonic_time() - start_time
 
-          with {:ok, pid} <- start_debug_server(token) do
+          with {:ok, pid, token} <- start_debug_server(conn, %{duration: duration}) do
             Logger.debug("Started debug server at #{inspect(pid)} for token #{token}")
-
-            duration = System.monotonic_time() - start_time
-
-            info =
-              conn.private
-              |> Map.take([
-                :phoenix_action,
-                :phoenix_controller,
-                :phoenix_endpoint,
-                :phoenix_router,
-                :phoenix_view
-              ])
-              |> Map.put(:host, conn.host)
-              |> Map.put(:method, conn.method)
-              |> Map.put(:path_info, conn.path_info)
-              |> Map.put(:status, conn.status)
-              |> Map.put(:duration, duration)
-
-            :ok = GenServer.call(pid, {:put_debug_info, info})
 
             body = [page, debug_assets_tag(conn, endpoint, token, config), "</body>" | rest]
             conn = put_in(conn.resp_body, body)
