@@ -148,7 +148,7 @@ defmodule MyLiveProfiler do
 
   if Mix.env() == :dev do
     defdelegate on_mount(view, params, session, socket),
-      to: #{inspect(__MODULE__)}
+      to: PhoenixWeb.LiveProfiler
   else
     def on_mount(_, _, _, socket),
       do: {:cont, socket}
