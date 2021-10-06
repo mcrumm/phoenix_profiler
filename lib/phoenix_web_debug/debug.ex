@@ -100,6 +100,9 @@ defmodule PhoenixWeb.Debug do
     |> before_send_inject_debug_bar(conn.private.phoenix_endpoint, start_time, config)
   end
 
+  # HTML Injection
+  # Copyright (c) 2018 Chris McCord
+  # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
   defp before_send_inject_debug_bar(conn, endpoint, start_time, config) do
     register_before_send(conn, fn conn ->
       if conn.resp_body != nil and html?(conn) do
@@ -129,9 +132,6 @@ defmodule PhoenixWeb.Debug do
     end)
   end
 
-  # HTML Injection
-  # Copyright (c) 2018 Chris McCord
-  # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
   defp html?(conn) do
     case get_resp_header(conn, "content-type") do
       [] -> false
