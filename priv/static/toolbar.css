@@ -23,7 +23,7 @@
   --size-toolbar: var(--size-11);
 }
 
-/*! Symfony Web Profiler Toolbar v5.3.9 | MIT License | https://github.com/symfony/symfony/blob/842ecc50f04ea0067ac300e2396a391dff687498/src/Symfony/Bundle/WebProfilerBundle/Resources/views/Profiler/toolbar.css.twig */
+/*! Symfony Web Debug Toolbar v5.3.9 | MIT License | https://github.com/symfony/symfony/blob/842ecc50f04ea0067ac300e2396a391dff687498/src/Symfony/Bundle/WebProfilerBundle/Resources/views/Profiler/toolbar.css.twig */
 
 .phxweb-minitoolbar {
   background-color: #222;
@@ -669,7 +669,7 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
   }
 }
 
-/* END Symfony Web Profiler Toolbar */
+/* END Symfony Web Debug Toolbar */
 
 .phxweb-toolbar-panel-config .phxweb-toolbar-info-item.attribution b,
 .phxweb-toolbar-panel-config .phxweb-toolbar-info-item.attribution span {

@@ -14,10 +14,10 @@ defmodule PhoenixWeb.Profiler.View do
 
     ~L"""
     <div <%= Phoenix.HTML.raw(@toolbar_attrs) %>>
-      <!-- START Phoenix Web Profiler Toolbar -->
+      <!-- START Phoenix Web Debug Toolbar -->
     <div id="phxweb-toolbar-clearer-<%= @token %>" class="phxweb-toolbar-clearer" style="display: block;"></div>
     <%= live_render(@conn, Profiler.ToolbarLive, session: @session) %>
-      <!-- END Phoenix Web Profiler Toolbar -->
+      <!-- END Phoenix Web Debug Toolbar -->
     </div>
     <style type="text/css"><%= Phoenix.HTML.raw(@toolbar_css) %></style>
     """
