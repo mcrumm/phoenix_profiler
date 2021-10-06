@@ -17,13 +17,36 @@ Provides a **development tool** that gives detailed information about the execut
 
 ## Installation
 
+To start using the profiler, you will need three steps:
+
+1. Add the `phoenix_web_debug` dependency
+2. Configure LiveView
+3. Add the PhoenixWeb.Debug Plug
+
+### 1. Add the phoenix_web_debug dependency
+
 Add phoenix_web_debug to your `mix.exs`:
 
 ```elixir
 {:phoenix_web_debug, "~> 0.1.0", runtime: Mix.env() == :dev}
 ```
 
-## Usage
+### 2. Configure LiveView
+
+> If LiveView is already installed in your app, you may skip this section.
+
+The Phoenix Web Debug Toolbar is built on top of LiveView. If you plan to use LiveView in your application in the future, we recommend you follow [the official installation instructions](https://hexdocs.pm/phoenix_live_view/installation.html).
+This guide only covers the minimum steps necessary for the LiveProfiler itself to run.
+
+Update your endpoint's configuration to include a signing salt. You can generate a signing salt by running `mix phx.gen.secret 32` (note Phoenix v1.5+ apps already have this configuration):
+
+```elixir
+# config/config.exs
+config :my_app, MyAppWeb.Endpoint,
+  live_view: [signing_salt: "SECRET_SALT"]
+```
+
+### 3. Add the PhoenixWeb.Profiler Plug
 
 Add the plug at the bottom of the `if code_reloading? do` block
 on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
@@ -35,8 +58,6 @@ if code_reloading? do
 end
 ```
 
-## Configuration
-
 All configuration is done on the Plug. The following options are available:
 
 * `:live_socket_path` - The path to the LiveView socket.
@@ -46,9 +67,20 @@ All configuration is done on the Plug. The following options are available:
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
+This is all. Run `mix phx.server` and view the toolbar in your browser requests.
+
+Optionally you may wish to continue on to [LiveView Profiling](#module-liveview-profiling).
+
 ## LiveView Profiling
 
-To enable LiveView debugging, add the LiveProfiler plug to the
+To enable LiveView profiling, you will need two more steps:
+
+1. Add the PhoenixWeb.LiveProfiler plug
+2. Add the PhoenixWeb.LiveProfiler lifecycle hook
+
+### 1. Add the PhoenixWeb.LiveProfiler plug
+
+Add the LiveProfiler plug to the bottom of the
 `:browser` pipeline on your Router, typically found in
 `lib/my_app_web/router.ex`:
 
@@ -61,8 +93,13 @@ pipeline :browser do
 end
 ```
 
-...and mount LiveProfiler for LiveView the `live_view` function in your web module,
-typically found at `lib/my_app_web.ex`.
+### 2. Add the PhoenixWeb.LiveProfiler hook
+
+> Note this requires LiveView 0.17+.
+> For older versions, see [Profiling LiveView prior to 0.17](#module-profiling-liveview-prior-to-0-17).
+
+Add the LiveProfiler hook within the `live_view` function on your
+web module, typically found at `lib/my_app_web.ex`.
 
 For example, if your `live_view` function looks like this:
 
@@ -94,7 +131,43 @@ def live_view do
 end
 ```
 
-See the [`LiveProfiler`](`PhoenixWeb.LiveProfiler`) module docs for more mount options.
+Now you are debugging with LiveView. Happy gardening!
+
+### Profiling LiveView prior to 0.17
+
+Note for LiveView < 0.17, if you would like to use LiveProfiler,
+you may do so by invoking the hook function manually from your
+[`mount/3`](`c:Phoenix.LiveView.mount/3`) callback. However,
+to ensure the profiler cannot accidentally be invoked outside
+of the dev environment, it is recommended to create a separate
+module:
+
+```elixir
+defmodule MyLiveProfiler do
+  @moduledoc "Allows LiveProfiler only in the dev environment"
+
+  if Mix.env() == :dev do
+    defdelegate on_mount(view, params, session, socket),
+      to: #{inspect(__MODULE__)}
+  else
+    def on_mount(_, _, _, socket),
+      do: {:cont, socket}
+  end
+end
+```
+
+Then, in your LiveView, invoke your on_mount function:
+
+```elixir
+@impl Phoenix.LiveView
+def mount(params, session, socket) do
+  {:cont, socket} = MyLiveProfiler.on_mount(__MODULE__, params, session, socket)
+
+  # mount...
+
+  {:ok, socket}
+end
+```
 
 <!-- MDOC !-->
 
