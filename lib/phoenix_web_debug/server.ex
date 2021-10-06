@@ -10,9 +10,44 @@ defmodule PhoenixWeb.Profiler.Server do
 
   ## Client
 
+  @doc """
+  Starts a profiler server for a given `conn`.
+
+  The `conn` must have already been provided a debug token.
+  """
+  def profile(conn, extra \\ %{})
+
+  def profile(%Plug.Conn{private: %{@token_key => token}} = conn, extra) do
+    request_info = Map.take(conn, [:host, :method, :path_info, :status])
+
+    metadata =
+      Map.take(conn.private, [
+        :phoenix_action,
+        :phoenix_controller,
+        :phoenix_endpoint,
+        :phoenix_router,
+        :phoenix_view
+      ])
+
+    debug_info =
+      extra
+      |> Map.new()
+      |> Map.merge(request_info)
+      |> Map.merge(metadata)
+
+    DynamicSupervisor.start_child(
+      Profiler.DynamicSupervisor,
+      {Profiler.Server, token: token, debug_info: debug_info}
+    )
+  end
+
+  def profile(%Plug.Conn{} = _conn, _extra) do
+    raise "debug token required to be set for profile/2"
+  end
+
   def start_link(opts) do
     token = opts[:token] || raise "token is required to start the profiler server"
-    info = opts[:profiler_info] || %{}
+    info = opts[:debug_info] || %{}
     GenServer.start_link(__MODULE__, {token, info}, name: server_name(token))
   end
 
@@ -33,7 +68,7 @@ defmodule PhoenixWeb.Profiler.Server do
   def info(token) do
     case Process.whereis(server_name(token)) do
       server when is_pid(server) ->
-        GenServer.call(server, :fetch_profiler_info)
+        GenServer.call(server, :fetch_debug_info)
 
       _ ->
         {:error, :not_started}
@@ -43,14 +78,14 @@ defmodule PhoenixWeb.Profiler.Server do
   ## Server
 
   @impl GenServer
-  def init({token, profiler_info}) do
+  def init({token, debug_info}) do
     :ok = PubSub.subscribe(Profiler.PubSub, topic(token))
-    {:ok, %{token: token, profiler_info: profiler_info, toolbar: nil, current_view: nil}}
+    {:ok, %{token: token, debug_info: debug_info, toolbar: nil, current_view: nil}}
   end
 
   @impl GenServer
-  def handle_call(:fetch_profiler_info, _from, state) do
-    {:reply, {:ok, state.profiler_info}, state}
+  def handle_call(:fetch_debug_info, _from, state) do
+    {:reply, {:ok, state.debug_info}, state}
   end
 
   @impl GenServer

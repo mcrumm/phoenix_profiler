@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler
+  alias PhoenixWeb.Profiler.{Presence, Server, View}
   require Logger
 
   @doc false
@@ -14,9 +14,9 @@ defmodule PhoenixWeb.Profiler do
       when is_binary(token) and token != "" and is_map(meta) do
     if Phoenix.LiveView.connected?(socket) do
       {:ok, ref} =
-        Profiler.Presence.track(
+        Presence.track(
           self(),
-          Profiler.Server.topic(token),
+          Server.topic(token),
           inspect(self()),
           meta |> Map.put(:node, Node.self()) |> Map.put(:pid, self())
         )
@@ -32,65 +32,13 @@ defmodule PhoenixWeb.Profiler do
   @live_socket_path_default "/live"
 
   @doc """
-  Readies a given `conn` for profiling.
+  Returns the debug token for a given `conn`.
 
-  Raises if a debug token is already set on the conn.
+  Returns `nil` if no debug token is set.
   """
-  def profile(%Plug.Conn{} = conn) do
-    put_debug_token(conn, generate_token())
-  end
-
-  @doc """
-  Puts a debug token on a given `conn`.
-
-  Raises if a token is already set.
-  """
-  def put_debug_token(%Plug.Conn{private: %{@token_key => token}}, _) do
-    raise ArgumentError, "Expected a conn without a debug token, got: #{inspect(token)}"
-  end
-
-  def put_debug_token(%Plug.Conn{} = conn, token) when is_binary(token) and token != "" do
-    put_private(conn, @token_key, token)
-  end
-
-  @doc """
-  Starts a profiler server for a given `conn`.
-
-  The `conn` must have already been provided a debug token,
-  for instance by invoking `profile/1`.
-  """
-  def start(conn, extra \\ %{})
-
-  def start(%Plug.Conn{private: %{@token_key => token}} = conn, extra) do
-    request_info = Map.take(conn, [:host, :method, :path_info, :status])
-
-    metadata =
-      Map.take(conn.private, [
-        :phoenix_action,
-        :phoenix_controller,
-        :phoenix_endpoint,
-        :phoenix_router,
-        :phoenix_view
-      ])
-
-    profiler_info =
-      extra
-      |> Map.new()
-      |> Map.merge(request_info)
-      |> Map.merge(metadata)
-
-    with {:ok, pid} <-
-           DynamicSupervisor.start_child(
-             Profiler.DynamicSupervisor,
-             {Profiler.Server, token: token, profiler_info: profiler_info}
-           ) do
-      {:ok, pid, token}
-    end
-  end
-
-  def start(%Plug.Conn{} = _conn, _extra) do
-    raise "debug token required for Profiler.start/2"
-  end
+  @spec token(conn :: Plug.Conn.t()) :: nil | String.t()
+  def token(%Plug.Conn{private: %{@token_key => token}}), do: token
+  def token(%Plug.Conn{}), do: nil
 
   @doc """
   Returns the key used when storing the profiler token.
@@ -123,7 +71,7 @@ defmodule PhoenixWeb.Profiler do
     start_time = System.monotonic_time()
 
     conn
-    |> profile()
+    |> put_private(@token_key, generate_token())
     |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, start_time, config)
   end
 
@@ -139,10 +87,8 @@ defmodule PhoenixWeb.Profiler do
           [page | rest] = String.split(resp_body, "</body>")
           duration = System.monotonic_time() - start_time
 
-          with {:ok, pid, token} <- start(conn, %{duration: duration}) do
-            Logger.debug("Started profiler server at #{inspect(pid)} for token #{token}")
-
-            body = [page, profiler_assets_tag(conn, endpoint, token, config), "</body>" | rest]
+          with {:ok, _} <- Server.profile(conn, %{duration: duration}) do
+            body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
             conn = put_in(conn.resp_body, body)
 
             conn
@@ -168,7 +114,7 @@ defmodule PhoenixWeb.Profiler do
 
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
-  defp profiler_assets_tag(conn, _endpoint, token, config) do
+  defp debug_toolbar_assets_tag(%{private: %{@token_key => token}} = conn, _endpoint, config) do
     attrs =
       Keyword.merge(
         config.toolbar_attrs,
@@ -178,7 +124,7 @@ defmodule PhoenixWeb.Profiler do
         name: "Phoenix Web Debug Toolbar"
       )
 
-    Profiler.View
+    View
     |> Phoenix.View.render("toolbar.html", %{
       conn: conn,
       session: %{to_string(@token_key) => token},
