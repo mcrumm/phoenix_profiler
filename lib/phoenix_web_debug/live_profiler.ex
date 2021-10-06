@@ -2,9 +2,30 @@ defmodule PhoenixWeb.LiveProfiler do
   @moduledoc """
   Interactive profiler for LiveView processes.
 
-  ## Example
+  LiveProfiler performs two roles:
 
-  Add the following on a LiveView to enable debugging:
+  * As a Plug, to inject the debug token into the session of the
+    stateless HTTP response.
+
+  * As a LiveView lifecycle hook, to enable introspection of
+    the process under live profiling.
+
+  ## As a Plug
+
+  As a Plug, LiveProfiler lives at the bottom of the `:browser` pipeline
+  on your Router module, typically found in `lib/my_app_web/router.ex`:
+
+      pipeline :browser do
+        # plugs...
+        if Mix.env() == :dev do
+          plug PhoenixWeb.LiveProfiler
+        end
+      end
+
+  ## As a lifecycle hook
+
+  As a LiveView lifecycle hook, LiveProfiler lives on a
+  module where you `use LiveView`:
 
       if Mix.env() == :dev do
         on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
