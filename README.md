@@ -75,12 +75,12 @@ All configuration is done on the Plug. The following options are available:
 
 ### 4. Import the dump macro
 
-Add the `dump/1` macro to the `live_helpers` function on
+Add the `dump/1` macro to the `view_helpers` function on
 your web module, typically found at: `lib/my_app_web.ex`:
 
 ```elixir
 # lib/my_app_web.ex
-def live_helpers do
+def view_helpers do
   quote do
     # use...
     # import...
