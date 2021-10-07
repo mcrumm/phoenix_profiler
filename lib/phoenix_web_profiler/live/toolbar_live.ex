@@ -16,6 +16,16 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     end
 
     socket =
+      assign(socket,
+        display: "block",
+        dumps: [],
+        dump_count: 0,
+        exits: [],
+        exits_count: 0,
+        system: system()
+      )
+
+    socket =
       case Profiler.Server.info(token) do
         {:ok, info} ->
           socket = %{socket | private: Map.put(private, :profilerinfo, info)}
@@ -25,8 +35,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
           assign_minimal_toolbar(socket)
       end
 
-    {:ok, assign(socket, display: "block", exits: [], exits_count: 0, system: system()),
-     temporary_assigns: [exits: []]}
+    {:ok, socket, temporary_assigns: [exits: [], dumps: []]}
   end
 
   def mount(_, _, socket) do
@@ -54,6 +63,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     socket
     |> apply_request(info)
     |> update_view(route_info(info))
+    |> assign_dump(info.dump)
     |> assign(:duration, duration(info.duration))
   end
 
@@ -157,6 +167,12 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       otp_release: System.otp_release(),
       toolbar_version: Application.spec(:phoenix_web_profiler)[:vsn]
     }
+  end
+
+  defp assign_dump(socket, dump) do
+    socket
+    |> update(:dump_count, &(&1 + length(dump)))
+    |> assign(:dump, dump)
   end
 
   @impl Phoenix.LiveView

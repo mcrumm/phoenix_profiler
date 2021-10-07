@@ -13,17 +13,20 @@ Provides a **development tool** that gives detailed information about the execut
 
 * Inspect LiveView crashes
 
-* Profiler assigns (TODO)
+* Dump assigns to the profiler
 
 * Mailer preview shortcut (TODO)
 
 ## Installation
 
-To start using the profiler, you will need three steps:
+To start using the profiler, you will need four steps:
 
 1. Add the `phoenix_web_profiler` dependency
 2. Configure LiveView
 3. Add the PhoenixWeb.Profiler Plug
+4. Import the `dump/1` function
+
+...and optionally the [`LiveView Profiling`](#module-liveview-profiling) setup for live debugging.
 
 ### 1. Add the phoenix_web_profiler dependency
 
@@ -50,10 +53,11 @@ config :my_app, MyAppWeb.Endpoint,
 
 ### 3. Add the PhoenixWeb.Profiler Plug
 
-Add the plug at the bottom of the `if code_reloading? do` block
+Add the Profiler plug on the bottom of the `if code_reloading? do` block
 on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
 
 ```elixir
+# endpoint.ex
 if code_reloading? do
   # plugs...
   plug PhoenixWeb.Profiler
@@ -69,20 +73,56 @@ All configuration is done on the Plug. The following options are available:
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
+### 4. Import the dump macro
+
+Add the `dump/1` macro to the `view_helpers` function on
+your web module, typically found at: `lib/my_app_web.ex`:
+
+```elixir
+# lib/my_app_web.ex
+def view_helpers do
+  quote do
+    # use...
+    # import...
+
+    # Import dev debug functionality (dump)
+    import PhoenixWeb.Profiler, only: [dump: 1]
+
+    # import...
+    # alias...
+  end
+end
+```
+
+If you wish to debug from Phoenix Controllers, do not forget to
+import dump to the `controller` function on the same module:
+
+```elixir
+# lib/my_app_web.ex
+def controller do
+ quote do
+    # use...
+    # import...
+    import PhoenixWeb.Profiler, only: [dump: 1]
+    # alias...
+  end
+end
+```
+
 This is all. Run `mix phx.server` and view the toolbar in your browser requests.
 
 Optionally you may wish to continue on to [LiveView Profiling](#module-liveview-profiling).
 
 ## LiveView Profiling
 
-To enable LiveView profiling, you will need two more steps:
+To enable `PhoenixWeb.LiveProfiler`, you will need two more steps:
 
-1. Add the PhoenixWeb.LiveProfiler plug
-2. Add the PhoenixWeb.LiveProfiler lifecycle hook
+1. Add the live profiler as a plug
+2. Add the live profiler as a lifecycle hook
 
 ### 1. Add the PhoenixWeb.LiveProfiler plug
 
-Add the LiveProfiler plug to the bottom of the
+Add the LiveProfiler plug on the bottom of the
 `:browser` pipeline on your Router, typically found in
 `lib/my_app_web/router.ex`:
 
@@ -100,7 +140,7 @@ end
 > Note this requires LiveView 0.17+.
 > For older versions, see [Profiling LiveView prior to 0.17](#module-profiling-liveview-prior-to-0-17).
 
-Add the LiveProfiler hook within the `live_view` function on your
+Add the LiveProfiler hook to the `live_view` function on your
 web module, typically found at `lib/my_app_web.ex`.
 
 For example, if your `live_view` function looks like this:

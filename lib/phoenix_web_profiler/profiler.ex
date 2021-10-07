@@ -9,6 +9,57 @@ defmodule PhoenixWeb.Profiler do
   alias PhoenixWeb.Profiler.{Presence, Server, View}
   require Logger
 
+  @dump_key :phxweb_profiler_dump
+
+  @doc """
+  Dump the contents of a given `var` to the profiler.
+
+  ## Examples
+
+      dump(42)
+      dump("Hello world")
+      dump(@some_assign)
+
+  """
+  defmacro dump(var) do
+    maybe_dump(var, __CALLER__)
+  end
+
+  # TODO: enable compile-time purging via configuration
+  defp maybe_dump(var, caller) do
+    %{file: file, line: line} = caller
+    caller = [file: file, line: line]
+
+    quoted_metadata =
+      quote do
+        unquote(caller)
+      end
+
+    quote do
+      PhoenixWeb.Profiler.__dump_var__(
+        unquote(var),
+        unquote(quoted_metadata)
+      )
+    end
+  end
+
+  def __dump_var__(value, file: file, line: line) do
+    update_dumped(&[{value, file, line} | &1])
+
+    # we could return a %Dumped{} that implements (L|H)eex protocols.
+    # whatever we decide to return, we need to ensure it will render empty
+    # because it will be invoked from within templates.
+    nil
+  end
+
+  defp get_dump, do: Process.get(@dump_key, [])
+  defp put_dump(dump) when is_list(dump), do: Process.put(@dump_key, dump)
+  defp retrieve_dump, do: put_dump([]) || []
+
+  defp update_dumped(fun) do
+    put_dump(fun.(get_dump()))
+  end
+
   @doc false
   def track(%Phoenix.LiveView.Socket{} = socket, token, meta)
       when is_binary(token) and token != "" and is_map(meta) do
@@ -86,8 +137,9 @@ defmodule PhoenixWeb.Profiler do
         if has_body?(resp_body) and :code.is_loaded(endpoint) do
           [page | rest] = String.split(resp_body, "</body>")
           duration = System.monotonic_time() - start_time
+          dump = retrieve_dump()
 
-          with {:ok, _} <- Server.profile(conn, %{duration: duration}) do
+          with {:ok, _} <- Server.profile(conn, %{dump: dump, duration: duration}) do
             body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
             conn = put_in(conn.resp_body, body)
 

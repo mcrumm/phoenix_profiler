@@ -497,8 +497,8 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
 }
 
 .phxweb-toolbar-panel-dump .phxweb-toolbar-info-item .phxweb-toolbar-file-line {
-  color: #AAA;
-  margin-left: 4px;
+  color: var(--color-canvas-secondary);
+  margin-left: var(--size-1);
 }
 
 .phxweb-toolbar-panel-dump .phxweb-toolbar-info img {
@@ -513,7 +513,7 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
   position: fixed;
   box-sizing: border-box;
   left: 0;
-  max-height: var(--width-xs);
+  max-height: var(--width-md);
   overflow-y: scroll;
 }
 
@@ -526,6 +526,7 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
   display: block;
 }
 
+.phxweb-toolbar-panel-dump .phxweb-toolbar-info pre,
 .phxweb-toolbar-panel-exits .phxweb-toolbar-info span pre {
   background-color: var(--color-canvas-secondary);
   color: var(--color-fg-secondary);
@@ -533,6 +534,10 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
   padding: var(--size-2);
   white-space: pre-wrap;
   max-width: --var(--width-lg);
+}
+
+.phxweb-toolbar-panel-dump .phxweb-toolbar-info pre {
+  background-color: var(--color-canvas-default);
 }
 
 /* Responsive Design */
