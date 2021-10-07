@@ -9,7 +9,7 @@ Provides a **development tool** that gives detailed information about the execut
 
 * HTTP Response metadata - status code, endpoint, router, controller/action, live_view/live_action, etc.
 
-* Basic diagnostics - response time, heap size (todo)
+* Basic diagnostics - response time, memory
 
 * Inspect LiveView crashes
 

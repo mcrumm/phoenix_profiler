@@ -137,9 +137,11 @@ defmodule PhoenixWeb.Profiler do
         if has_body?(resp_body) and :code.is_loaded(endpoint) do
           [page | rest] = String.split(resp_body, "</body>")
           duration = System.monotonic_time() - start_time
-          dump = retrieve_dump()
+          {:memory, bytes} = Process.info(self(), :memory)
+          memory = div(bytes, 1_024)
 
-          with {:ok, _} <- Server.profile(conn, %{dump: dump, duration: duration}) do
+          with {:ok, _} <-
+                 Server.profile(conn, %{dump: retrieve_dump(), duration: duration, memory: memory}) do
             body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
             conn = put_in(conn.resp_body, body)
 

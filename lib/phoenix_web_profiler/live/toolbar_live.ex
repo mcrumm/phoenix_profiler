@@ -22,6 +22,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
         dump_count: 0,
         exits: [],
         exits_count: 0,
+        memory: nil,
         system: system()
       )
 
@@ -65,6 +66,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     |> update_view(route_info(info))
     |> assign_dump(info.dump)
     |> assign(:duration, duration(info.duration))
+    |> assign(:memory, memory(info))
   end
 
   defp apply_request(socket, %{status: status}) do
@@ -147,6 +149,16 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     else
       value = Integer.to_string(duration)
       %{value: value, label: "µs", phrase: "#{value} microseconds"}
+    end
+  end
+
+  defp memory(%{memory: memory}) do
+    if memory > 1024 do
+      value = memory |> div(1024) |> Integer.to_string()
+      %{value: value, label: "MB", phrase: "#{value} megabytes"}
+    else
+      value = Integer.to_string(memory)
+      %{value: value, label: "KB", phrase: "#{value} kilobytes"}
     end
   end
 
