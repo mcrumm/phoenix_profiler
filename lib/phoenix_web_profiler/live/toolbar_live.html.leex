@@ -7,9 +7,9 @@
       </svg>
       <% _ -> %><%= @request.status_code %><% end %>
       </span>
-      <%= if @request.plug_action do %>
+      <%= if @request.icon_value do %>
       <span class="phxweb-toolbar-label"> @</span>
-      <span class="phxweb-toolbar-value"><%= @request.plug_action %></span>
+      <span class="phxweb-toolbar-value"><%= @request.icon_value %></span>
       <% end %>
     </div>
     <div class="phxweb-toolbar-info">
@@ -24,6 +24,14 @@
       <div class="phxweb-toolbar-info-item">
         <b>Route action</b>
         <span><%= @request.action %></span>
+      </div>
+      <div class="phxweb-toolbar-info-item">
+        <b>Router</b>
+        <span><%= @request.router %></span>
+      </div>
+      <div class="phxweb-toolbar-info-item">
+        <b>Endpoint</b>
+        <span><%= @request.endpoint %></span>
       </div>
     </div>
   </div><%= if @duration do %>

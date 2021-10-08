@@ -50,12 +50,14 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     assign(socket, %{
       duration: nil,
       request: %{
-        class: "disconnected",
         status_code: ":|",
         status_phrase: "No Profiler Session (refresh)",
+        endpoint: "n/a",
+        router: "n/a",
         plug: "n/a",
         action: "n/a",
-        plug_action: nil
+        icon_value: nil,
+        class: "disconnected"
       }
     })
   end
@@ -69,14 +71,22 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     |> assign(:memory, memory(info))
   end
 
-  defp apply_request(socket, %{status: status}) do
+  defp apply_request(socket, info) do
+    %{
+      status: status,
+      phoenix_endpoint: endpoint,
+      phoenix_router: router
+    } = info
+
     assign(socket, :request, %{
-      class: request_class(status),
+      status_code: status,
+      status_phrase: Plug.Conn.Status.reason_phrase(status),
+      endpoint: inspect(endpoint),
+      router: inspect(router),
       plug: nil,
       action: nil,
-      plug_action: nil,
-      status_code: status,
-      status_phrase: Plug.Conn.Status.reason_phrase(status)
+      icon_value: nil,
+      class: request_class(status)
     })
   end
 
@@ -105,7 +115,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
             Enum.intersperse(plug_parts -- prefix, ?.) ++ [?\s, inspect(action)]
         end
 
-      %{req | plug: inspect(plug), action: inspect(action), plug_action: short_name}
+      %{req | plug: inspect(plug), action: inspect(action), icon_value: short_name}
     end)
   end
 
@@ -155,10 +165,10 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   defp memory(%{memory: memory}) do
     if memory > 1024 do
       value = memory |> div(1024) |> Integer.to_string()
-      %{value: value, label: "MB", phrase: "#{value} megabytes"}
+      %{value: value, label: "MiB", phrase: "#{value} mebibytes"}
     else
       value = Integer.to_string(memory)
-      %{value: value, label: "KB", phrase: "#{value} kilobytes"}
+      %{value: value, label: "KiB", phrase: "#{value} kibibytes"}
     end
   end
 
@@ -189,9 +199,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @impl Phoenix.LiveView
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
-    # TODO:
-    # on :profile join -> monitor process
-    # on :profile DOWN (abnormal) -> emerge errors on the toolbar
     presences =
       socket.assigns.token
       |> Profiler.Server.topic()
