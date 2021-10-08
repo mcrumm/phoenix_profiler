@@ -102,7 +102,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
             # Builds the string "Plug :action"
             # Attempts to remove the module path shared with the
             # corresponding Phoenix Router.
-            (plug_parts -- prefix) ++ [?\s, inspect(action)]
+            Enum.intersperse(plug_parts -- prefix, ?.) ++ [?\s, inspect(action)]
         end
 
       %{req | plug: inspect(plug), action: inspect(action), plug_action: short_name}
