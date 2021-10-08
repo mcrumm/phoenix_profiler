@@ -6,10 +6,8 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Presence, Server, Session, View}
+  alias PhoenixWeb.Profiler.{Dumped, Presence, Server, Session, View}
   require Logger
-
-  @dump_key :phxweb_profiler_dump
 
   @doc """
   Dump the contents of a given `var` to the profiler.
@@ -44,20 +42,12 @@ defmodule PhoenixWeb.Profiler do
   end
 
   def __dump_var__(value, file: file, line: line) do
-    update_dumped(&[{value, file, line} | &1])
+    Dumped.update(&[{value, file, line} | &1])
 
     # we could return a %Dumped{} that implements (L|H)eex protocols.
     # whatever we decide to return, we need to ensure it will render empty
     # because it will be invoked from within templates.
     nil
-  end
-
-  defp get_dump, do: Process.get(@dump_key, [])
-  defp put_dump(dump) when is_list(dump), do: Process.put(@dump_key, dump)
-  defp retrieve_dump, do: put_dump([]) || []
-
-  defp update_dumped(fun) do
-    put_dump(fun.(get_dump()))
   end
 
   @doc false
@@ -99,7 +89,7 @@ defmodule PhoenixWeb.Profiler do
 
     :ok =
       Session.profile_request(conn, %{
-        dump: retrieve_dump(),
+        dump: Dumped.flush(),
         duration: duration,
         memory: memory
       })
