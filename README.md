@@ -25,7 +25,7 @@ To start using the profiler, you will need the following steps:
 2. Configure LiveView
 3. Add the `PhoenixWeb.Profiler` Plug
 4. Add the `PhoenixWeb.LiveProfiler` Plug
-5. Add the LiveProfiler lifecycle hook
+5. `use PhoenixWeb.LiveProfiler` on your LiveViews
 6. Import the `dump/1` macro
 
 ### 1. Add the phoenix_web_profiler dependency
@@ -90,7 +90,7 @@ pipeline :browser do
 end
 ```
 
-### 5. Add the PhoenixWeb.LiveProfiler lifecycle hook
+### 5. Use PhoenixWeb.LiveProfiler on your LiveViews
 
 Note this section is required only if you are using LiveView, otherwise you may skip it.
 
