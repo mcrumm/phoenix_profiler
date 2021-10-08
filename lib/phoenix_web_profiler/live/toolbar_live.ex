@@ -103,11 +103,15 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
             plug_parts = Module.split(plug)
 
             prefix =
-              socket.private.profilerinfo.phoenix_router
-              |> Module.split()
-              |> Enum.reverse()
-              |> tl()
-              |> Enum.reverse()
+              if router = get_in(socket.private, [:profilerinfo, :phoenix_router]) do
+                router
+                |> Module.split()
+                |> Enum.reverse()
+                |> tl()
+                |> Enum.reverse()
+              else
+                []
+              end
 
             # Builds the string "Plug :action"
             # Attempts to remove the module path shared with the
