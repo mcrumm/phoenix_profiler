@@ -19,14 +19,14 @@ Provides a **development tool** that gives detailed information about the execut
 
 ## Installation
 
-To start using the profiler, you will need four steps:
+To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_web_profiler` dependency
 2. Configure LiveView
-3. Add the PhoenixWeb.Profiler Plug
-4. Import the `dump/1` function
-
-...and optionally the [`LiveView Profiling`](#module-liveview-profiling) setup for live debugging.
+3. Add the `PhoenixWeb.Profiler` Plug
+4. Add the `PhoenixWeb.LiveProfiler` Plug
+5. Add the LiveProfiler lifecycle hook
+6. Import the `dump/1` macro
 
 ### 1. Add the phoenix_web_profiler dependency
 
@@ -73,7 +73,45 @@ All configuration is done on the Plug. The following options are available:
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
-### 4. Import the dump macro
+### 4. Add the PhoenixWeb.LiveProfiler Plug
+
+Note this section is required only if you are using LiveView, otherwise you may skip it.
+
+Add the LiveProfiler plug on the bottom of the
+`:browser` pipeline on your Router, typically found in
+`lib/my_app_web/router.ex`:
+
+```elixir
+pipeline :browser do
+  # plugs...
+  if Mix.env() == :dev do
+    plug PhoenixWeb.LiveProfiler
+  end
+end
+```
+
+### 5. Add the PhoenixWeb.LiveProfiler lifecycle hook
+
+Note this section is required only if you are using LiveView, otherwise you may skip it.
+
+Add the LiveProfiler hook to the `live_view` function on your
+web module, typically found at `lib/my_app_web.ex`:
+
+```elixir
+  def live_view do
+    quote do
+      # use...
+
+      if Mix.env() == :dev do
+        use Phoenix.LiveProfiler
+      end
+
+      # view helpers...
+    end
+  end
+```
+
+### Add the dump/1 macro
 
 Add the `dump/1` macro to the `view_helpers` function on
 your web module, typically found at: `lib/my_app_web.ex`:
@@ -109,107 +147,38 @@ def controller do
 end
 ```
 
-This is all. Run `mix phx.server` and view the toolbar in your browser requests.
+This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 
-Optionally you may wish to continue on to [LiveView Profiling](#module-liveview-profiling).
+## LiveView 0.15.x and lower
 
-## LiveView Profiling
+Note for LiveView 0.15.x and lower, if you would like to use LiveProfiler
+to the extent that it is supported, you must mount the profiler manually
+from within your [`mount/3`](`c:Phoenix.LiveView.mount/3`) callback.
 
-To enable `PhoenixWeb.LiveProfiler`, you will need two more steps:
-
-1. Add the live profiler as a plug
-2. Add the live profiler as a lifecycle hook
-
-### 1. Add the PhoenixWeb.LiveProfiler plug
-
-Add the LiveProfiler plug on the bottom of the
-`:browser` pipeline on your Router, typically found in
-`lib/my_app_web/router.ex`:
+When you use LiveProfiler, it will inject a `mount_profiler/1` function
+into your LiveViews You must invoke it in your `mount/3` function to
+enable profiling:
 
 ```elixir
-pipeline :browser do
-  # plugs...
-  if Mix.env() == :dev do
-    plug PhoenixWeb.LiveProfiler
+defmodule HelloLive do
+  use Phoenix.LiveView
+  use PhoenixWeb.LiveProfiler
+
+  @impl Phoenix.LiveView
+  def mount(params, session, socket) do
+    {:ok, mount_profiler(socket)}
   end
 end
 ```
 
-### 2. Add the PhoenixWeb.LiveProfiler hook
+Note this is a convenience because we would like to see the largest
+possible adoption of the debug toolbar. Backwards-compatibility will
+not be maintained forever, and many features many not be available on
+older LiveView versions, so for the best possible operation,
+please stay up-to-date with LiveView releases.
 
-> Note this requires LiveView 0.17+.
-> For older versions, see [Profiling LiveView prior to 0.17](#module-profiling-liveview-prior-to-0-17).
-
-Add the LiveProfiler hook to the `live_view` function on your
-web module, typically found at `lib/my_app_web.ex`.
-
-For example, if your `live_view` function looks like this:
-
-```elixir
-  def live_view do
-    quote do
-      use Phoenix.LiveView,
-        layout: {HelloWeb.LayoutView, "live.html"}
-
-      unquote(view_helpers())
-    end
-  end
-```
-
-Change the function to:
-
-```elixir
-def live_view do
-  quote do
-    use Phoenix.LiveView,
-      layout: {HelloWeb.LayoutView, "live.html"}
-
-    if Mix.env() == :dev do
-      on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
-    end
-
-    unquote(view_helpers())
-  end
-end
-```
-
-Now you are debugging with LiveView. Happy gardening!
-
-### Profiling LiveView prior to 0.17
-
-Note for LiveView < 0.17, if you would like to use LiveProfiler,
-you may do so by invoking the hook function manually from your
-[`mount/3`](`c:Phoenix.LiveView.mount/3`) callback. However,
-to ensure the profiler cannot accidentally be invoked outside
-of the dev environment, it is recommended to create a separate
-module:
-
-```elixir
-defmodule MyLiveProfiler do
-  @moduledoc "Allows LiveProfiler only in the dev environment"
-
-  if Mix.env() == :dev do
-    defdelegate on_mount(view, params, session, socket),
-      to: PhoenixWeb.LiveProfiler
-  else
-    def on_mount(_, _, _, socket),
-      do: {:cont, socket}
-  end
-end
-```
-
-Then, in your LiveView, invoke your on_mount function:
-
-```elixir
-@impl Phoenix.LiveView
-def mount(params, session, socket) do
-  {:cont, socket} = MyLiveProfiler.on_mount(__MODULE__, params, session, socket)
-
-  # mount...
-
-  {:ok, socket}
-end
-```
+When you update your LiveView dependency, `mount_profiler/1` will begin to
+emit a warning recommending its own removal.
 
 <!-- MDOC !-->
 
