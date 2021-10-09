@@ -219,8 +219,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @impl Phoenix.LiveView
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
-    IO.inspect(socket.private, label: :handle_info)
-
     presences =
       socket.private.topic
       |> Profiler.Presence.list()
