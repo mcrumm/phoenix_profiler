@@ -60,6 +60,10 @@ defmodule PhoenixWeb.LiveProfiler do
 
     quote do
       unquote(quoted_mount_profiler)
+
+      def handle_cast({PhoenixWeb.LiveProfiler, _, _} = msg, socket) do
+        PhoenixWeb.LiveProfiler.__handle_cast__(__MODULE__, msg, socket)
+      end
     end
   end
 
@@ -147,6 +151,11 @@ defmodule PhoenixWeb.LiveProfiler do
     """)
 
     socket
+  end
+
+  def __handle_cast__(_module, {PhoenixWeb.LiveProfiler, {:dump, ref}, to: pid}, socket) do
+    GenServer.cast(pid, {:dumped, ref, PhoenixWeb.Profiler.Dumped.flush()})
+    {:noreply, socket}
   end
 
   @doc false
