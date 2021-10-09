@@ -54,6 +54,7 @@ defmodule PhoenixWeb.LiveProfiler do
   """
   import Phoenix.LiveView
   alias PhoenixWeb.Profiler
+  alias PhoenixWeb.Profiler.{Dumped, Request, Session, Server}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -111,27 +112,31 @@ defmodule PhoenixWeb.LiveProfiler do
 
   @behaviour Plug
 
-  @private_key Profiler.session_key()
-  @session_key Atom.to_string(@private_key)
+  @private_key Request.session_key()
+  @session_key Session.session_key()
+  @token_key Request.token_key()
 
   @impl Plug
   def init(opts), do: opts
 
   @impl Plug
   def call(conn, _) do
-    case Plug.Conn.get_session(conn, @session_key) do
-      token when is_binary(token) and token != "" ->
-        case Profiler.Server.whereis(token) do
-          pid when is_pid(pid) ->
-            Plug.Conn.put_private(conn, @private_key, token)
+    conn =
+      case Plug.Conn.get_session(conn, @session_key) do
+        token when is_binary(token) and token != "" ->
+          case Server.whereis(token) do
+            pid when is_pid(pid) ->
+              Plug.Conn.put_private(conn, @private_key, token)
 
-          nil ->
-            Profiler.Session.listen(conn, Profiler.random_unique_id())
-        end
+            _ ->
+              Session.listen(conn)
+          end
 
-      _ ->
-        Profiler.Session.listen(conn, Profiler.random_unique_id())
-    end
+        _ ->
+          Session.listen(conn)
+      end
+
+    Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
   end
 
   @doc false
@@ -154,25 +159,25 @@ defmodule PhoenixWeb.LiveProfiler do
   end
 
   def __handle_cast__(_module, {PhoenixWeb.LiveProfiler, {:dump, ref}, to: pid}, socket) do
-    GenServer.cast(pid, {:dumped, ref, PhoenixWeb.Profiler.Dumped.flush()})
+    GenServer.cast(pid, {:dumped, ref, Dumped.flush()})
     {:noreply, socket}
   end
 
   @doc false
-  def on_mount(view_module, params, %{@session_key => token} = session, socket) do
-    apply_profiler_hooks(socket, connected?(socket), view_module, token, params, session)
+  def on_mount(view_module, params, %{@session_key => _} = session, socket) do
+    apply_profiler_hooks(socket, connected?(socket), view_module, params, session)
   end
 
   def on_mount(_view_module, _params, _session, socket) do
     {:cont, socket}
   end
 
-  defp apply_profiler_hooks(socket, _connected? = false, _view_module, _token, _params, _session) do
+  defp apply_profiler_hooks(socket, _connected? = false, _view_module, _params, _session) do
     {:cont, socket}
   end
 
-  defp apply_profiler_hooks(socket, _connected? = true, view_module, token, _params, _session) do
-    Profiler.track(socket, token, %{
+  defp apply_profiler_hooks(socket, _connected? = true, view_module, _params, session) do
+    Profiler.track(socket, session, %{
       kind: :profile,
       phoenix_live_action: socket.assigns.live_action,
       root_view: socket.private[:root_view],

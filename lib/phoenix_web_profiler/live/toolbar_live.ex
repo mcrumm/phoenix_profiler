@@ -6,14 +6,15 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   alias PhoenixWeb.Profiler.Session
 
   @cast_for_dumped_wait 100
+  @debug_key Session.token_key()
 
   @impl Phoenix.LiveView
-  def mount(_, %{"pwdt" => token} = session, socket) do
+  def mount(_, %{@debug_key => token} = session, socket) do
     socket =
       socket
       |> assign(:token, token)
       |> put_private(:topic, Session.topic(session))
-      |> Profiler.track(token, %{kind: :toolbar})
+      |> Profiler.track(session, %{kind: :toolbar})
       |> put_private(:dumped_ref, nil)
       |> put_private(:monitor_ref, nil)
 
@@ -72,7 +73,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     socket
     |> apply_request(info)
     |> update_view(route_info(info))
-    |> update_dumped(info.dump)
+    |> update_dumped(info.dumped)
     |> assign(:duration, duration(info.duration))
     |> assign(:memory, memory(info))
   end
@@ -220,15 +221,17 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @impl Phoenix.LiveView
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
-    presences =
+    # assumes only one process under profile per debug token.
+    # a unique debug token is generated per stateless request,
+    # so that should be a safe assumption.
+    view_or_nil =
       socket.private.topic
       |> Profiler.Presence.list()
-      |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
-
-    view_or_nil = Enum.find(presences, &(&1.kind == :profile))
+      |> get_in([socket.assigns.token, :metas])
+      |> Kernel.||([])
+      |> Enum.find(&(&1.kind == :profile))
 
     socket = update_monitor(socket, view_or_nil)
-
     {:noreply, assign_view(socket, view_or_nil)}
   end
 

@@ -3,16 +3,18 @@ defmodule PhoenixWeb.Profiler.Server do
   @moduledoc false
   use GenServer, restart: :temporary
   alias PhoenixWeb.Profiler
+  alias PhoenixWeb.Profiler.{Request, Session}
   alias Phoenix.PubSub
   alias Phoenix.Socket.Broadcast
 
-  @token_key Profiler.token_key()
+  @private_key Request.session_key()
+  @session_key Session.session_key()
 
   ## Client
 
   def start_link(opts) do
     token = opts[:token] || raise "token is required to start the profiler server"
-    GenServer.start_link(__MODULE__, {token, %{}}, name: server_name(token))
+    GenServer.start_link(__MODULE__, token, name: server_name(token))
   end
 
   def server_name(token) when is_binary(token) do
@@ -23,7 +25,7 @@ defmodule PhoenixWeb.Profiler.Server do
   Returns the `Profiler.PubSub` topic for the given `token`.
   """
   def topic(token) when is_binary(token) and token != "" do
-    "#{@token_key}:#{token}"
+    "#{@session_key}:#{token}"
   end
 
   @doc """
@@ -39,7 +41,7 @@ defmodule PhoenixWeb.Profiler.Server do
   def info(session_token, debug_token) do
     case whereis(session_token) do
       server when is_pid(server) ->
-        GenServer.call(server, {:fetch_debug_info, debug_token})
+        GenServer.call(server, {:fetch_profile, {Request, debug_token}})
 
       _ ->
         {:error, :not_started}
@@ -49,25 +51,29 @@ defmodule PhoenixWeb.Profiler.Server do
   ## Server
 
   @impl GenServer
-  def init({token, debug_info}) do
-    :ok = PubSub.subscribe(Profiler.PubSub, topic(token))
-    {:ok, %{token: token, debug_info: debug_info, toolbar: nil, current_view: nil}}
+  def init(session_token) do
+    :ok = PubSub.subscribe(Profiler.PubSub, topic(session_token))
+    {:ok, %{session: session_token, profiles: %{}, toolbar: nil, current_view: nil}}
   end
 
   @impl GenServer
-  def handle_call({Profiler, debug_info}, _from, state) when is_map(debug_info) do
-    {:reply, :ok, %{state | debug_info: Map.merge(state.debug_info, debug_info)}}
+  def handle_call(
+        {:store, Request, %{@private_key => session} = profile},
+        _from,
+        %{session: session} = state
+      ) do
+    {:reply, :ok, %{state | profiles: Map.put(state.profiles, Request, profile)}}
   end
 
   @impl GenServer
-  def handle_call({:fetch_debug_info, _debug_token}, _from, state) do
-    {:reply, {:ok, state.debug_info}, state}
+  def handle_call({:fetch_profile, {Request, _debug_token}}, _from, state) do
+    {:reply, {:ok, get_in(state.profiles, [Request])}, state}
   end
 
   @impl GenServer
   def handle_info(%Broadcast{event: "presence_diff", payload: _payload}, state) do
     presences =
-      state.token
+      state.session
       |> Profiler.Server.topic()
       |> Profiler.Presence.list()
       |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)

@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Dumped, Presence, Server, Session, View}
+  alias PhoenixWeb.Profiler.{Dumped, Presence, Request, Session, View}
   require Logger
 
   @doc """
@@ -51,15 +51,20 @@ defmodule PhoenixWeb.Profiler do
   end
 
   @doc false
-  def track(%Phoenix.LiveView.Socket{} = socket, token, meta)
-      when is_binary(token) and token != "" and is_map(meta) do
+  def track(%Phoenix.LiveView.Socket{} = socket, session, meta)
+      when is_map(session) and is_map(meta) do
     if Phoenix.LiveView.connected?(socket) do
+      topic = Session.topic(session)
+      key = Session.topic_key(session)
+
       {:ok, ref} =
         Presence.track(
           self(),
-          Server.topic(token),
-          inspect(self()),
-          meta |> Map.put(:node, Node.self()) |> Map.put(:pid, self())
+          topic,
+          key,
+          meta
+          |> Map.put(:node, node())
+          |> Map.put(:pid, self())
         )
 
       Phoenix.LiveView.assign(socket, :ref, ref)
@@ -69,33 +74,7 @@ defmodule PhoenixWeb.Profiler do
   end
 
   @behaviour Plug
-
-  @session_key :phxweb_debug_session
-  @token_key :pwdt
-  @token_header_key "x-debug-token"
   @live_socket_path_default "/live"
-
-  @doc false
-  def token_key, do: @token_key
-
-  @doc false
-  def session_key, do: @session_key
-
-  defp profile_request(%Plug.Conn{} = conn, start_time) do
-    # Measurements
-    duration = System.monotonic_time() - start_time
-    {:memory, bytes} = Process.info(self(), :memory)
-    memory = div(bytes, 1_024)
-
-    :ok =
-      Session.profile_request(conn, %{
-        dump: Dumped.flush(),
-        duration: duration,
-        memory: memory
-      })
-
-    put_resp_header(conn, @token_header_key, Session.session_token!(conn))
-  end
 
   ## Plug API
 
@@ -125,7 +104,7 @@ defmodule PhoenixWeb.Profiler do
     start_time = System.monotonic_time()
 
     conn
-    |> Session.apply_debug_token()
+    |> Request.apply_debug_token()
     |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, start_time, config)
   end
 
@@ -134,7 +113,7 @@ defmodule PhoenixWeb.Profiler do
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
   defp before_send_inject_debug_toolbar(conn, endpoint, start_time, config) do
     register_before_send(conn, fn conn ->
-      conn = profile_request(conn, start_time)
+      conn = Request.profile_request(conn, start_time)
 
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
@@ -165,12 +144,10 @@ defmodule PhoenixWeb.Profiler do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
-    {debug_token, session_token} = Session.tokens!(conn)
-
     attrs =
       Keyword.merge(
         config.toolbar_attrs,
-        id: "pwdt#{debug_token}",
+        id: Request.toolbar_id(conn),
         class: "phxweb-toolbar",
         role: "region",
         name: "Phoenix Web Debug Toolbar"
@@ -179,11 +156,8 @@ defmodule PhoenixWeb.Profiler do
     View
     |> Phoenix.View.render("toolbar.html", %{
       conn: conn,
-      session: %{
-        to_string(@token_key) => debug_token,
-        to_string(@session_key) => session_token
-      },
-      token: debug_token,
+      session: Session.live_session(conn),
+      token: Request.debug_token!(conn),
       toolbar_attrs: attrs(attrs)
     })
     |> Phoenix.HTML.Safe.to_iodata()

@@ -1,8 +1,13 @@
 defmodule PhoenixWeb.ProfilerTest do
   use ExUnit.Case
   doctest PhoenixWeb.Profiler
+  alias PhoenixWeb.Profiler.{Request, Session}
 
-  test "token_key/0" do
-    assert PhoenixWeb.Profiler.token_key() == :pwdt
+  test "keys" do
+    assert Request.token_key() == :pwdt
+    assert Request.session_key() == :phxweb_debug_session
+
+    assert Session.token_key() == "pwdt"
+    assert Session.session_key() == "phxweb_debug_session"
   end
 end
