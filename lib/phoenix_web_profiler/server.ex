@@ -10,45 +10,9 @@ defmodule PhoenixWeb.Profiler.Server do
 
   ## Client
 
-  @doc """
-  Starts a profiler server for a given `conn`.
-
-  The `conn` must have already been provided a debug token.
-  """
-  def profile(conn, extra \\ %{})
-
-  def profile(%Plug.Conn{private: %{@token_key => token}} = conn, extra) do
-    request_info = Map.take(conn, [:host, :method, :path_info, :status])
-
-    metadata =
-      Map.take(conn.private, [
-        :phoenix_action,
-        :phoenix_controller,
-        :phoenix_endpoint,
-        :phoenix_router,
-        :phoenix_view
-      ])
-
-    debug_info =
-      extra
-      |> Map.new()
-      |> Map.merge(request_info)
-      |> Map.merge(metadata)
-
-    DynamicSupervisor.start_child(
-      Profiler.DynamicSupervisor,
-      {Profiler.Server, token: token, debug_info: debug_info}
-    )
-  end
-
-  def profile(%Plug.Conn{} = _conn, _extra) do
-    raise "debug token required to be set for profile/2"
-  end
-
   def start_link(opts) do
     token = opts[:token] || raise "token is required to start the profiler server"
-    info = opts[:debug_info] || %{}
-    GenServer.start_link(__MODULE__, {token, info}, name: server_name(token))
+    GenServer.start_link(__MODULE__, {token, %{}}, name: server_name(token))
   end
 
   def server_name(token) when is_binary(token) do
@@ -63,12 +27,19 @@ defmodule PhoenixWeb.Profiler.Server do
   end
 
   @doc """
+  Returns the pid for a given `token` or nil.
+  """
+  def whereis(token) do
+    token |> server_name() |> Process.whereis()
+  end
+
+  @doc """
   Returns a map of info collected by the Plug.
   """
-  def info(token) do
-    case Process.whereis(server_name(token)) do
+  def info(session_token, debug_token) do
+    case whereis(session_token) do
       server when is_pid(server) ->
-        GenServer.call(server, :fetch_debug_info)
+        GenServer.call(server, {:fetch_debug_info, debug_token})
 
       _ ->
         {:error, :not_started}
@@ -84,7 +55,12 @@ defmodule PhoenixWeb.Profiler.Server do
   end
 
   @impl GenServer
-  def handle_call(:fetch_debug_info, _from, state) do
+  def handle_call({Profiler, debug_info}, _from, state) when is_map(debug_info) do
+    {:reply, :ok, %{state | debug_info: Map.merge(state.debug_info, debug_info)}}
+  end
+
+  @impl GenServer
+  def handle_call({:fetch_debug_info, _debug_token}, _from, state) do
     {:reply, {:ok, state.debug_info}, state}
   end
 

@@ -63,11 +63,20 @@ defmodule PhoenixWeb.LiveProfiler do
     end
   end
 
+  @live_view_version ">= 0.17.0-dev"
   defp quoted_mount_profiler do
     if Code.ensure_loaded?(Phoenix.LiveView) and macro_exported?(Phoenix.LiveView, :on_mount, 1) do
-      if Version.compare(to_string(Application.spec(:phoenix_live_view, :vsn)), "0.17.0-dev") ==
-           :lt do
-        # LiveView 0.16.x
+      if Version.match?(to_string(Application.spec(:phoenix_live_view, :vsn)), @live_view_version) do
+        quote do
+          on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
+
+          @doc false
+          def mount_profiler(socket, _params, _session) do
+            PhoenixWeb.LiveProfiler.warn_mount_profiler(__MODULE__, socket)
+          end
+        end
+      else
+        # LiveView 0.16.x has a forward-incompatible on_mount API
         quote do
           on_mount {__MODULE__, :__on_mount_profiler__}
 
@@ -80,19 +89,12 @@ defmodule PhoenixWeb.LiveProfiler do
             PhoenixWeb.LiveProfiler.warn_mount_profiler(__MODULE__, socket)
           end
         end
-      else
-        # LiveView >= 0.17.0-dev
-        quote do
-          on_mount {PhoenixWeb.LiveProfiler, __MODULE__}
-
-          @doc false
-          def mount_profiler(socket, _params, _session) do
-            PhoenixWeb.LiveProfiler.warn_mount_profiler(__MODULE__, socket)
-          end
-        end
       end
     else
-      # LiveView ~0.14
+      # LiveView 0.14.x-0.15.x are supported during an initial on-ramp
+      # period for users lagging updates. Those versions will likely
+      # fall out of support very quickly, but making an inital release
+      # available to more versions will help early adoption.
       quote do
         alias PhoenixWeb.LiveProfiler
 
@@ -105,18 +107,28 @@ defmodule PhoenixWeb.LiveProfiler do
 
   @behaviour Plug
 
-  @private_key :pwdt
+  @private_key Profiler.session_key()
   @session_key Atom.to_string(@private_key)
 
   @impl Plug
   def init(opts), do: opts
 
   @impl Plug
-  def call(%Plug.Conn{private: %{@private_key => token}} = conn, _) do
-    Plug.Conn.put_session(conn, @session_key, token)
-  end
+  def call(conn, _) do
+    case Plug.Conn.get_session(conn, @session_key) do
+      token when is_binary(token) and token != "" ->
+        case Profiler.Server.whereis(token) do
+          pid when is_pid(pid) ->
+            Plug.Conn.put_private(conn, @private_key, token)
 
-  def call(conn, _), do: conn
+          nil ->
+            Profiler.Session.listen(conn, Profiler.random_unique_id())
+        end
+
+      _ ->
+        Profiler.Session.listen(conn, Profiler.random_unique_id())
+    end
+  end
 
   @doc false
   def mount_profiler(socket, params, session, module) do

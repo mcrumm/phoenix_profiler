@@ -75,8 +75,6 @@ All configuration is done on the Plug. The following options are available:
 
 ### 4. Add the PhoenixWeb.LiveProfiler Plug
 
-Note this section is required only if you are using LiveView, otherwise you may skip it.
-
 Add the LiveProfiler plug on the bottom of the
 `:browser` pipeline on your Router, typically found in
 `lib/my_app_web/router.ex`:
@@ -149,9 +147,9 @@ end
 
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 
-## LiveView 0.15.x and lower
+## LiveView 0.14.x-0.15.x
 
-Note for LiveView 0.15.x and lower, if you would like to use LiveProfiler
+Note for LiveView 0.14.x-0.15.x, if you would like to use LiveProfiler
 to the extent that it is supported, you must mount the profiler manually
 from within your [`mount/3`](`c:Phoenix.LiveView.mount/3`) callback.
 

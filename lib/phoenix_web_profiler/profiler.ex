@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Presence, Server, View}
+  alias PhoenixWeb.Profiler.{Presence, Server, Session, View}
   require Logger
 
   @dump_key :phxweb_profiler_dump
@@ -79,22 +79,35 @@ defmodule PhoenixWeb.Profiler do
   end
 
   @behaviour Plug
+
+  @session_key :phxweb_debug_session
   @token_key :pwdt
+  @token_header_key "x-debug-token"
   @live_socket_path_default "/live"
 
-  @doc """
-  Returns the debug token for a given `conn`.
-
-  Returns `nil` if no debug token is set.
-  """
-  @spec token(conn :: Plug.Conn.t()) :: nil | String.t()
-  def token(%Plug.Conn{private: %{@token_key => token}}), do: token
-  def token(%Plug.Conn{}), do: nil
-
-  @doc """
-  Returns the key used when storing the profiler token.
-  """
+  @doc false
   def token_key, do: @token_key
+
+  @doc false
+  def session_key, do: @session_key
+
+  defp profile_request(%Plug.Conn{} = conn, start_time) do
+    # Measurements
+    duration = System.monotonic_time() - start_time
+    {:memory, bytes} = Process.info(self(), :memory)
+    memory = div(bytes, 1_024)
+
+    :ok =
+      Session.profile_request(conn, %{
+        dump: retrieve_dump(),
+        duration: duration,
+        memory: memory
+      })
+
+    put_resp_header(conn, @token_header_key, Session.session_token!(conn))
+  end
+
+  ## Plug API
 
   @impl Plug
   def init(opts) do
@@ -122,7 +135,7 @@ defmodule PhoenixWeb.Profiler do
     start_time = System.monotonic_time()
 
     conn
-    |> put_private(@token_key, generate_token())
+    |> Session.apply_debug_token()
     |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, start_time, config)
   end
 
@@ -131,25 +144,18 @@ defmodule PhoenixWeb.Profiler do
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
   defp before_send_inject_debug_toolbar(conn, endpoint, start_time, config) do
     register_before_send(conn, fn conn ->
+      conn = profile_request(conn, start_time)
+
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
 
-        if has_body?(resp_body) and :code.is_loaded(endpoint) do
+        if has_body?(resp_body) and Code.ensure_loaded?(endpoint) do
           [page | rest] = String.split(resp_body, "</body>")
-          duration = System.monotonic_time() - start_time
-          {:memory, bytes} = Process.info(self(), :memory)
-          memory = div(bytes, 1_024)
 
-          with {:ok, _} <-
-                 Server.profile(conn, %{dump: retrieve_dump(), duration: duration, memory: memory}) do
-            body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
-            conn = put_in(conn.resp_body, body)
+          body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
+          conn = put_in(conn.resp_body, body)
 
-            conn
-          else
-            _ ->
-              conn
-          end
+          conn
         else
           conn
         end
@@ -168,11 +174,13 @@ defmodule PhoenixWeb.Profiler do
 
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
-  defp debug_toolbar_assets_tag(%{private: %{@token_key => token}} = conn, _endpoint, config) do
+  defp debug_toolbar_assets_tag(conn, _endpoint, config) do
+    {debug_token, session_token} = Session.tokens!(conn)
+
     attrs =
       Keyword.merge(
         config.toolbar_attrs,
-        id: "pwdt#{token}",
+        id: "pwdt#{debug_token}",
         class: "phxweb-toolbar",
         role: "region",
         name: "Phoenix Web Debug Toolbar"
@@ -181,8 +189,11 @@ defmodule PhoenixWeb.Profiler do
     View
     |> Phoenix.View.render("toolbar.html", %{
       conn: conn,
-      session: %{to_string(@token_key) => token},
-      token: token,
+      session: %{
+        to_string(@token_key) => debug_token,
+        to_string(@session_key) => session_token
+      },
+      token: debug_token,
       toolbar_attrs: attrs(attrs)
     })
     |> Phoenix.HTML.Safe.to_iodata()
@@ -211,18 +222,17 @@ defmodule PhoenixWeb.Profiler do
     |> Plug.HTML.html_escape_to_iodata()
   end
 
-  # Request ID generation
+  # Unique ID generation
   # Copyright (c) 2013 Plataformatec.
   # https://github.com/elixir-plug/plug/blob/fb6b952cf93336dc79ec8d033e09a424d522ce56/lib/plug/request_id.ex
-  # Note the segment sizes have been adjusted to generated shorter strings,
-  # and the adjusted parameters have not been tested exhaustively.
-  defp generate_token do
+  @doc false
+  def random_unique_id do
     binary = <<
-      System.system_time(:nanosecond)::16,
-      :erlang.phash2({node(), self()}, 16_777_216)::8,
-      :erlang.unique_integer()::8
+      System.system_time(:nanosecond)::64,
+      :erlang.phash2({node(), self()}, 16_777_216)::24,
+      :erlang.unique_integer()::32
     >>
 
-    Base.url_encode64(binary, padding: false)
+    Base.url_encode64(binary)
   end
 end

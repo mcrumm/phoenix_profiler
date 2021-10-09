@@ -3,16 +3,17 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
   alias PhoenixWeb.Profiler
-
-  @token_key "pwdt"
+  alias PhoenixWeb.Profiler.Session
 
   @impl Phoenix.LiveView
-  def mount(_, %{@token_key => token}, %{private: private} = socket) do
-    socket = assign(socket, :token, token)
+  def mount(_, %{"pwdt" => token} = session, %{private: private} = socket) do
+    private = Map.put(private, :topic, Session.topic(session))
+    socket = %{socket | private: private}
+    socket = assign(socket, token: token)
     socket = Profiler.track(socket, token, %{kind: :toolbar})
 
     if connected?(socket) do
-      :ok = Phoenix.PubSub.subscribe(Profiler.PubSub, Profiler.Server.topic(token))
+      :ok = Phoenix.PubSub.subscribe(Profiler.PubSub, socket.private.topic)
     end
 
     socket =
@@ -27,7 +28,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       )
 
     socket =
-      case Profiler.Server.info(token) do
+      case Session.info(session) do
         {:ok, info} ->
           socket = %{socket | private: Map.put(private, :profilerinfo, info)}
           assign_toolbar(socket, info)
@@ -204,8 +205,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   @impl Phoenix.LiveView
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
     presences =
-      socket.assigns.token
-      |> Profiler.Server.topic()
+      socket.private.topic
       |> Profiler.Presence.list()
       |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
 
