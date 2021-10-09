@@ -5,6 +5,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   alias PhoenixWeb.Profiler
   alias PhoenixWeb.Profiler.Session
 
+  @cast_for_dumped_wait 100
+
   @impl Phoenix.LiveView
   def mount(_, %{"pwdt" => token} = session, socket) do
     socket =
@@ -22,8 +24,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     socket =
       assign(socket,
         display: "block",
-        dumps: [],
-        dump_count: 0,
+        dumped: [],
+        dumped_count: 0,
         exits: [],
         exits_count: 0,
         memory: nil,
@@ -40,7 +42,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
           assign_minimal_toolbar(socket)
       end
 
-    {:ok, socket, temporary_assigns: [exits: [], dumps: []]}
+    {:ok, socket, temporary_assigns: [exits: []]}
   end
 
   def mount(_, _, socket) do
@@ -70,7 +72,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     socket
     |> apply_request(info)
     |> update_view(route_info(info))
-    |> assign_dump(info.dump)
+    |> update_dumped(info.dump)
     |> assign(:duration, duration(info.duration))
     |> assign(:memory, memory(info))
   end
@@ -199,21 +201,20 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     }
   end
 
-  defp assign_dump(socket, dump) do
+  defp update_dumped(socket, dumped) when is_list(dumped) do
     socket
-    |> update(:dump_count, &(&1 + length(dump)))
-    |> assign(:dump, dump)
+    |> update(:dumped, &(dumped ++ (&1 || [])))
+    |> update(:dumped_count, &(&1 + length(dumped)))
   end
 
   @impl Phoenix.LiveView
   def handle_cast({:dumped, ref, flushed}, %{private: %{dumped_ref: ref}} = socket)
       when is_reference(ref) do
-    Process.send_after(self(), :cast_for_dumped, 100)
+    Process.send_after(self(), :cast_for_dumped, @cast_for_dumped_wait)
 
     {:noreply,
      socket
-     |> update(:dumps, &(flushed ++ &1))
-     |> update(:dump_count, &(&1 + length(flushed)))
+     |> update_dumped(flushed)
      |> put_private(:dumped_ref, nil)}
   end
 
