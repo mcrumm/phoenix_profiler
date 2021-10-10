@@ -9,6 +9,7 @@ defmodule PhoenixWeb.Profiler.Server do
 
   @private_key Request.session_key()
   @session_key Session.session_key()
+  @token_key Request.token_key()
 
   ## Client
 
@@ -52,8 +53,9 @@ defmodule PhoenixWeb.Profiler.Server do
 
   @impl GenServer
   def init(session_token) do
-    :ok = PubSub.subscribe(Profiler.PubSub, topic(session_token))
-    {:ok, %{session: session_token, profiles: %{}, toolbar: nil, current_view: nil}}
+    topic = Profiler.Server.topic(session_token)
+    :ok = PubSub.subscribe(Profiler.PubSub, topic)
+    {:ok, %{session: session_token, topic: topic, requests: %{}}}
   end
 
   @impl GenServer
@@ -62,54 +64,87 @@ defmodule PhoenixWeb.Profiler.Server do
         _from,
         %{session: session} = state
       ) do
-    {:reply, :ok, %{state | profiles: Map.put(state.profiles, Request, profile)}}
+    %{@token_key => token} = profile
+    {request, requests} = Map.pop_lazy(state.requests, token, &build_request/0)
+
+    request =
+      Map.update(request, :profiles, %{Request => profile}, &Map.put(&1, Request, profile))
+
+    requests = Map.put(requests, token, request)
+    {:reply, :ok, %{state | requests: requests}}
   end
 
   @impl GenServer
-  def handle_call({:fetch_profile, {Request, _debug_token}}, _from, state) do
-    {:reply, {:ok, get_in(state.profiles, [Request])}, state}
+  def handle_call({:fetch_profile, {Request, debug_token}}, _from, state) do
+    result =
+      case get_in(state.requests, [debug_token, :profiles, Request]) do
+        nil -> :error
+        value -> {:ok, value}
+      end
+
+    {:reply, result, state}
   end
 
   @impl GenServer
-  def handle_info(%Broadcast{event: "presence_diff", payload: _payload}, state) do
-    presences =
-      state.session
-      |> Profiler.Server.topic()
-      |> Profiler.Presence.list()
-      |> Enum.map(fn {_user_id, data} -> List.first(data[:metas]) end)
+  def handle_info(%Broadcast{event: "presence_diff", payload: payload}, state) do
+    %{joins: joins, leaves: leaves} = payload
 
-    # naive pid finding
-    toolbar = Enum.find_value(presences, &if(&1.kind == :toolbar, do: {&1.pid, &1.node}))
-    view = Enum.find(presences, &(&1.kind == :profile))
+    updated_requests =
+      state.requests
+      |> handle_leaves(leaves)
+      |> handle_joins(joins)
 
-    # TODO: new operation
-    #
-    # :profile presence
-    #   if the view changed, check for toolbar
-    #   yes toolbar -> no-op
-    #   no toolbar -> queue the change
-    #
-    # :toolbar presence
-    #   on join -> send any view changes in the queue
-    #   on leave -> remove toolbar from state
-    state =
-      state
-      |> maybe_put_toolbar(toolbar)
-      |> maybe_put_current_view(view)
-
-    {:noreply, state}
+    {:noreply, %{state | requests: updated_requests}}
   end
 
-  defp maybe_put_toolbar(state, nil), do: state
-  defp maybe_put_toolbar(%{toolbar: {pid, _}} = state, {pid, _}) when is_pid(pid), do: state
+  defp handle_leaves(requests, leaves) do
+    Enum.reduce(leaves, requests, fn {debug_token, %{metas: metas}}, requests ->
+      Map.update!(requests, debug_token, fn request ->
+        Enum.reduce(metas, request, fn
+          %{kind: :toolbar, pid: pid}, %{toolbar: pid} = request ->
+            IO.puts("toolbar left")
+            %{request | toolbar: nil}
 
-  defp maybe_put_toolbar(state, {pid, _} = name) when is_pid(pid) do
-    %{state | toolbar: name}
+          %{kind: :profile, pid: pid}, %{view: pid} = request ->
+            IO.puts("profile left")
+            %{request | view: nil, message: nil, profiles: %{}}
+
+          other, request ->
+            IO.inspect(other, label: "unexpected leave")
+            IO.inspect(request, label: "request for unexpected leave")
+            request
+        end)
+      end)
+    end)
   end
 
-  defp maybe_put_current_view(state, nil), do: state
+  defp handle_joins(requests, joins) do
+    Enum.reduce(joins, requests, fn {debug_token, %{metas: metas}}, requests ->
+      requests
+      |> Map.put_new_lazy(debug_token, &build_request/0)
+      |> Map.update!(debug_token, fn request ->
+        Enum.reduce(metas, request, fn
+          %{kind: :toolbar, pid: pid}, request ->
+            # Profile won the race, send the latent join
+            if message = request.message do
+              send(pid, {Session, :join, message})
+            end
 
-  defp maybe_put_current_view(state, %{pid: pid} = view) when is_pid(pid) do
-    %{state | current_view: view}
+            %{request | toolbar: pid, message: nil}
+
+          %{kind: :profile, pid: pid} = join, %{toolbar: nil} = request ->
+            # Profile won the race - queue the join
+            %{request | view: pid, message: join}
+
+          %{kind: :profile, pid: pid}, request ->
+            # Toolbar won the race– it will get the join
+            %{request | view: pid, message: nil}
+        end)
+      end)
+    end)
+  end
+
+  defp build_request do
+    %{profiles: %{}, toolbar: nil, view: nil, message: nil}
   end
 end

@@ -263,6 +263,17 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
+  def handle_info({Session, :join, %{phx_ref: ref}}, %{private: %{last_join_ref: ref}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info({Session, :join, join}, socket) do
+    socket = update_monitor(socket, join)
+    {:noreply, update_view(socket, join)}
+  end
+
+  @impl Phoenix.LiveView
   def handle_info(:cast_for_dumped, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
     {:noreply, cast_for_dumped(socket, pid)}
   end
@@ -304,12 +315,13 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     do_monitor_view(socket, view)
   end
 
-  defp do_monitor_view(socket, %{pid: pid}) do
+  defp do_monitor_view(socket, %{pid: pid, phx_ref: phx_ref}) do
     ref = Process.monitor(pid)
     socket = cast_for_dumped(socket, pid)
 
     private =
       socket.private
+      |> Map.put(:last_join_ref, phx_ref)
       |> Map.put(:monitor_ref, ref)
       |> Map.put(:lv_pid, pid)
 
