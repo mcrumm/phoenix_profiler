@@ -102,17 +102,10 @@ defmodule PhoenixWeb.Profiler.Server do
       Map.update!(requests, debug_token, fn request ->
         Enum.reduce(metas, request, fn
           %{kind: :toolbar, pid: pid}, %{toolbar: pid} = request ->
-            IO.puts("toolbar left")
             %{request | toolbar: nil}
 
           %{kind: :profile, pid: pid}, %{view: pid} = request ->
-            IO.puts("profile left")
             %{request | view: nil, message: nil, profiles: %{}}
-
-          other, request ->
-            IO.inspect(other, label: "unexpected leave")
-            IO.inspect(request, label: "request for unexpected leave")
-            request
         end)
       end)
     end)
