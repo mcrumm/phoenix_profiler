@@ -528,16 +528,12 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
 
 .phxweb-toolbar-panel-dump .phxweb-toolbar-info pre,
 .phxweb-toolbar-panel-exits .phxweb-toolbar-info span pre {
-  background-color: var(--color-canvas-secondary);
+  background-color: var(--color-canvas-default);
   color: var(--color-fg-secondary);
   overflow-x: hidden;
   padding: var(--size-2);
   white-space: pre-wrap;
   max-width: --var(--width-lg);
-}
-
-.phxweb-toolbar-panel-dump .phxweb-toolbar-info pre {
-  background-color: var(--color-canvas-default);
 }
 
 /* Responsive Design */
