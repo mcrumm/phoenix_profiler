@@ -39,6 +39,9 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
           socket = put_private(socket, :profilerinfo, info)
           assign_toolbar(socket, info)
 
+        :error ->
+          assign_minimal_toolbar(socket)
+
         {:error, :not_started} ->
           assign_minimal_toolbar(socket)
       end

@@ -24,3 +24,6 @@ phoenix_web_profiler-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Static assets for the dev server
+/dev/static/assets/

@@ -180,6 +180,15 @@ emit a warning recommending its own removal.
 
 <!-- MDOC !-->
 
+## Contributing
+
+For those planning to contribute to this project, you can run a dev app with the following commands:
+
+    $ mix setup
+    $ mix dev
+
+Alternatively, run `iex -S mix dev` if you also want a shell.
+
 ## License
 
 MIT License. Copyright (c) 2021 Michael Allen Crumm Jr.
