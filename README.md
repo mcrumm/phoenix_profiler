@@ -33,7 +33,7 @@ To start using the profiler, you will need the following steps:
 Add phoenix_web_profiler to your `mix.exs`:
 
 ```elixir
-{:phoenix_web_profiler, "~> 0.1.0", runtime: Mix.env() == :dev}
+{:phoenix_web_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_web_profiler.git"}
 ```
 
 ### 2. Configure LiveView
