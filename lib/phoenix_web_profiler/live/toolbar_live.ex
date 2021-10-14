@@ -222,6 +222,12 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
      |> put_private(:dumped_ref, nil)}
   end
 
+  # stale dumped ref
+  def handle_cast({:dumped, ref, _flushed}, %{private: %{dumped_ref: _}} = socket)
+      when is_reference(ref) do
+    {:noreply, socket}
+  end
+
   @impl Phoenix.LiveView
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
     # assumes only one process under profile per debug token.
@@ -240,27 +246,23 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @impl Phoenix.LiveView
   def handle_info(
-        {:DOWN, ref, _, _pid, {:shutdown, :left}},
-        %{private: %{monitor_ref: ref}} = socket
-      ) do
-    {:noreply, clear_monitor(socket)}
-  end
-
-  @impl Phoenix.LiveView
-  def handle_info(
         {:DOWN, ref, _, _pid, reason},
         %{private: %{monitor_ref: ref}} = socket
       ) do
-    exit_reason = %{
-      ref: Phoenix.LiveView.Utils.random_id(),
-      reason: Exception.format_exit(reason),
-      at: Time.utc_now() |> Time.truncate(:second)
-    }
-
     socket =
-      socket
-      |> update(:exits, &[exit_reason | &1])
-      |> update(:exits_count, &(&1 + 1))
+      case reason do
+        {:shutdown, :left} ->
+          socket
+
+        {:shutdown, :duplicate_join} ->
+          socket
+
+        :shutdown ->
+          socket
+
+        other ->
+          apply_exit_reason(socket, other)
+      end
 
     {:noreply, clear_monitor(socket)}
   end
@@ -290,6 +292,18 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   def handle_info(other, socket) do
     IO.inspect(other, label: "ToolbarLive received an unknown message")
     {:noreply, socket}
+  end
+
+  defp apply_exit_reason(socket, reason) do
+    exit_reason = %{
+      ref: Phoenix.LiveView.Utils.random_id(),
+      reason: Exception.format_exit(reason),
+      at: Time.utc_now() |> Time.truncate(:second)
+    }
+
+    socket
+    |> update(:exits, &[exit_reason | &1])
+    |> update(:exits_count, &(&1 + 1))
   end
 
   defp clear_monitor(%{private: private} = socket) do
