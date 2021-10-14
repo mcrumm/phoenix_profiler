@@ -20,6 +20,7 @@ defmodule DemoWeb.Router do
     get "/", PageController, :index
     get "/hello", PageController, :hello
     get "/hello/:name", PageController, :hello
+    get "/errors/assign-not-available", ErrorsController, :assign_not_available
     live "/app", AppLive.Index, :index
   end
 end
