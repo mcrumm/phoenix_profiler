@@ -118,14 +118,18 @@
 
       <div class="phxweb-toolbar-info-group">
         <div class="phxweb-toolbar-info-item">
-          <b>LiveView Version</b><span><a href="https://hexdocs.pm/phoenix_live_view/<%= @system.elixir_version %>/"><%= @system.live_view_version %></a></span>
+          <b>LiveView Version</b><span><a href="https://hexdocs.pm/phoenix_live_view/<%= @system.live_view_version %>/"><%= @system.live_view_version %></a></span>
+        </div>
+        <div class="phxweb-toolbar-info-item">
+          <b>Phoenix Version</b><span><a href="https://hexdocs.pm/phoenix/<%= @system.phoenix_version %>/"><%= @system.phoenix_version %></a></span>
         </div>
         <div class="phxweb-toolbar-info-item">
           <b>Elixir Version</b>
           <span><a href="https://hexdocs.pm/elixir/<%= @system.elixir_version %>/"><%= @system.elixir_version %></a></span>
         </div>
         <div class="phxweb-toolbar-info-item">
-          <b>OTP Release</b><span><%= @system.otp_release %></span>
+          <b>OTP Release</b>
+          <span><a href="https://erlang.org/erldoc"><%= @system.otp_release %></a></span>
         </div>
       </div>
 
