@@ -496,7 +496,7 @@ div.phxweb-toolbar .phxweb-toolbar-panel a:hover {
   display: block;
 }
 
-.phxweb-toolbar-panel-dump .phxweb-toolbar-info-item .phxweb-toolbar-file-line {
+.phxweb-toolbar-panel-dump .phxweb-toolbar-info-item .phxweb-toolbar-module-function {
   color: var(--color-canvas-secondary);
   margin-left: var(--size-1);
 }

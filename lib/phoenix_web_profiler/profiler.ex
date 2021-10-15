@@ -25,8 +25,8 @@ defmodule PhoenixWeb.Profiler do
 
   # TODO: enable compile-time purging via configuration
   defp maybe_dump(var, caller) do
-    %{file: file, line: line} = caller
-    caller = [file: file, line: line]
+    %{file: file, line: line, module: module, function: function} = caller
+    caller = [file: file, line: line, module: module, function: function]
 
     quoted_metadata =
       quote do
@@ -41,8 +41,8 @@ defmodule PhoenixWeb.Profiler do
     end
   end
 
-  def __dump_var__(value, file: file, line: line) do
-    Dumped.update(&[{value, file, line} | &1])
+  def __dump_var__(value, file: file, line: line, module: module, function: function) do
+    Dumped.update(&[{value, file, line, module, function} | &1])
 
     # we could return a %Dumped{} that implements (L|H)eex protocols.
     # whatever we decide to return, we need to ensure it will render empty

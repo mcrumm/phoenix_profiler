@@ -364,4 +364,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     private = Map.put(private, key, value)
     %{socket | private: private}
   end
+
+  defp format_module_function(module, {function, arity}) do
+    "#{module}.#{function}/#{arity}"
+  end
 end
