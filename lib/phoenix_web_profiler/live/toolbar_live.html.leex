@@ -1,4 +1,8 @@
-<div class="phxweb-toolbar-container" style="display: <%= @display %>">
+<div class="phxweb-minitoolbar" style="display: <%= if @visible, do: 'none', else: 'block' %>">
+  <button class="show-button" type="button" id="phx-web-toolbar-show-<%= @token %>>" title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxweb-toolbar-main-<%= @token %>" phx-click="toggle"></button>
+</div>
+
+<div class="phxweb-toolbar-container" style="display: <%= if @visible, do: 'block', else: 'none' %>">
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-request" aria-label="Status, <%= @request.status_phrase %>">
     <div class="phxweb-toolbar-icon">
       <span class="phxweb-toolbar-status phxweb-toolbar-status-<%= @request.class %>"><%= case @request.status_code do %>
@@ -151,7 +155,7 @@
       </div>
     </div>
   </div>
-  <button class="hide-button" type="button" id="phx-web-toolbar-hide-<%= @token %>>" title="Close Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxweb-toolbar-main-<%= @token %>" phx-click="hide">
+  <button class="hide-button" type="button" id="phx-web-toolbar-hide-<%= @token %>>" title="Hide Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxweb-toolbar-main-<%= @token %>" phx-click="toggle">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
     </svg>

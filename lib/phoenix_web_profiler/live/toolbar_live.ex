@@ -24,7 +24,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
     socket =
       assign(socket,
-        display: "block",
+        visible: true,
         dumped: [],
         dumped_count: 0,
         exits: [],
@@ -229,8 +229,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("hide", _, socket) do
-    {:noreply, assign(socket, display: "none")}
+  def handle_event("toggle", _, socket) do
+    {:noreply, update(socket, :visible, &(!&1))}
   end
 
   @impl Phoenix.LiveView
