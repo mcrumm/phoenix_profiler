@@ -1,4 +1,4 @@
-<div class="phxweb-toolbar-container" style="display: <%= @display %>">
+<div id="phxweb-toolbar" class="phxweb-toolbar-container" style="display: <%= @display %>" phx-hook="PHX_TOOLBAR_LV_CONTROL">
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-request" aria-label="Status, <%= @request.status_phrase %>">
     <div class="phxweb-toolbar-icon">
       <span class="phxweb-toolbar-status phxweb-toolbar-status-<%= @request.class %>"><%= case @request.status_code do %>
@@ -98,9 +98,20 @@
           <pre><%= inspect(value) %></pre>
         </div>
       <% end %></div>
-
     </div>
   </div><% end %>
+  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-lv-control" aria-label="LiveView Controls">
+    <div class="phxweb-toolbar-icon">
+      <span class="phxweb-toolbar-value">LiveView Controls</span>
+    </div>
+    <div class="phxweb-toolbar-info">
+      <div class="phxweb-toolbar-info-item">
+        <button type="button" phx-click="lv-enable-debug">Enable Debug</button>
+        <button type="button" phx-click="lv-disable-debug">Disable Debug</button>
+        <span>DEBUG: <%= if @lv_status.is_debug_enabled, do: "ON", else: "OFF" %></span>
+      </div>
+    </div>
+  </div>
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-config phxweb-toolbar-panel-right" aria-label="Config">
     <div class="phxweb-toolbar-icon">
       <div class="phxweb-toolbar-label"></div>

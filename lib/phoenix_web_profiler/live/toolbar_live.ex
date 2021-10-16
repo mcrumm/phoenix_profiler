@@ -30,7 +30,10 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
         exits: [],
         exits_count: 0,
         memory: nil,
-        system: system()
+        system: system(),
+        lv_status: %{
+          is_debug_enabled: false
+        }
       )
 
     socket =
@@ -209,6 +212,19 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     socket
     |> update(:dumped, &(dumped ++ (&1 || [])))
     |> update(:dumped_count, &(&1 + length(dumped)))
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("lv-enable-debug", _, socket) do
+    {:noreply, push_event(socket, "enable-debug", %{})}
+  end
+
+  def handle_event("lv-disable-debug", _, socket) do
+    {:noreply, push_event(socket, "disable-debug", %{})}
+  end
+
+  def handle_event("lv-status", %{"isDebugEnabled" => is_debug_enabled}, socket) do
+    {:noreply, update(socket, :lv_status, &(%{&1 | is_debug_enabled: is_debug_enabled}))}
   end
 
   @impl Phoenix.LiveView
