@@ -224,7 +224,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   def handle_event("lv-status", %{"isDebugEnabled" => is_debug_enabled}, socket) do
-    {:noreply, update(socket, :lv_status, &(%{&1 | is_debug_enabled: is_debug_enabled}))}
+    {:noreply, update(socket, :lv_status, &%{&1 | is_debug_enabled: is_debug_enabled})}
   end
 
   @impl Phoenix.LiveView
