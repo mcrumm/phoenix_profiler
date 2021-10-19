@@ -32,6 +32,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
         memory: nil,
         system: system(),
         lv_status: %{
+          is_connected: false,
           is_debug_enabled: false
         }
       )
@@ -223,8 +224,17 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     {:noreply, push_event(socket, "disable-debug", %{})}
   end
 
-  def handle_event("lv-status", %{"isDebugEnabled" => is_debug_enabled}, socket) do
-    {:noreply, update(socket, :lv_status, &%{&1 | is_debug_enabled: is_debug_enabled})}
+  def handle_event(
+        "lv-status",
+        %{"isConnected" => is_connected, "isDebugEnabled" => is_debug_enabled},
+        socket
+      ) do
+    {:noreply,
+     update(
+       socket,
+       :lv_status,
+       &%{&1 | is_connected: is_connected, is_debug_enabled: is_debug_enabled}
+     )}
   end
 
   @impl Phoenix.LiveView

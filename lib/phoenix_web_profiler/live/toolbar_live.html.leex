@@ -103,6 +103,7 @@
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-lv-control" aria-label="LiveView Controls">
     <div class="phxweb-toolbar-icon">
       <span class="phxweb-toolbar-value">LiveView Controls</span>
+      <span><%= if @lv_status.is_connected, do: "(ON)", else: "(OFF)" %></span>
     </div>
     <div class="phxweb-toolbar-info">
       <div class="phxweb-toolbar-info-item">

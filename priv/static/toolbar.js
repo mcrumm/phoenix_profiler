@@ -15,7 +15,10 @@ const PHXWEB_TOOLBAR_LV_PROXY = {
     this.pushStatus()
   },
   pushStatus() {
-    this.pushEvent("lv-status", {isDebugEnabled: liveSocket().isDebugEnabled()})
+    this.pushEvent("lv-status", {
+      isConnected: liveSocket().isConnected(),
+      isDebugEnabled: liveSocket().isDebugEnabled()
+    })
   }
 }
 
