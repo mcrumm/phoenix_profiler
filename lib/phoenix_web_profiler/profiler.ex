@@ -88,7 +88,8 @@ defmodule PhoenixWeb.Profiler do
 
     %{
       toolbar_attrs: toolbar_attrs,
-      live_socket_path: opts[:live_socket_path] || @live_socket_path_default
+      live_socket_path: opts[:live_socket_path] || @live_socket_path_default,
+      live_socket_object: Keyword.get(opts, :live_socket_object, "liveSocket")
     }
   end
 
@@ -158,7 +159,8 @@ defmodule PhoenixWeb.Profiler do
       conn: conn,
       session: Session.live_session(conn),
       token: Request.debug_token!(conn),
-      toolbar_attrs: attrs(attrs)
+      toolbar_attrs: attrs(attrs),
+      live_socket_object: config.live_socket_object
     })
     |> Phoenix.HTML.Safe.to_iodata()
     |> IO.iodata_to_binary()

@@ -1,19 +1,24 @@
-const PHX_TOOLBAR_LV_CONTROL = {
+const liveSocket = () => window.PHXWEB_TOOLBAR_LIVE_SOCKET
+
+const PHXWEB_TOOLBAR_LV_PROXY = {
   mounted(){
     this.handleEvent("enable-debug", ({}) => {
-      window.liveSocket.enableDebug()
-      this.pushEvent("lv-status", {isDebugEnabled: window.liveSocket.isDebugEnabled()})
+      liveSocket().enableDebug()
+      this.pushStatus()
     })
 
     this.handleEvent("disable-debug", ({}) => {
-      window.liveSocket.disableDebug()
-      this.pushEvent("lv-status", {isDebugEnabled: window.liveSocket.isDebugEnabled()})
+      liveSocket().disableDebug()
+      this.pushStatus()
     })
 
-    this.pushEvent("lv-status", {isDebugEnabled: window.liveSocket.isDebugEnabled()})
+    this.pushStatus()
+  },
+  pushStatus() {
+    this.pushEvent("lv-status", {isDebugEnabled: liveSocket().isDebugEnabled()})
   }
 }
 
 window.addEventListener('DOMContentLoaded', (event) => {
-  window.liveSocket.hooks.PHX_TOOLBAR_LV_CONTROL = PHX_TOOLBAR_LV_CONTROL
+  liveSocket().hooks.PHXWEB_TOOLBAR_LV_PROXY = PHXWEB_TOOLBAR_LV_PROXY
 })

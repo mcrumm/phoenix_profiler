@@ -23,6 +23,11 @@ defmodule PhoenixWeb.Profiler.View do
     <!-- END Phoenix Web Debug Toolbar -->
     </div>
     <style type="text/css"><%= Phoenix.HTML.raw(@toolbar_css) %></style>
+    <script>
+      window.addEventListener('DOMContentLoaded', (event) => {
+        window.PHXWEB_TOOLBAR_LIVE_SOCKET = <%= "window.#{@live_socket_object}" %>
+      })
+    </script>
     <script><%= Phoenix.HTML.raw(@toolbar_js) %></script>
     """
   end
