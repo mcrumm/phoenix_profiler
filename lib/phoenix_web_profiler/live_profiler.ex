@@ -66,7 +66,7 @@ defmodule PhoenixWeb.LiveProfiler do
         PhoenixWeb.LiveProfiler.__handle_cast__(__MODULE__, msg, socket)
       end
 
-      def handle_call(msg, _, socket) do
+      def handle_call({PhoenixWeb.LiveProfiler, _} = msg, _, socket) do
         PhoenixWeb.LiveProfiler.__handle_call__(__MODULE__, msg, socket)
       end
     end
@@ -167,8 +167,10 @@ defmodule PhoenixWeb.LiveProfiler do
     {:noreply, socket}
   end
 
-  def __handle_call__(_module, :assigns, socket) do
-    assigns = Phoenix.LiveView.Helpers.assigns_to_attributes(socket.assigns, [:live_action, :flash])
+  def __handle_call__(_module, {PhoenixWeb.LiveProfiler, :assigns}, socket) do
+    assigns =
+      Phoenix.LiveView.Helpers.assigns_to_attributes(socket.assigns, [:live_action, :flash])
+
     {:reply, assigns, socket}
   end
 

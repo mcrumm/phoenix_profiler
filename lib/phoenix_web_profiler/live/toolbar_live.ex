@@ -214,7 +214,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @impl Phoenix.LiveView
   def handle_event("show-assigns", _, %{private: %{lv_pid: lv_pid}} = socket) do
-    assigns = GenServer.call(lv_pid, :assigns)
+    assigns = GenServer.call(lv_pid, {PhoenixWeb.LiveProfiler, :assigns})
     {:noreply, assign(socket, lv_assigns: assigns)}
   end
 
