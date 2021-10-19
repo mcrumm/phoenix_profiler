@@ -1,8 +1,12 @@
+defmodule User do
+  defstruct [:id, :name]
+end
+
 defmodule DemoWeb.AppLive.Index do
   use DemoWeb, :live_view
 
   def mount(_, _, socket) do
-    {:ok, assign(socket, :count, 0)}
+    {:ok, assign(socket, count: 0, user: %User{id: 1, name: "José"})}
   end
 
   def render(assigns) do
