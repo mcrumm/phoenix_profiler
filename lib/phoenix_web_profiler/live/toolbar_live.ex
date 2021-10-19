@@ -30,7 +30,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
         exits: [],
         exits_count: 0,
         memory: nil,
-        system: system()
+        system: system(),
+        lv_assigns: []
       )
 
     socket =
@@ -209,6 +210,12 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     socket
     |> update(:dumped, &(dumped ++ (&1 || [])))
     |> update(:dumped_count, &(&1 + length(dumped)))
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("show-assigns", _, %{private: %{lv_pid: lv_pid}} = socket) do
+    assigns = GenServer.call(lv_pid, :assigns)
+    {:noreply, assign(socket, lv_assigns: assigns)}
   end
 
   @impl Phoenix.LiveView

@@ -11,6 +11,7 @@ defmodule DemoWeb.AppLive.Index do
       <h2>AppLive Page</h2>
       <p>Action=<%= @live_action %></p>
       <button phx-click="plus">+</button><button phx-click="minus">-</button>
+      <p>count=<%= @count %></p>
     </section>
     """
   end
