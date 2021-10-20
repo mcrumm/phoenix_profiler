@@ -3,7 +3,7 @@ defmodule PhoenixWeb.Profiler.Request do
   @moduledoc false
   import Plug.Conn
   alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{Dumped, Server}
+  alias PhoenixWeb.Profiler.{Dumped, Requests}
 
   @session_key :phxweb_debug_session
   @token_key :pwdt
@@ -37,7 +37,7 @@ defmodule PhoenixWeb.Profiler.Request do
   Profiles a given `conn`.
   """
   def profile_request(
-        %Plug.Conn{private: %{@session_key => session_token, @token_key => debug_token}} = conn,
+        %Plug.Conn{private: %{@token_key => debug_token}} = conn,
         start_time
       ) do
     # Measurements
@@ -54,10 +54,7 @@ defmodule PhoenixWeb.Profiler.Request do
         memory: memory
       })
 
-    :ok =
-      session_token
-      |> Server.server_name()
-      |> GenServer.call({:store, __MODULE__, profile})
+    Requests.put(debug_token, profile)
 
     put_resp_header(conn, @token_header_key, debug_token)
   end

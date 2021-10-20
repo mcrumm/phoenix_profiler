@@ -22,6 +22,42 @@ defmodule PhoenixWeb.ProfilerTest.Router do
     plug :fetch_session
     plug PhoenixWeb.LiveProfiler
   end
+
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
+  scope "/", PhoenixWeb.ProfilerTest do
+    pipe_through :browser
+
+    get "/", PageController, :index
+  end
+
+  scope "/api", PhoenixWeb.ProfilerTest do
+    pipe_through :api
+
+    get "/", APIController, :index
+  end
+end
+
+defmodule PhoenixWeb.ProfilerTest.PageController do
+  use Phoenix.Controller
+
+  def index(conn, _params) do
+    conn
+    |> put_resp_content_type("text/html")
+    |> send_resp(200, "<html><body><p>Hello, world</p></body></html>")
+  end
+end
+
+defmodule PhoenixWeb.ProfilerTest.APIController do
+  use Phoenix.Controller
+
+  def index(conn, _params) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Jason.encode!(%{"hello" => "world"}))
+  end
 end
 
 defmodule PhoenixWeb.ProfilerTest.Endpoint do

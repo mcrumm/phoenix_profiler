@@ -2,7 +2,7 @@ defmodule PhoenixWeb.Profiler.Session do
   # Manages HTTP session state for the toolbar
   @moduledoc false
   alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{Request, Server}
+  alias PhoenixWeb.Profiler.{Request, Requests, Server}
 
   @private_key Request.session_key()
   @session_key Atom.to_string(@private_key)
@@ -40,7 +40,7 @@ defmodule PhoenixWeb.Profiler.Session do
     debug_token
   end
 
-  def info(%{@session_key => session, @token_key => token}) do
-    Server.info(session, token)
+  def info(%{@session_key => _session, @token_key => token}) do
+    Requests.get(token)
   end
 end
