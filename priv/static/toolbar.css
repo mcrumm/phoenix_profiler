@@ -20,6 +20,9 @@
   --size-icon: 20px;
   --size-logo-height: 28px;
   --size-logo-width: 41px;
+  --size-mini-toolbar: var(--size-8);
+  --size-mini-logo-height: 14px;
+  --size-mini-logo-width: 22px;
   --size-toolbar: var(--size-11);
 }
 
@@ -34,13 +37,13 @@ div.phxweb-toolbar.hidden > .phxweb-toolbar-view {
 /*! Symfony Web Debug Toolbar v5.3.9 | MIT License | https://github.com/symfony/symfony/blob/842ecc50f04ea0067ac300e2396a391dff687498/src/Symfony/Bundle/WebProfilerBundle/Resources/views/Profiler/toolbar.css.twig */
 
 .phxweb-minitoolbar {
-  background-color: #222;
-  border-top-left-radius: 4px;
+  background-color: var(--color-canvas-default);
+  border-top-left-radius: var(--size-1);
   bottom: 0;
   box-sizing: border-box;
   display: none;
-  height: var(--size-toolbar);
-  padding: 6px;
+  height: var(--size-mini-toolbar);
+  padding: var(--size-1);
   position: fixed;
   right: 0;
   z-index: var(--layer-top);
@@ -50,22 +53,17 @@ div.phxweb-toolbar.hidden > .phxweb-toolbar-view {
   background-color: transparent;
   padding: 0;
   border: none;
-}
-
-.phxweb-minitoolbar svg,
-.phxweb-minitoolbar img {
   max-height: 24px;
   max-width: 24px;
-  display: inline;
 }
 
 .phxweb-minitoolbar .show-button {
   content: '';
   display: inline-block;
   cursor: pointer;
-  height: var(--size-logo-height);
+  height: var(--size-mini-logo-height);
   padding: 0 var(--size-1);
-  width: var(--size-logo-width);
+  width: var(--size-mini-logo-width);
   margin-top: var(--size-1);
   background-color: var(--color-canvas-default);
   background-size: auto 100%;
