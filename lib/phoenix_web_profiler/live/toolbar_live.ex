@@ -229,11 +229,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("toggle", _, socket) do
-    {:noreply, update(socket, :visible, &(!&1))}
-  end
-
-  @impl Phoenix.LiveView
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
     # assumes only one process under profile per debug token.
     # a unique debug token is generated per stateless request,

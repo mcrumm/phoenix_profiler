@@ -23,6 +23,14 @@
   --size-toolbar: var(--size-11);
 }
 
+div.phxweb-toolbar.hidden > .phxweb-minitoolbar {
+  display: block;
+}
+
+div.phxweb-toolbar.hidden > .phxweb-toolbar-view {
+  display: none;
+}
+
 /*! Symfony Web Debug Toolbar v5.3.9 | MIT License | https://github.com/symfony/symfony/blob/842ecc50f04ea0067ac300e2396a391dff687498/src/Symfony/Bundle/WebProfilerBundle/Resources/views/Profiler/toolbar.css.twig */
 
 .phxweb-minitoolbar {
@@ -58,7 +66,7 @@
   height: var(--size-logo-height);
   padding: 0 var(--size-1);
   width: var(--size-logo-width);
-  margin-top: var(--size-2);
+  margin-top: var(--size-1);
   background-color: var(--color-canvas-default);
   background-size: auto 100%;
   background-image: var(--logo-phoenix);
