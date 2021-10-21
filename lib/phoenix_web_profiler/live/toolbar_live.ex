@@ -24,7 +24,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
     socket =
       assign(socket,
-        display: "block",
         dumped: [],
         dumped_count: 0,
         exits: [],
