@@ -73,17 +73,19 @@
   background-color: transparent;
   padding: 0;
   border: none;
-  max-height: 24px;
-  max-width: 24px;
+  max-height: var(--size-mini-toolbar-height);
+  max-width: var(--size-mini-toolbar-width);
 }
 
 .phxweb-minitoolbar .show-button {
   content: '';
   display: inline-block;
   cursor: pointer;
+  box-sizing: content-box;
   height: var(--size-mini-logo-height);
-  padding: var(--size-1);
+  padding: 0 var(--size-1);
   width: var(--size-mini-logo-width);
+  margin-top: var(--size-1);
   background-color: var(--color-canvas-default);
   background-size: auto 100%;
   background-image: var(--logo-phoenix);
