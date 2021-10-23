@@ -3,13 +3,11 @@ defmodule PhoenixWeb.Profiler.Server do
   @moduledoc false
   use GenServer, restart: :temporary
   alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{Request, Session}
+  alias PhoenixWeb.Profiler.Session
   alias Phoenix.PubSub
   alias Phoenix.Socket.Broadcast
 
-  @private_key Request.session_key()
   @session_key Session.session_key()
-  @token_key Request.token_key()
 
   ## Client
 
@@ -36,19 +34,6 @@ defmodule PhoenixWeb.Profiler.Server do
     token |> server_name() |> Process.whereis()
   end
 
-  @doc """
-  Returns a map of info collected by the Plug.
-  """
-  def info(session_token, debug_token) do
-    case whereis(session_token) do
-      server when is_pid(server) ->
-        GenServer.call(server, {:fetch_profile, {Request, debug_token}})
-
-      _ ->
-        {:error, :not_started}
-    end
-  end
-
   ## Server
 
   @impl GenServer
@@ -56,33 +41,6 @@ defmodule PhoenixWeb.Profiler.Server do
     topic = Profiler.Server.topic(session_token)
     :ok = PubSub.subscribe(Profiler.PubSub, topic)
     {:ok, %{session: session_token, topic: topic, requests: %{}}}
-  end
-
-  @impl GenServer
-  def handle_call(
-        {:store, Request, %{@private_key => session} = profile},
-        _from,
-        %{session: session} = state
-      ) do
-    %{@token_key => token} = profile
-    {request, requests} = Map.pop_lazy(state.requests, token, &build_request/0)
-
-    request =
-      Map.update(request, :profiles, %{Request => profile}, &Map.put(&1, Request, profile))
-
-    requests = Map.put(requests, token, request)
-    {:reply, :ok, %{state | requests: requests}}
-  end
-
-  @impl GenServer
-  def handle_call({:fetch_profile, {Request, debug_token}}, _from, state) do
-    result =
-      case get_in(state.requests, [debug_token, :profiles, Request]) do
-        nil -> :error
-        value -> {:ok, value}
-      end
-
-    {:reply, result, state}
   end
 
   @impl GenServer
@@ -105,7 +63,7 @@ defmodule PhoenixWeb.Profiler.Server do
             %{request | toolbar: nil}
 
           %{kind: :profile, pid: pid}, %{view: pid} = request ->
-            %{request | view: nil, message: nil, profiles: %{}}
+            %{request | view: nil, message: nil}
         end)
       end)
     end)
@@ -138,6 +96,6 @@ defmodule PhoenixWeb.Profiler.Server do
   end
 
   defp build_request do
-    %{profiles: %{}, toolbar: nil, view: nil, message: nil}
+    %{toolbar: nil, view: nil, message: nil}
   end
 end

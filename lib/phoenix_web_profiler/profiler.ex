@@ -101,20 +101,16 @@ defmodule PhoenixWeb.Profiler do
 
   @impl Plug
   def call(conn, config) do
-    start_time = System.monotonic_time()
-
     conn
     |> Request.apply_debug_token()
-    |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, start_time, config)
+    |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, config)
   end
 
   # HTML Injection
   # Copyright (c) 2018 Chris McCord
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
-  defp before_send_inject_debug_toolbar(conn, endpoint, start_time, config) do
+  defp before_send_inject_debug_toolbar(conn, endpoint, config) do
     register_before_send(conn, fn conn ->
-      conn = Request.profile_request(conn, start_time)
-
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
 
@@ -144,24 +140,50 @@ defmodule PhoenixWeb.Profiler do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
-    attrs =
-      Keyword.merge(
-        config.toolbar_attrs,
-        id: Request.toolbar_id(conn),
-        class: "phxweb-toolbar",
-        role: "region",
-        name: "Phoenix Web Debug Toolbar"
-      )
+    session =
+      try do
+        Session.live_session(conn)
+      rescue
+        RuntimeError ->
+          require Logger
 
-    View
-    |> Phoenix.View.render("toolbar.html", %{
-      conn: conn,
-      session: Session.live_session(conn),
-      token: Request.debug_token!(conn),
-      toolbar_attrs: attrs(attrs)
-    })
-    |> Phoenix.HTML.Safe.to_iodata()
-    |> IO.iodata_to_binary()
+          Logger.debug("""
+          #{inspect(__MODULE__)} could not be loaded because no session debug token was found.
+
+          Did you remember to add #{inspect(__MODULE__)}.LiveProfiler to the
+          :browser pipeline in your router? For example:
+
+          pipeline :browser do
+            # plugs...
+            plug PhoenixWeb.LiveProfiler
+          end
+          """)
+
+          nil
+      end
+
+    if session do
+      attrs =
+        Keyword.merge(
+          config.toolbar_attrs,
+          id: Request.toolbar_id(conn),
+          class: "phxweb-toolbar",
+          role: "region",
+          name: "Phoenix Web Debug Toolbar"
+        )
+
+      View
+      |> Phoenix.View.render("toolbar.html", %{
+        conn: conn,
+        session: session,
+        token: Request.debug_token!(conn),
+        toolbar_attrs: attrs(attrs)
+      })
+      |> Phoenix.HTML.Safe.to_iodata()
+      |> IO.iodata_to_binary()
+    else
+      []
+    end
   end
 
   defp attrs(attrs) do
