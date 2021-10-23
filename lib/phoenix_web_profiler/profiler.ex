@@ -140,24 +140,50 @@ defmodule PhoenixWeb.Profiler do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
-    attrs =
-      Keyword.merge(
-        config.toolbar_attrs,
-        id: Request.toolbar_id(conn),
-        class: "phxweb-toolbar",
-        role: "region",
-        name: "Phoenix Web Debug Toolbar"
-      )
+    session =
+      try do
+        Session.live_session(conn)
+      rescue
+        RuntimeError ->
+          require Logger
 
-    View
-    |> Phoenix.View.render("toolbar.html", %{
-      conn: conn,
-      session: Session.live_session(conn),
-      token: Request.debug_token!(conn),
-      toolbar_attrs: attrs(attrs)
-    })
-    |> Phoenix.HTML.Safe.to_iodata()
-    |> IO.iodata_to_binary()
+          Logger.debug("""
+          #{inspect(__MODULE__)} could not be loaded because no session debug token was found.
+
+          Did you remember to add #{inspect(__MODULE__)}.LiveProfiler to the
+          :browser pipeline in your router? For example:
+
+          pipeline :browser do
+            # plugs...
+            plug PhoenixWeb.LiveProfiler
+          end
+          """)
+
+          nil
+      end
+
+    if session do
+      attrs =
+        Keyword.merge(
+          config.toolbar_attrs,
+          id: Request.toolbar_id(conn),
+          class: "phxweb-toolbar",
+          role: "region",
+          name: "Phoenix Web Debug Toolbar"
+        )
+
+      View
+      |> Phoenix.View.render("toolbar.html", %{
+        conn: conn,
+        session: session,
+        token: Request.debug_token!(conn),
+        toolbar_attrs: attrs(attrs)
+      })
+      |> Phoenix.HTML.Safe.to_iodata()
+      |> IO.iodata_to_binary()
+    else
+      []
+    end
   end
 
   defp attrs(attrs) do
