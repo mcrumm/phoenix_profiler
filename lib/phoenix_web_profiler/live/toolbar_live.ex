@@ -285,6 +285,11 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
+  def handle_info({PhoenixWeb.LiveProfiler, :ping, _ref}, socket) do
+    {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
   def handle_info(other, socket) do
     IO.inspect(other, label: "ToolbarLive received an unknown message")
     {:noreply, socket}

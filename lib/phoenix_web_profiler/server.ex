@@ -13,7 +13,7 @@ defmodule PhoenixWeb.Profiler.Server do
 
   def start_link(opts) do
     token = opts[:token] || raise "token is required to start the profiler server"
-    GenServer.start_link(__MODULE__, token, name: server_name(token))
+    GenServer.start_link(__MODULE__, token)
   end
 
   def server_name(token) when is_binary(token) do
@@ -25,13 +25,6 @@ defmodule PhoenixWeb.Profiler.Server do
   """
   def topic(token) when is_binary(token) and token != "" do
     "#{@session_key}:#{token}"
-  end
-
-  @doc """
-  Returns the pid for a given `token` or nil.
-  """
-  def whereis(token) do
-    token |> server_name() |> Process.whereis()
   end
 
   ## Server
@@ -53,6 +46,12 @@ defmodule PhoenixWeb.Profiler.Server do
       |> handle_joins(joins)
 
     {:noreply, %{state | requests: updated_requests}}
+  end
+
+  @impl GenServer
+  def handle_info({PhoenixWeb.LiveProfiler, :ping, {pid, ref}}, state) do
+    send(pid, {__MODULE__, ref, self()})
+    {:noreply, state}
   end
 
   defp handle_leaves(requests, leaves) do

@@ -54,7 +54,7 @@ defmodule PhoenixWeb.LiveProfiler do
   """
   import Phoenix.LiveView
   alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{Dumped, Request, Session, Server}
+  alias PhoenixWeb.Profiler.{Dumped, PubSub, Request, Session, Server}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -124,19 +124,28 @@ defmodule PhoenixWeb.LiveProfiler do
     conn =
       case Plug.Conn.get_session(conn, @session_key) do
         token when is_binary(token) and token != "" ->
-          case Server.whereis(token) do
-            pid when is_pid(pid) ->
-              Plug.Conn.put_private(conn, @private_key, token)
-
-            _ ->
-              Session.listen(conn)
-          end
+          find_or_start_session(conn, token)
 
         _ ->
           Session.listen(conn)
       end
 
     Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
+  end
+
+  defp find_or_start_session(conn, token) do
+    topic = Server.topic(token)
+    :ok = Phoenix.PubSub.subscribe(PubSub, topic)
+    ref = make_ref()
+    Phoenix.PubSub.broadcast_from(PubSub, self(), topic, {__MODULE__, :ping, {self(), ref}})
+
+    receive do
+      {Server, ^ref, _pid} ->
+        Plug.Conn.put_private(conn, @private_key, token)
+    after
+      50 ->
+        Session.listen(conn)
+    end
   end
 
   @doc false
