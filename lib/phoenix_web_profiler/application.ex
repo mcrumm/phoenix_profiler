@@ -7,10 +7,10 @@ defmodule PhoenixWeb.Profiler.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      Profiler.Requests,
       {Phoenix.PubSub, name: Profiler.PubSub},
       Profiler.Presence,
-      {DynamicSupervisor, name: Profiler.DynamicSupervisor, strategy: :one_for_one},
-      Profiler.Requests
+      {DynamicSupervisor, name: Profiler.DynamicSupervisor, strategy: :one_for_one}
     ]
 
     opts = [strategy: :one_for_one, name: Profiler.Supervisor]

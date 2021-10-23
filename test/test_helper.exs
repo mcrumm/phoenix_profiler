@@ -64,6 +64,7 @@ defmodule PhoenixWeb.ProfilerTest.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
 
   plug PhoenixWeb.Profiler
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Session,
     store: :cookie,
@@ -81,4 +82,4 @@ Supervisor.start_link(
   strategy: :one_for_one
 )
 
-ExUnit.start(exclude: :integration)
+ExUnit.start()

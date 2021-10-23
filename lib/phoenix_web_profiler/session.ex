@@ -41,6 +41,7 @@ defmodule PhoenixWeb.Profiler.Session do
   end
 
   def info(%{@session_key => _session, @token_key => token}) do
-    Requests.get(token)
+    [profile] = Requests.multi_get(token)
+    profile
   end
 end

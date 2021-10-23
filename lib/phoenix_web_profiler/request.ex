@@ -3,7 +3,7 @@ defmodule PhoenixWeb.Profiler.Request do
   @moduledoc false
   import Plug.Conn
   alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{Dumped, Requests}
+  alias PhoenixWeb.Profiler.Dumped
 
   @session_key :phxweb_debug_session
   @token_key :pwdt
@@ -30,33 +30,28 @@ defmodule PhoenixWeb.Profiler.Request do
   Puts a new debug token on a given `conn`.
   """
   def apply_debug_token(%Plug.Conn{} = conn) do
-    put_private(conn, @token_key, Profiler.random_unique_id())
+    token = Profiler.random_unique_id()
+
+    conn
+    |> put_private(@token_key, token)
+    |> put_resp_header(@token_header_key, token)
   end
 
   @doc """
   Profiles a given `conn`.
   """
-  def profile_request(
-        %Plug.Conn{private: %{@token_key => debug_token}} = conn,
-        start_time
-      ) do
+  def profile_request(%Plug.Conn{private: %{@token_key => token}} = conn) do
     # Measurements
-    duration = System.monotonic_time() - start_time
     {:memory, bytes} = Process.info(self(), :memory)
     memory = div(bytes, 1_024)
 
-    profile =
-      conn
-      |> request_info()
-      |> Map.merge(%{
-        dumped: Dumped.flush(),
-        duration: duration,
-        memory: memory
-      })
-
-    Requests.put(debug_token, profile)
-
-    put_resp_header(conn, @token_header_key, debug_token)
+    {token,
+     conn
+     |> request_info()
+     |> Map.merge(%{
+       dumped: Dumped.flush(),
+       memory: memory
+     })}
   end
 
   def debug_token!(%Plug.Conn{private: %{@token_key => token}}), do: token
