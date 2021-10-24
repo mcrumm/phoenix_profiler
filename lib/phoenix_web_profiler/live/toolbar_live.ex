@@ -2,8 +2,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.Session
+  alias PhoenixWeb.LiveProfiler
+  alias PhoenixWeb.Profiler.{Presence, Session}
 
   @cast_for_dumped_wait 100
   @debug_key Session.token_key()
@@ -14,13 +14,10 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       socket
       |> assign(:token, token)
       |> put_private(:topic, Session.topic(session))
-      |> Profiler.track(session, %{kind: :toolbar})
+      |> LiveProfiler.track(session, %{kind: :toolbar})
+      |> Session.subscribe()
       |> put_private(:dumped_ref, nil)
       |> put_private(:monitor_ref, nil)
-
-    if connected?(socket) do
-      :ok = Phoenix.PubSub.subscribe(Profiler.PubSub, socket.private.topic)
-    end
 
     socket =
       assign(socket,
@@ -231,7 +228,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     # so that should be a safe assumption.
     view_or_nil =
       socket.private.topic
-      |> Profiler.Presence.list()
+      |> Presence.list()
       |> get_in([socket.assigns.token, :metas])
       |> Kernel.||([])
       |> Enum.find(&(&1.kind == :profile))

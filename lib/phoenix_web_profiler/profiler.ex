@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Dumped, Presence, Request, Session, View}
+  alias PhoenixWeb.Profiler.{Dumped, Request, Session, View}
   require Logger
 
   @doc """
@@ -48,29 +48,6 @@ defmodule PhoenixWeb.Profiler do
     # whatever we decide to return, we need to ensure it will render empty
     # because it will be invoked from within templates.
     nil
-  end
-
-  @doc false
-  def track(%Phoenix.LiveView.Socket{} = socket, session, meta)
-      when is_map(session) and is_map(meta) do
-    if Phoenix.LiveView.connected?(socket) do
-      topic = Session.topic(session)
-      key = Session.topic_key(session)
-
-      {:ok, ref} =
-        Presence.track(
-          self(),
-          topic,
-          key,
-          meta
-          |> Map.put(:node, node())
-          |> Map.put(:pid, self())
-        )
-
-      Phoenix.LiveView.assign(socket, :ref, ref)
-    else
-      socket
-    end
   end
 
   @behaviour Plug
@@ -147,50 +124,26 @@ defmodule PhoenixWeb.Profiler do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
-    session =
-      try do
-        Session.live_session(conn)
-      rescue
-        RuntimeError ->
-          require Logger
+    {token, session} = Session.debug_session(conn)
 
-          Logger.debug("""
-          #{inspect(__MODULE__)} could not be loaded because no session debug token was found.
+    attrs =
+      Keyword.merge(
+        config.toolbar_attrs,
+        id: Request.toolbar_id(conn),
+        class: "phxweb-toolbar",
+        role: "region",
+        name: "Phoenix Web Debug Toolbar"
+      )
 
-          Did you remember to add #{inspect(__MODULE__)}.LiveProfiler to the
-          :browser pipeline in your router? For example:
-
-          pipeline :browser do
-            # plugs...
-            plug PhoenixWeb.LiveProfiler
-          end
-          """)
-
-          nil
-      end
-
-    if session do
-      attrs =
-        Keyword.merge(
-          config.toolbar_attrs,
-          id: Request.toolbar_id(conn),
-          class: "phxweb-toolbar",
-          role: "region",
-          name: "Phoenix Web Debug Toolbar"
-        )
-
-      View
-      |> Phoenix.View.render("toolbar.html", %{
-        conn: conn,
-        session: session,
-        token: Request.debug_token!(conn),
-        toolbar_attrs: attrs(attrs)
-      })
-      |> Phoenix.HTML.Safe.to_iodata()
-      |> IO.iodata_to_binary()
-    else
-      []
-    end
+    View
+    |> Phoenix.View.render("toolbar.html", %{
+      conn: conn,
+      session: session,
+      token: token,
+      toolbar_attrs: attrs(attrs)
+    })
+    |> Phoenix.HTML.Safe.to_iodata()
+    |> IO.iodata_to_binary()
   end
 
   defp attrs(attrs) do
