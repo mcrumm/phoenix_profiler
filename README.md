@@ -95,9 +95,7 @@ Add the LiveProfiler plug on the bottom of the
 ```elixir
 pipeline :browser do
   # plugs...
-  if Mix.env() == :dev do
-    plug PhoenixWeb.LiveProfiler
-  end
+  plug PhoenixWeb.LiveProfiler
 end
 ```
 
@@ -112,10 +110,7 @@ web module, typically found at `lib/my_app_web.ex`:
   def live_view do
     quote do
       # use...
-
-      if Mix.env() == :dev do
-        use Phoenix.LiveProfiler
-      end
+      use Phoenix.LiveProfiler
 
       # view helpers...
     end

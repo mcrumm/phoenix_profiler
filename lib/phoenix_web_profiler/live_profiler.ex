@@ -25,9 +25,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
       pipeline :browser do
         # plugs...
-        if Mix.env() == :dev do
-          plug PhoenixWeb.LiveProfiler
-        end
+        plug PhoenixWeb.LiveProfiler
       end
 
   ## As a lifecycle hook
@@ -36,11 +34,8 @@ defmodule PhoenixWeb.LiveProfiler do
   module where you use LiveView:
 
       defmodule PageLive do
-        use Phoenix.LiveView
-
-        if Mix.env() == :dev do
-          use PhoenixWeb.LiveProfiler
-        end
+        # use...
+        use PhoenixWeb.LiveProfiler
 
         # callbacks...
       end
