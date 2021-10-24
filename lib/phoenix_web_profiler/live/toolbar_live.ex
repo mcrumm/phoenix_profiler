@@ -2,7 +2,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.LiveProfiler
   alias PhoenixWeb.Profiler.{Presence, Session}
 
   @cast_for_dumped_wait 100
@@ -14,7 +13,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       socket
       |> assign(:token, token)
       |> put_private(:topic, Session.topic(session))
-      |> LiveProfiler.track(session, %{kind: :toolbar})
+      |> Session.track(session, %{kind: :toolbar})
       |> Session.subscribe()
       |> put_private(:dumped_ref, nil)
       |> put_private(:monitor_ref, nil)

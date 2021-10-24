@@ -48,7 +48,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Profiler.{Dumped, Presence, PubSub, Request, Session, Server}
+  alias PhoenixWeb.Profiler.{Dumped, PubSub, Request, Session, Server}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -185,7 +185,7 @@ defmodule PhoenixWeb.LiveProfiler do
   end
 
   defp apply_profiler_hooks(socket, _connected? = true, view_module, _params, session) do
-    track(socket, session, %{
+    Session.track(socket, session, %{
       kind: :profile,
       phoenix_live_action: socket.assigns.live_action,
       root_view: socket.private[:root_view],
@@ -194,46 +194,5 @@ defmodule PhoenixWeb.LiveProfiler do
     })
 
     {:cont, socket}
-  end
-
-  @doc false
-  def track(%Phoenix.LiveView.Socket{} = socket, session, meta)
-      when is_map(session) and is_map(meta) do
-    if connected?(socket) do
-      topic = Session.topic(session)
-      key = Session.topic_key(session)
-
-      if topic do
-        {:ok, ref} =
-          Presence.track(
-            self(),
-            topic,
-            key,
-            meta
-            |> Map.put(:node, node())
-            |> Map.put(:pid, self())
-          )
-
-        assign(socket, :ref, ref)
-      else
-        require Logger
-
-        Logger.debug("""
-        The Phoenix Web Debug Toolbar could not connect because no session debug token was found.
-
-        Did you remember to add PhoenixWeb.LiveProfiler to the
-        :browser pipeline in your router? For example:
-
-        pipeline :browser do
-          # plugs...
-          plug PhoenixWeb.LiveProfiler
-        end
-        """)
-
-        socket
-      end
-    else
-      socket
-    end
   end
 end

@@ -2,7 +2,7 @@ defmodule PhoenixWeb.Profiler.Session do
   # Manages HTTP session state for the toolbar
   @moduledoc false
   alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{PubSub, Request, Requests, Server}
+  alias PhoenixWeb.Profiler.{Presence, PubSub, Request, Requests, Server}
 
   @private_key Request.session_key()
   @session_key Atom.to_string(@private_key)
@@ -39,6 +39,49 @@ defmodule PhoenixWeb.Profiler.Session do
     end
 
     socket
+  end
+
+  @doc """
+  Tracks the caller as part of the profiler session.
+  """
+  def track(%Phoenix.LiveView.Socket{} = socket, session, meta)
+      when is_map(session) and is_map(meta) do
+    if Phoenix.LiveView.connected?(socket) do
+      topic = topic(session)
+      key = topic_key(session)
+
+      if topic do
+        {:ok, ref} =
+          Presence.track(
+            self(),
+            topic,
+            key,
+            meta
+            |> Map.put(:node, node())
+            |> Map.put(:pid, self())
+          )
+
+        Phoenix.LiveView.assign(socket, :ref, ref)
+      else
+        require Logger
+
+        Logger.debug("""
+        The Phoenix Web Debug Toolbar could not connect because no session debug token was found.
+
+        Did you remember to add PhoenixWeb.LiveProfiler to the
+        :browser pipeline in your router? For example:
+
+        pipeline :browser do
+          # plugs...
+          plug PhoenixWeb.LiveProfiler
+        end
+        """)
+
+        socket
+      end
+    else
+      socket
+    end
   end
 
   @doc """
