@@ -101,9 +101,16 @@ defmodule PhoenixWeb.Profiler do
 
   @impl Plug
   def call(conn, config) do
-    conn
-    |> Request.apply_debug_token()
-    |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, config)
+    endpoint = conn.private.phoenix_endpoint
+    endpoint_config = endpoint.config(:phoenix_web_profiler)
+
+    if endpoint_config do
+      conn
+      |> Request.apply_debug_token()
+      |> before_send_inject_debug_toolbar(endpoint, config)
+    else
+      conn
+    end
   end
 
   # HTML Injection

@@ -4,7 +4,18 @@ Application.put_env(:phoenix_web_profiler, PhoenixWeb.ProfilerTest.Endpoint,
   live_view: [signing_salt: "NbA2FdHo"],
   render_errors: [view: PhoenixWeb.ProfilerTest.ErrorView],
   check_origin: false,
-  pubsub_server: PhoenixWeb.ProfilerTest.PubSub
+  pubsub_server: PhoenixWeb.ProfilerTest.PubSub,
+  phoenix_web_profiler: true
+)
+
+Application.put_env(:phoenix_web_profiler, PhoenixWeb.ProfilerTest.EndpointDisabled,
+  url: [host: "localhost", port: 4000],
+  secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
+  live_view: [signing_salt: "NbA2FdHo"],
+  render_errors: [view: PhoenixWeb.ProfilerTest.ErrorView],
+  check_origin: false,
+  pubsub_server: PhoenixWeb.ProfilerTest.PubSub,
+  phoenix_web_profiler: false
 )
 
 defmodule PhoenixWeb.ProfilerTest.ErrorView do
@@ -74,10 +85,15 @@ defmodule PhoenixWeb.ProfilerTest.Endpoint do
   plug PhoenixWeb.ProfilerTest.Router
 end
 
+defmodule PhoenixWeb.ProfilerTest.EndpointDisabled do
+  use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
+end
+
 Supervisor.start_link(
   [
     {Phoenix.PubSub, name: PhoenixWeb.ProfilerTest.PubSub, adapter: Phoenix.PubSub.PG2},
-    PhoenixWeb.ProfilerTest.Endpoint
+    PhoenixWeb.ProfilerTest.Endpoint,
+    PhoenixWeb.ProfilerTest.EndpointDisabled
   ],
   strategy: :one_for_one
 )

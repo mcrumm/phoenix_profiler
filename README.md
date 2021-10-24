@@ -22,11 +22,12 @@ Provides a **development tool** that gives detailed information about the execut
 To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_web_profiler` dependency
-2. Configure LiveView
-3. Add the `PhoenixWeb.Profiler` Plug
-4. Add the `PhoenixWeb.LiveProfiler` Plug
-5. `use PhoenixWeb.LiveProfiler` on your LiveViews
-6. Import the `dump/1` macro
+2. Enable the profiler on your Endpoint
+3. Configure LiveView
+4. Add the `PhoenixWeb.Profiler` Plug
+5. Add the `PhoenixWeb.LiveProfiler` Plug
+6. `use PhoenixWeb.LiveProfiler` on your LiveViews
+7. Import the `dump/1` macro
 
 ### 1. Add the phoenix_web_profiler dependency
 
@@ -36,7 +37,19 @@ Add phoenix_web_profiler to your `mix.exs`:
 {:phoenix_web_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_web_profiler.git"}
 ```
 
-### 2. Configure LiveView
+### 2. Enable the profiler on your Endpoint
+
+The Phoenix Web Profiler is disabled by default. In order to enable it,
+update your endpoint's `:dev` configuration to include the
+`:phoenix_web_profiler` key:
+
+```elixir
+# config/dev.exs
+config :my_app, MyAppWeb.Endpoint,
+  phoenix_web_profiler: true
+```
+
+### 3. Configure LiveView
 
 > If LiveView is already installed in your app, you may skip this section.
 
@@ -51,7 +64,7 @@ config :my_app, MyAppWeb.Endpoint,
   live_view: [signing_salt: "SECRET_SALT"]
 ```
 
-### 3. Add the PhoenixWeb.Profiler Plug
+### 4. Add the PhoenixWeb.Profiler Plug
 
 Add the Profiler plug on the bottom of the `if code_reloading? do` block
 on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
@@ -73,7 +86,7 @@ All configuration is done on the Plug. The following options are available:
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
-### 4. Add the PhoenixWeb.LiveProfiler Plug
+### 5. Add the PhoenixWeb.LiveProfiler Plug
 
 Add the LiveProfiler plug on the bottom of the
 `:browser` pipeline on your Router, typically found in
@@ -88,7 +101,7 @@ pipeline :browser do
 end
 ```
 
-### 5. Use PhoenixWeb.LiveProfiler on your LiveViews
+### 6. Use PhoenixWeb.LiveProfiler on your LiveViews
 
 Note this section is required only if you are using LiveView, otherwise you may skip it.
 
@@ -109,7 +122,7 @@ web module, typically found at `lib/my_app_web.ex`:
   end
 ```
 
-### Add the dump/1 macro
+### 7. Add the dump/1 macro
 
 Add the `dump/1` macro to the `view_helpers` function on
 your web module, typically found at: `lib/my_app_web.ex`:
