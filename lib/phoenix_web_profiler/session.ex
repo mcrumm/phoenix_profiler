@@ -32,6 +32,12 @@ defmodule PhoenixWeb.Profiler.Session do
     }
   end
 
+  def session_token!(%Plug.Conn{private: %{@private_key => session_token}}) do
+    session_token
+  end
+
+  def session_token!(%Plug.Conn{}), do: raise("session token not set")
+
   def topic(%{@session_key => session_token}) do
     "#{@session_key}:#{session_token}"
   end

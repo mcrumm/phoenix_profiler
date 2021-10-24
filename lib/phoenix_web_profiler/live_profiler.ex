@@ -121,19 +121,20 @@ defmodule PhoenixWeb.LiveProfiler do
 
   @impl Plug
   def call(conn, _) do
-    conn =
-      case Plug.Conn.get_session(conn, @session_key) do
-        token when is_binary(token) and token != "" ->
-          find_or_start_session(conn, token)
+    endpoint = conn.private.phoenix_endpoint
+    config = endpoint.config(:phoenix_web_profiler)
 
-        _ ->
-          Session.listen(conn)
-      end
+    if config do
+      token = Plug.Conn.get_session(conn, @session_key)
+      conn = find_or_start_session(conn, token)
 
-    Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
+      Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
+    else
+      conn
+    end
   end
 
-  defp find_or_start_session(conn, token) do
+  defp find_or_start_session(conn, token) when is_binary(token) and token != "" do
     topic = Server.topic(token)
     :ok = Phoenix.PubSub.subscribe(PubSub, topic)
     ref = make_ref()
@@ -146,6 +147,10 @@ defmodule PhoenixWeb.LiveProfiler do
       50 ->
         Session.listen(conn)
     end
+  end
+
+  defp find_or_start_session(conn, _token) do
+    Session.listen(conn)
   end
 
   @doc false
