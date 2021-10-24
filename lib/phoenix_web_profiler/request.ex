@@ -20,6 +20,11 @@ defmodule PhoenixWeb.Profiler.Request do
   def token_key, do: @token_key
 
   @doc """
+  Returns a string that is the debug token header key.
+  """
+  def token_header_key, do: @token_header_key
+
+  @doc """
   Returns the id of the toolbar element.
   """
   def toolbar_id(%Plug.Conn{private: %{@token_key => debug_token}}) do

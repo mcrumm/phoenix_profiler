@@ -21,7 +21,8 @@ Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
       ~r"dev/demo_web/(live|views)/.*(ex)$",
       ~r"dev/demo_web/templates/.*(eex)$"
     ]
-  ]
+  ],
+  phoenix_web_profiler: true
 )
 
 Application.put_env(:phoenix, :serve_endpoints, true)
