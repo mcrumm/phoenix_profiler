@@ -79,9 +79,6 @@ end
 
 All configuration is done on the Plug. The following options are available:
 
-* `:live_socket_path` - The path to the LiveView socket.
-  Defaults to `"/live"`.
-
 * `:toolbar_attrs` - HTML attributes to be given to the element
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.

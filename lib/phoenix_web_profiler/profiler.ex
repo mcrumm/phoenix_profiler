@@ -51,7 +51,6 @@ defmodule PhoenixWeb.Profiler do
   end
 
   @behaviour Plug
-  @live_socket_path_default "/live"
 
   ## Plug API
 
@@ -64,8 +63,7 @@ defmodule PhoenixWeb.Profiler do
       end
 
     %{
-      toolbar_attrs: toolbar_attrs,
-      live_socket_path: opts[:live_socket_path] || @live_socket_path_default
+      toolbar_attrs: toolbar_attrs
     }
   end
 
