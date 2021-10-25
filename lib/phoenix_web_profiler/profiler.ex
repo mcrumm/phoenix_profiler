@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Dumped, Presence, Request, Session, View}
+  alias PhoenixWeb.Profiler.{Dumped, Request, Session, View}
   require Logger
 
   @doc """
@@ -50,31 +50,7 @@ defmodule PhoenixWeb.Profiler do
     nil
   end
 
-  @doc false
-  def track(%Phoenix.LiveView.Socket{} = socket, session, meta)
-      when is_map(session) and is_map(meta) do
-    if Phoenix.LiveView.connected?(socket) do
-      topic = Session.topic(session)
-      key = Session.topic_key(session)
-
-      {:ok, ref} =
-        Presence.track(
-          self(),
-          topic,
-          key,
-          meta
-          |> Map.put(:node, node())
-          |> Map.put(:pid, self())
-        )
-
-      Phoenix.LiveView.assign(socket, :ref, ref)
-    else
-      socket
-    end
-  end
-
   @behaviour Plug
-  @live_socket_path_default "/live"
 
   ## Plug API
 
@@ -87,8 +63,7 @@ defmodule PhoenixWeb.Profiler do
       end
 
     %{
-      toolbar_attrs: toolbar_attrs,
-      live_socket_path: opts[:live_socket_path] || @live_socket_path_default
+      toolbar_attrs: toolbar_attrs
     }
   end
 
@@ -101,20 +76,23 @@ defmodule PhoenixWeb.Profiler do
 
   @impl Plug
   def call(conn, config) do
-    start_time = System.monotonic_time()
+    endpoint = conn.private.phoenix_endpoint
+    endpoint_config = endpoint.config(:phoenix_web_profiler)
 
-    conn
-    |> Request.apply_debug_token()
-    |> before_send_inject_debug_toolbar(conn.private.phoenix_endpoint, start_time, config)
+    if endpoint_config do
+      conn
+      |> Request.apply_debug_token()
+      |> before_send_inject_debug_toolbar(endpoint, config)
+    else
+      conn
+    end
   end
 
   # HTML Injection
   # Copyright (c) 2018 Chris McCord
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
-  defp before_send_inject_debug_toolbar(conn, endpoint, start_time, config) do
+  defp before_send_inject_debug_toolbar(conn, endpoint, config) do
     register_before_send(conn, fn conn ->
-      conn = Request.profile_request(conn, start_time)
-
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
 
@@ -144,11 +122,15 @@ defmodule PhoenixWeb.Profiler do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
+    {token, session} = Session.debug_session(conn)
+
+    motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
+
     attrs =
       Keyword.merge(
         config.toolbar_attrs,
         id: Request.toolbar_id(conn),
-        class: "phxweb-toolbar",
+        class: String.trim("phxweb-toolbar #{motion_class}"),
         role: "region",
         name: "Phoenix Web Debug Toolbar"
       )
@@ -156,8 +138,8 @@ defmodule PhoenixWeb.Profiler do
     View
     |> Phoenix.View.render("toolbar.html", %{
       conn: conn,
-      session: Session.live_session(conn),
-      token: Request.debug_token!(conn),
+      session: session,
+      token: token,
       toolbar_attrs: attrs(attrs)
     })
     |> Phoenix.HTML.Safe.to_iodata()

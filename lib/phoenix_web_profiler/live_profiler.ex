@@ -25,9 +25,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
       pipeline :browser do
         # plugs...
-        if Mix.env() == :dev do
-          plug PhoenixWeb.LiveProfiler
-        end
+        plug PhoenixWeb.LiveProfiler
       end
 
   ## As a lifecycle hook
@@ -36,11 +34,8 @@ defmodule PhoenixWeb.LiveProfiler do
   module where you use LiveView:
 
       defmodule PageLive do
-        use Phoenix.LiveView
-
-        if Mix.env() == :dev do
-          use PhoenixWeb.LiveProfiler
-        end
+        # use...
+        use PhoenixWeb.LiveProfiler
 
         # callbacks...
       end
@@ -53,8 +48,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Profiler
-  alias PhoenixWeb.Profiler.{Dumped, Request, Session, Server}
+  alias PhoenixWeb.Profiler.{Dumped, PubSub, Request, Session, Server}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -125,22 +119,36 @@ defmodule PhoenixWeb.LiveProfiler do
 
   @impl Plug
   def call(conn, _) do
-    conn =
-      case Plug.Conn.get_session(conn, @session_key) do
-        token when is_binary(token) and token != "" ->
-          case Server.whereis(token) do
-            pid when is_pid(pid) ->
-              Plug.Conn.put_private(conn, @private_key, token)
+    endpoint = conn.private.phoenix_endpoint
+    config = endpoint.config(:phoenix_web_profiler)
 
-            _ ->
-              Session.listen(conn)
-          end
+    if config do
+      token = Plug.Conn.get_session(conn, @session_key)
+      conn = find_or_start_session(conn, token)
 
-        _ ->
-          Session.listen(conn)
-      end
+      Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
+    else
+      conn
+    end
+  end
 
-    Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
+  defp find_or_start_session(conn, token) when is_binary(token) and token != "" do
+    topic = Server.topic(token)
+    :ok = Phoenix.PubSub.subscribe(PubSub, topic)
+    ref = make_ref()
+    Phoenix.PubSub.broadcast_from(PubSub, self(), topic, {__MODULE__, :ping, {self(), ref}})
+
+    receive do
+      {Server, ^ref, _pid} ->
+        Plug.Conn.put_private(conn, @private_key, token)
+    after
+      50 ->
+        Session.listen(conn)
+    end
+  end
+
+  defp find_or_start_session(conn, _token) do
+    Session.listen(conn)
   end
 
   @doc false
@@ -188,7 +196,7 @@ defmodule PhoenixWeb.LiveProfiler do
   end
 
   defp apply_profiler_hooks(socket, _connected? = true, view_module, _params, session) do
-    Profiler.track(socket, session, %{
+    Session.track(socket, session, %{
       kind: :profile,
       phoenix_live_action: socket.assigns.live_action,
       root_view: socket.private[:root_view],

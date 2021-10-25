@@ -10,11 +10,15 @@
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
   </head>
   <body>
-    <nav>
-      <ul>
-        <li><%= link "Home", to: Routes.page_path(DemoWeb.Endpoint, :index) %></li>
-      </ul>
-    </nav>
-    <main><%= @inner_content %></main>
+    <header>
+      <section class="container">
+        <nav>
+          <ul>
+            <li><%= link "Home", to: Routes.page_path(DemoWeb.Endpoint, :index) %></li>
+          </ul>
+        </nav>
+      </section>
+    </header>
+    <%= @inner_content %>
   </body>
 </html>
