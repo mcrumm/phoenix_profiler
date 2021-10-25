@@ -173,6 +173,22 @@
   fill: var(--color-fg-default);
 }
 
+.phxweb-toolbar-view button {
+  background: var(--color-canvas-default);
+}
+
+.phxweb-toolbar-view button:hover {
+  background: var(--color-canvas-secondary);
+}
+
+.phxweb-toolbar-view button {
+  margin-top: var(--size-1);
+}
+
+.phxweb-toolbar-view button svg path {
+  fill: var(--color-fg-default);
+}
+
 .phxweb-toolbar-panel {
   cursor: default;
   display: block;

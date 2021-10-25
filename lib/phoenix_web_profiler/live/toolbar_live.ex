@@ -206,7 +206,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("show-assigns", _, %{private: %{lv_pid: lv_pid}} = socket) do
+  def handle_event("dump-assigns", _, %{private: %{lv_pid: lv_pid}} = socket) do
     send(lv_pid, {:phxweb_profiler, {:dump_assigns, ref = make_ref()}, to: self()})
     {:noreply, put_private(socket, :dumped_assigns_ref, ref)}
   end
