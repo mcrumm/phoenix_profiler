@@ -184,7 +184,9 @@ defmodule PhoenixWeb.LiveProfiler do
 
   @doc false
   def on_mount(view_module, params, %{@session_key => _} = session, socket) do
-    apply_profiler_hooks(socket, connected?(socket), view_module, params, session)
+    socket
+    |> attach_hook(:phxweb_profiler_dump_assigns, :handle_info, &__handle__info__/2)
+    |> apply_profiler_hooks(connected?(socket), view_module, params, session)
   end
 
   def on_mount(_view_module, _params, _session, socket) do
@@ -204,6 +206,18 @@ defmodule PhoenixWeb.LiveProfiler do
       view_module: view_module
     })
 
+    {:cont, socket}
+  end
+
+  defp __handle__info__({:phxweb_profiler, {:dump_assigns, ref}, to: lv_pid}, socket) do
+    assigns =
+      Phoenix.LiveView.Helpers.assigns_to_attributes(socket.assigns, [:live_action, :flash])
+
+    GenServer.cast(lv_pid, {:dumped_assigns, ref, assigns})
+    {:halt, socket}
+  end
+
+  defp __handle__info__(_, socket) do
     {:cont, socket}
   end
 end

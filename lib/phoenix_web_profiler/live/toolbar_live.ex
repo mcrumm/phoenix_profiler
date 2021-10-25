@@ -16,6 +16,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       |> Session.track(session, %{kind: :toolbar})
       |> Session.subscribe()
       |> put_private(:dumped_ref, nil)
+      |> put_private(:dumped_assigns_ref, nil)
       |> put_private(:monitor_ref, nil)
 
     socket =
@@ -206,8 +207,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @impl Phoenix.LiveView
   def handle_event("show-assigns", _, %{private: %{lv_pid: lv_pid}} = socket) do
-    assigns = GenServer.call(lv_pid, {PhoenixWeb.LiveProfiler, :assigns})
-    {:noreply, assign(socket, lv_assigns: assigns)}
+    send(lv_pid, {:phxweb_profiler, {:dump_assigns, ref = make_ref()}, to: self()})
+    {:noreply, put_private(socket, :dumped_assigns_ref, ref)}
   end
 
   @impl Phoenix.LiveView
@@ -223,6 +224,22 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   # stale dumped ref
   def handle_cast({:dumped, ref, _flushed}, %{private: %{dumped_ref: _}} = socket)
+      when is_reference(ref) do
+    {:noreply, socket}
+  end
+
+  def handle_cast(
+        {:dumped_assigns, ref, assigns},
+        %{private: %{dumped_assigns_ref: ref}} = socket
+      )
+      when is_reference(ref) do
+    {:noreply,
+     socket
+     |> assign(lv_assigns: assigns)
+     |> put_private(:dumped_assigns, nil)}
+  end
+
+  def handle_cast({:dumped_assigns, ref, _assigns}, %{private: %{dumped_ref: _}} = socket)
       when is_reference(ref) do
     {:noreply, socket}
   end
