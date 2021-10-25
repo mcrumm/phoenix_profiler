@@ -181,4 +181,13 @@ defmodule PhoenixWeb.Profiler do
 
     Base.url_encode64(binary)
   end
+
+  # Assigns to attributes
+  # Copyright (c) 2019 Chris McCord
+  # https://github.com/phoenixframework/phoenix_live_view/blob/412655fe87a3a5a0ed34ecc7cccc3dd39385eaa7/lib/phoenix_live_view/helpers.ex#L203-L206
+  @doc false
+  def cleanup_assigns(assigns, exclude \\ []) do
+    excluded_keys = [:__changed__, :inner_block, :live_action, :flash, :layout] ++ exclude
+    for {key, val} <- assigns, key not in excluded_keys, into: [], do: {key, val}
+  end
 end

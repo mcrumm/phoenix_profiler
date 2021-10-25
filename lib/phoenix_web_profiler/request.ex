@@ -55,6 +55,8 @@ defmodule PhoenixWeb.Profiler.Request do
      |> request_info()
      |> Map.merge(%{
        dumped: Dumped.flush(),
+       dumped_assigns:
+         PhoenixWeb.Profiler.cleanup_assigns(conn.assigns, [:content, :live_module]),
        memory: memory
      })}
   end

@@ -9,6 +9,7 @@ defmodule DemoWeb.PageView do
     <h2>Links</h2>
     <ul>
       <li><%= link "Profile IndexController, :hello", to: Routes.page_path(DemoWeb.Endpoint, :hello) %></li>
+      <li><%= link "Profile IndexController with assigns, :hello", to: Routes.page_path(DemoWeb.Endpoint, :hello, "dev") %></li>
       <li><%= link "Profile ErrorView: assign not available", to: Routes.errors_path(DemoWeb.Endpoint, :assign_not_available) %></li>
       <li><%= link "Profile AppLive.Index, :index", to: Routes.app_index_path(DemoWeb.Endpoint, :index) %></li>
     </ul>

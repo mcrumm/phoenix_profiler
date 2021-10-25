@@ -27,7 +27,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
         exits_count: 0,
         memory: nil,
         system: system(),
-        lv_assigns: []
+        dumped_assigns: []
       )
 
     socket =
@@ -73,6 +73,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     |> update_dumped(info.dumped)
     |> assign(:duration, duration(info.duration))
     |> assign(:memory, memory(info))
+    |> assign(:dumped_assigns, info.dumped_assigns)
   end
 
   defp apply_request(socket, info) do
@@ -211,6 +212,10 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     {:noreply, put_private(socket, :dumped_assigns_ref, ref)}
   end
 
+  def handle_event("dump-assigns", _, socket) do
+    {:noreply, socket}
+  end
+
   @impl Phoenix.LiveView
   def handle_cast({:dumped, ref, flushed}, %{private: %{dumped_ref: ref}} = socket)
       when is_reference(ref) do
@@ -235,8 +240,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       when is_reference(ref) do
     {:noreply,
      socket
-     |> assign(lv_assigns: assigns)
-     |> put_private(:dumped_assigns, nil)}
+     |> assign(dumped_assigns: assigns)
+     |> put_private(:dumped_assigns_ref, nil)}
   end
 
   def handle_cast({:dumped_assigns, ref, _assigns}, %{private: %{dumped_ref: _}} = socket)

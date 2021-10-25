@@ -182,6 +182,16 @@ defmodule PhoenixWeb.LiveProfiler do
     {:cont, socket}
   end
 
+  defp __handle__info__({:phxweb_profiler, {:dump_assigns, ref}, to: lv_pid}, socket) do
+    assigns = PhoenixWeb.Profiler.cleanup_assigns(socket.assigns)
+    GenServer.cast(lv_pid, {:dumped_assigns, ref, assigns})
+    {:halt, socket}
+  end
+
+  defp __handle__info__(_, socket) do
+    {:cont, socket}
+  end
+
   defp apply_profiler_hooks(socket, _connected? = false, _view_module, _params, _session) do
     {:cont, socket}
   end
@@ -195,18 +205,6 @@ defmodule PhoenixWeb.LiveProfiler do
       view_module: view_module
     })
 
-    {:cont, socket}
-  end
-
-  defp __handle__info__({:phxweb_profiler, {:dump_assigns, ref}, to: lv_pid}, socket) do
-    assigns =
-      Phoenix.LiveView.Helpers.assigns_to_attributes(socket.assigns, [:live_action, :flash])
-
-    GenServer.cast(lv_pid, {:dumped_assigns, ref, assigns})
-    {:halt, socket}
-  end
-
-  defp __handle__info__(_, socket) do
     {:cont, socket}
   end
 end
