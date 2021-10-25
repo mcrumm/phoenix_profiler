@@ -20,7 +20,7 @@ defmodule PhoenixWeb.Profiler.View do
     ~L"""
     <div<%= Phoenix.HTML.raw(@toolbar_attrs) %>>
       <!-- START Phoenix Web Debug Toolbar -->
-    <div class="phxweb-minitoolbar"><button class="show-button" type="button" id="phx-web-toolbar-show-<%= @token %>>" title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxweb-toolbar-main-<%= @token %>" phx-click="toggle"></button></div>
+    <div class="phxweb-minitoolbar"><button class="show-button" type="button" id="phx-web-toolbar-show-<%= @token %>>" title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxweb-toolbar-main-<%= @token %>"></button></div>
     <div id="phxweb-toolbar-clearer-<%= @token %>" class="phxweb-toolbar-clearer" style="display: block;"></div>
     <%= live_render(@conn, Profiler.ToolbarLive, session: @session) %>
       <!-- END Phoenix Web Debug Toolbar -->

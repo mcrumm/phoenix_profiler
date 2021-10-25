@@ -124,11 +124,13 @@ defmodule PhoenixWeb.Profiler do
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
     {token, session} = Session.debug_session(conn)
 
+    motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
+
     attrs =
       Keyword.merge(
         config.toolbar_attrs,
         id: Request.toolbar_id(conn),
-        class: "phxweb-toolbar",
+        class: String.trim("phxweb-toolbar #{motion_class}"),
         role: "region",
         name: "Phoenix Web Debug Toolbar"
       )

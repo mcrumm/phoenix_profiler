@@ -28,6 +28,7 @@ To start using the profiler, you will need the following steps:
 5. Add the `PhoenixWeb.LiveProfiler` Plug
 6. `use PhoenixWeb.LiveProfiler` on your LiveViews
 7. Import the `dump/1` macro
+8. Configure the toolbar (optional)
 
 ### 1. Add the phoenix_web_profiler dependency
 
@@ -151,6 +152,13 @@ end
 ```
 
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
+
+### 8. Configure the toolbar (optional)
+
+It's also possible to configure the toolbar by exporting ENV vars as you wish:
+
+* `PHOENIX_WEB_PROFILER_REDUCED_MOTION` - To disable the show/hide animation.
+  Expects to be defined with any value. Defaults to empty (unset).
 
 ## LiveView 0.14.x-0.15.x
 
