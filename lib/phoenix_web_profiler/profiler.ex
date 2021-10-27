@@ -143,7 +143,6 @@ defmodule PhoenixWeb.Profiler do
       toolbar_attrs: attrs(attrs)
     })
     |> Phoenix.HTML.Safe.to_iodata()
-    |> IO.iodata_to_binary()
   end
 
   defp attrs(attrs) do
