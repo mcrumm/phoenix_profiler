@@ -50,13 +50,21 @@ defmodule PhoenixWeb.Profiler.Request do
     {:memory, bytes} = Process.info(self(), :memory)
     memory = div(bytes, 1_024)
 
-    {token,
-     conn
-     |> request_info()
-     |> Map.merge(%{
-       dumped: Dumped.flush(),
-       memory: memory
-     })}
+    metrics = %{
+      endpoint_duration: Process.get(:phxweb_endpoint_duration),
+      memory: memory
+    }
+
+    route = route_info(conn)
+
+    profile = %{
+      conn: conn,
+      dumped: Dumped.flush(),
+      metrics: metrics,
+      route: route
+    }
+
+    {token, profile}
   end
 
   def debug_token!(%Plug.Conn{private: %{@token_key => token}}), do: token
@@ -67,23 +75,25 @@ defmodule PhoenixWeb.Profiler.Request do
   def session_token!(%Plug.Conn{private: private}),
     do: raise("session token not found in #{inspect(private)}")
 
-  @doc """
-  Returns request metadata for a given `conn`.
-  """
-  def request_info(%Plug.Conn{} = conn) do
-    request = Map.take(conn, [:host, :method, :path_info, :status])
+  defp route_info(%Plug.Conn{} = conn) do
+    case conn.private do
+      %{phoenix_router: router} ->
+        Phoenix.Router.route_info(
+          router,
+          conn.method,
+          conn.request_path,
+          conn.host
+        )
 
-    metadata =
-      Map.take(conn.private, [
-        :phoenix_action,
-        :phoenix_controller,
-        :phoenix_endpoint,
-        :phoenix_router,
-        :phoenix_view,
-        @session_key,
-        @token_key
-      ])
-
-    Map.merge(request, metadata)
+      _ ->
+        %{
+          log: false,
+          path_params: %{},
+          pipe_through: [],
+          plug: nil,
+          plug_opts: nil,
+          route: conn.request_path
+        }
+    end
   end
 end

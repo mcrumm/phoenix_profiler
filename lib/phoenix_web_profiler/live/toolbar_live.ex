@@ -64,31 +64,32 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     })
   end
 
-  defp assign_toolbar(socket, info) do
+  defp assign_toolbar(socket, profile) do
+    %{dumped: dumped, metrics: metrics} = profile
+
     socket
-    |> apply_request(info)
-    |> update_view(route_info(info))
-    |> update_dumped(info.dumped)
-    |> assign(:duration, duration(info.duration))
-    |> assign(:memory, memory(info))
+    |> apply_request(profile)
+    |> update_view(route_info(profile))
+    |> update_dumped(dumped)
+    |> assign(:durations, %{
+      total: duration(metrics.total_duration),
+      endpoint: duration(metrics.endpoint_duration)
+    })
+    |> assign(:memory, memory(metrics.memory))
   end
 
-  defp apply_request(socket, info) do
-    %{
-      status: status,
-      phoenix_endpoint: endpoint,
-      phoenix_router: router
-    } = info
+  defp apply_request(socket, profile) do
+    %{conn: %Plug.Conn{} = conn, route: route} = profile
 
     assign(socket, :request, %{
-      status_code: status,
-      status_phrase: Plug.Conn.Status.reason_phrase(status),
-      endpoint: inspect(endpoint),
-      router: inspect(router),
-      plug: nil,
-      action: nil,
+      status_code: conn.status,
+      status_phrase: Plug.Conn.Status.reason_phrase(conn.status),
+      endpoint: inspect(Phoenix.Controller.endpoint_module(conn)),
+      router: inspect(conn.private[:phoenix_router]),
+      plug: route[:plug],
+      action: route[:plug_opts],
       icon_value: nil,
-      class: request_class(status)
+      class: request_class(conn.status)
     })
   end
 
@@ -125,11 +126,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     end)
   end
 
-  defp route_info(info) when map_size(info) == 0, do: %{}
-
-  defp route_info(%{host: host, method: method, path_info: path, phoenix_router: router}) do
-    Phoenix.Router.route_info(router, method, path, host)
-  end
+  defp route_info(info) when is_map(info), do: Map.get(info, :route)
 
   # From LiveProfiler presence
   defp plug_action(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
@@ -168,7 +165,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     end
   end
 
-  defp memory(%{memory: memory}) do
+  defp memory(memory) do
     if memory > 1024 do
       value = memory |> div(1024) |> Integer.to_string()
       %{value: value, label: "MiB", phrase: "#{value} mebibytes"}

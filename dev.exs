@@ -28,6 +28,8 @@ Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
 defmodule DemoWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
 
+  plug PhoenixWeb.Profiler
+
   @session_options [
     store: :cookie,
     key: "_demo_key",
@@ -49,8 +51,6 @@ defmodule DemoWeb.Endpoint do
 
   plug Phoenix.LiveReloader
   plug Phoenix.CodeReloader
-
-  plug PhoenixWeb.Profiler
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]

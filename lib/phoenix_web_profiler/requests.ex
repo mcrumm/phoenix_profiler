@@ -20,9 +20,13 @@ defmodule PhoenixWeb.Profiler.Requests do
       ])
 
     :ok =
-      :telemetry.attach(
+      :telemetry.attach_many(
         __MODULE__,
-        [:phoenix, :endpoint, :stop],
+        [
+          [:phxweb, :profiler, :start],
+          [:phoenix, :endpoint, :stop],
+          [:phxweb, :profiler, :stop]
+        ],
         &__MODULE__.handle_event/4,
         table
       )
@@ -31,10 +35,22 @@ defmodule PhoenixWeb.Profiler.Requests do
   end
 
   # Telemetry callback
-  def handle_event([:phoenix, :endpoint, :stop], %{duration: duration}, %{conn: conn}, table) do
+  def handle_event([:phxweb, :profiler, :start], _measurements, _meta, _table) do
+    # no-op
+  end
+
+  def handle_event([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _table) do
+    Process.put(:phxweb_endpoint_duration, duration)
+  end
+
+  def handle_event([:phxweb, :profiler, :stop], %{duration: duration}, meta, table) do
+    %{conn: conn} = meta
+
     {token, profile} = Request.profile_request(conn)
 
-    :ets.insert(table, {token, Map.put(profile, :duration, duration)})
+    profile = put_in(profile, [:metrics, :total_duration], duration)
+
+    :ets.insert(table, {token, profile})
   end
 
   @impl GenServer
