@@ -4,6 +4,7 @@ defmodule PhoenixWeb.Profiler.Request do
   import Plug.Conn
   alias PhoenixWeb.Profiler
   alias PhoenixWeb.Profiler.Dumped
+  alias PhoenixWeb.Profiler.Routes
 
   @session_key :phxweb_debug_session
   @token_key :pwdt
@@ -55,7 +56,7 @@ defmodule PhoenixWeb.Profiler.Request do
       memory: memory
     }
 
-    route = route_info(conn)
+    route = Routes.route_info(conn)
 
     profile = %{
       conn: conn,
@@ -74,26 +75,4 @@ defmodule PhoenixWeb.Profiler.Request do
 
   def session_token!(%Plug.Conn{private: private}),
     do: raise("session token not found in #{inspect(private)}")
-
-  defp route_info(%Plug.Conn{} = conn) do
-    case conn.private do
-      %{phoenix_router: router} ->
-        Phoenix.Router.route_info(
-          router,
-          conn.method,
-          conn.request_path,
-          conn.host
-        )
-
-      _ ->
-        %{
-          log: false,
-          path_params: %{},
-          pipe_through: [],
-          plug: nil,
-          plug_opts: nil,
-          route: conn.request_path
-        }
-    end
-  end
 end

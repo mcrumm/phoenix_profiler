@@ -2,7 +2,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.Profiler.{Presence, Session}
+  alias PhoenixWeb.Profiler.{Presence, Routes, Session}
 
   @cast_for_dumped_wait 100
   @debug_key Session.token_key()
@@ -65,11 +65,11 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   defp assign_toolbar(socket, profile) do
-    %{dumped: dumped, metrics: metrics} = profile
+    %{dumped: dumped, metrics: metrics, route: route} = profile
 
     socket
     |> apply_request(profile)
-    |> update_view(route_info(profile))
+    |> update_view(route)
     |> update_dumped(dumped)
     |> assign(:durations, %{
       total: duration(metrics.total_duration),
@@ -95,62 +95,10 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   defp update_view(socket, route) do
     update(socket, :request, fn req ->
-      {plug, action} = plug_action = plug_action(route)
-
-      short_name =
-        case plug_action do
-          {nil, nil} ->
-            nil
-
-          {plug, action} ->
-            plug_parts = Module.split(plug)
-
-            prefix =
-              if router = get_in(socket.private, [:profilerinfo, :phoenix_router]) do
-                router
-                |> Module.split()
-                |> Enum.reverse()
-                |> tl()
-                |> Enum.reverse()
-              else
-                []
-              end
-
-            # Builds the string "Plug :action"
-            # Attempts to remove the module path shared with the
-            # corresponding Phoenix Router.
-            Enum.intersperse(plug_parts -- prefix, ?.) ++ [?\s, inspect(action)]
-        end
-
-      %{req | plug: inspect(plug), action: inspect(action), icon_value: short_name}
+      router = get_in(socket.private, [:profilerinfo, :phoenix_router])
+      {helper, plug, action} = Routes.guess_helper(router, route)
+      %{req | plug: inspect(plug), action: inspect(action), icon_value: helper}
     end)
-  end
-
-  defp route_info(info) when is_map(info), do: Map.get(info, :route)
-
-  # From LiveProfiler presence
-  defp plug_action(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
-    {lv, action}
-  end
-
-  defp plug_action(%{phoenix_live_view: {lv, _, _opts, _meta}, plug_opts: action})
-       when is_atom(lv) and is_atom(action) do
-    {lv, action}
-  end
-
-  defp plug_action(%{plug: controller, plug_opts: action}) when is_atom(action) do
-    {controller, action}
-  end
-
-  defp plug_action(other) do
-    IO.warn("""
-    unknown data for plug action, got:
-
-        #{inspect(other)}
-
-    """)
-
-    {nil, nil}
   end
 
   defp duration(duration) do

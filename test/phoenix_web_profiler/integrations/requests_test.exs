@@ -41,6 +41,12 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
     assert metrics.memory > 0
   end
 
+  test "records debug profile through forwarded plug", %{conn: conn} do
+    conn = get(conn, "/plug-router")
+    assert [token] = Plug.Conn.get_resp_header(conn, "x-debug-token")
+    assert [_] = Requests.multi_get(token)
+  end
+
   test "records debug profile for api requests", %{conn: conn} do
     conn = get(conn, "/api")
 
