@@ -40,7 +40,7 @@ defmodule PhoenixProfiler.MixProject do
     [
       {:phoenix, "~> 1.4.7 or ~> 1.5.0 or ~> 1.6.0"},
       {:phoenix_live_view, "~> 0.14.3 or ~> 0.15.0 or ~> 0.16.0 or ~> 0.17.0"},
-      {:phoenix_live_dashboard, "~> 0.3.0 or ~> 0.4.0 or ~> 0.5.0 or ~> 0.6.0"},
+      {:phoenix_live_dashboard, "~> 0.3.0 or ~> 0.4.0 or ~> 0.5.0 or ~> 0.6.0", optional: true},
       {:phoenix_live_reload, "~> 1.3", only: :dev},
       {:plug_cowboy, "~> 2.0", only: :dev},
       {:jason, "~> 1.0", only: [:dev, :test, :docs]},
