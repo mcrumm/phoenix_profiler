@@ -2,7 +2,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.Profiler.{Presence, Session}
+  alias PhoenixWeb.Profiler.{Presence, Routes, Session}
 
   @cast_for_dumped_wait 100
   @debug_key Session.token_key()
@@ -64,96 +64,41 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     })
   end
 
-  defp assign_toolbar(socket, info) do
+  defp assign_toolbar(socket, profile) do
+    %{dumped: dumped, metrics: metrics, route: route} = profile
+
     socket
-    |> apply_request(info)
-    |> update_view(route_info(info))
-    |> update_dumped(info.dumped)
-    |> assign(:duration, duration(info.duration))
-    |> assign(:memory, memory(info))
+    |> apply_request(profile)
+    |> update_view(route)
+    |> update_dumped(dumped)
+    |> assign(:durations, %{
+      total: duration(metrics.total_duration),
+      endpoint: duration(metrics.endpoint_duration)
+    })
+    |> assign(:memory, memory(metrics.memory))
   end
 
-  defp apply_request(socket, info) do
-    %{
-      status: status,
-      phoenix_endpoint: endpoint,
-      phoenix_router: router
-    } = info
+  defp apply_request(socket, profile) do
+    %{conn: %Plug.Conn{} = conn, route: route} = profile
 
     assign(socket, :request, %{
-      status_code: status,
-      status_phrase: Plug.Conn.Status.reason_phrase(status),
-      endpoint: inspect(endpoint),
-      router: inspect(router),
-      plug: nil,
-      action: nil,
+      status_code: conn.status,
+      status_phrase: Plug.Conn.Status.reason_phrase(conn.status),
+      endpoint: inspect(Phoenix.Controller.endpoint_module(conn)),
+      router: inspect(conn.private[:phoenix_router]),
+      plug: route[:plug],
+      action: route[:plug_opts],
       icon_value: nil,
-      class: request_class(status)
+      class: request_class(conn.status)
     })
   end
 
   defp update_view(socket, route) do
     update(socket, :request, fn req ->
-      {plug, action} = plug_action = plug_action(route)
-
-      short_name =
-        case plug_action do
-          {nil, nil} ->
-            nil
-
-          {plug, action} ->
-            plug_parts = Module.split(plug)
-
-            prefix =
-              if router = get_in(socket.private, [:profilerinfo, :phoenix_router]) do
-                router
-                |> Module.split()
-                |> Enum.reverse()
-                |> tl()
-                |> Enum.reverse()
-              else
-                []
-              end
-
-            # Builds the string "Plug :action"
-            # Attempts to remove the module path shared with the
-            # corresponding Phoenix Router.
-            Enum.intersperse(plug_parts -- prefix, ?.) ++ [?\s, inspect(action)]
-        end
-
-      %{req | plug: inspect(plug), action: inspect(action), icon_value: short_name}
+      router = get_in(socket.private, [:profilerinfo, :phoenix_router])
+      {helper, plug, action} = Routes.guess_helper(router, route)
+      %{req | plug: inspect(plug), action: inspect(action), icon_value: helper}
     end)
-  end
-
-  defp route_info(info) when map_size(info) == 0, do: %{}
-
-  defp route_info(%{host: host, method: method, path_info: path, phoenix_router: router}) do
-    Phoenix.Router.route_info(router, method, path, host)
-  end
-
-  # From LiveProfiler presence
-  defp plug_action(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
-    {lv, action}
-  end
-
-  defp plug_action(%{phoenix_live_view: {lv, _, _opts, _meta}, plug_opts: action})
-       when is_atom(lv) and is_atom(action) do
-    {lv, action}
-  end
-
-  defp plug_action(%{plug: controller, plug_opts: action}) when is_atom(action) do
-    {controller, action}
-  end
-
-  defp plug_action(other) do
-    IO.warn("""
-    unknown data for plug action, got:
-
-        #{inspect(other)}
-
-    """)
-
-    {nil, nil}
   end
 
   defp duration(duration) do
@@ -168,7 +113,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     end
   end
 
-  defp memory(%{memory: memory}) do
+  defp memory(memory) do
     if memory > 1024 do
       value = memory |> div(1024) |> Integer.to_string()
       %{value: value, label: "MiB", phrase: "#{value} mebibytes"}

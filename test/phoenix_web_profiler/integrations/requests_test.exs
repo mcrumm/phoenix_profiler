@@ -18,21 +18,33 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
     assert [profile] = Requests.multi_get(token)
 
     %{
+      conn: %Plug.Conn{
+        host: "www.example.com",
+        method: "GET",
+        path_info: [],
+        private: %{
+          phoenix_action: :index,
+          phoenix_controller: PhoenixWeb.ProfilerTest.PageController,
+          phoenix_endpoint: PhoenixWeb.ProfilerTest.Endpoint,
+          phoenix_router: PhoenixWeb.ProfilerTest.Router,
+          phoenix_view: PhoenixWeb.ProfilerTest.PageView
+        },
+        status: 200
+      },
       dumped: [],
-      host: "www.example.com",
-      method: "GET",
-      path_info: [],
-      phoenix_action: :index,
-      phoenix_controller: PhoenixWeb.ProfilerTest.PageController,
-      phoenix_endpoint: PhoenixWeb.ProfilerTest.Endpoint,
-      phoenix_router: PhoenixWeb.ProfilerTest.Router,
-      phoenix_view: PhoenixWeb.ProfilerTest.PageView,
-      status: 200
+      metrics: metrics
     } = profile
 
-    assert Map.has_key?(profile, PhoenixWeb.Profiler.Request.session_key())
-    assert profile.duration > 0
-    assert profile.memory > 0
+    assert get_in(profile.conn.private, [PhoenixWeb.Profiler.Request.session_key()])
+    assert metrics.total_duration > 0
+    assert metrics.endpoint_duration > 0
+    assert metrics.memory > 0
+  end
+
+  test "records debug profile through forwarded plug", %{conn: conn} do
+    conn = get(conn, "/plug-router")
+    assert [token] = Plug.Conn.get_resp_header(conn, "x-debug-token")
+    assert [_] = Requests.multi_get(token)
   end
 
   test "records debug profile for api requests", %{conn: conn} do
@@ -43,20 +55,25 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
     assert [profile] = Requests.multi_get(token)
 
     %{
+      conn: %Plug.Conn{
+        host: "www.example.com",
+        method: "GET",
+        path_info: ["api"],
+        private: %{
+          phoenix_action: :index,
+          phoenix_controller: PhoenixWeb.ProfilerTest.APIController,
+          phoenix_endpoint: PhoenixWeb.ProfilerTest.Endpoint,
+          phoenix_router: PhoenixWeb.ProfilerTest.Router,
+          phoenix_view: PhoenixWeb.ProfilerTest.APIView
+        },
+        status: 200
+      },
       dumped: [],
-      host: "www.example.com",
-      method: "GET",
-      path_info: ["api"],
-      phoenix_action: :index,
-      phoenix_controller: PhoenixWeb.ProfilerTest.APIController,
-      phoenix_endpoint: PhoenixWeb.ProfilerTest.Endpoint,
-      phoenix_router: PhoenixWeb.ProfilerTest.Router,
-      phoenix_view: PhoenixWeb.ProfilerTest.APIView,
-      status: 200
-    }
+      metrics: metrics
+    } = profile
 
-    refute Map.has_key?(profile, PhoenixWeb.Profiler.Request.session_key())
-    assert profile.duration > 0
-    assert profile.memory > 0
+    refute get_in(profile.conn.private, [PhoenixWeb.Profiler.Request.session_key()])
+    assert metrics.endpoint_duration > 0
+    assert metrics.memory > 0
   end
 end

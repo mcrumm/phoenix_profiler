@@ -20,6 +20,16 @@ defmodule PhoenixWeb.ProfilerTest do
     :get
     |> conn(path)
     |> Plug.Conn.put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.Endpoint)
+    |> emit_endpoint_stopped()
+  end
+
+  defp emit_endpoint_stopped(conn) do
+    :telemetry.execute([:phoenix, :endpoint, :stop], %{duration: 0}, %{
+      conn: conn,
+      options: [log: false]
+    })
+
+    conn
   end
 
   test "injects debug token header if configured" do

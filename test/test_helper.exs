@@ -42,12 +42,30 @@ defmodule PhoenixWeb.ProfilerTest.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+
+    forward "/plug-router", PlugRouter
   end
 
   scope "/api", PhoenixWeb.ProfilerTest do
     pipe_through :api
 
     get "/", APIController, :index
+  end
+end
+
+defmodule PhoenixWeb.ProfilerTest.PlugRouter do
+  use Plug.Router
+  import Phoenix.Controller
+
+  plug :match
+  plug :dispatch
+
+  get "/" do
+    html(conn, "<html><body>Home</body></html>")
+  end
+
+  match _ do
+    html(conn, "<html><body>Not Found</body></html>")
   end
 end
 

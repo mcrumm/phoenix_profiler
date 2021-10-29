@@ -34,23 +34,27 @@
         <span><%= @request.endpoint %></span>
       </div>
     </div>
-  </div><%= if @duration do %>
-  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-duration" aria-label="Duration, <%= @duration.phrase %>">
+  </div><%= if @durations do %>
+  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-duration" aria-label="Duration, <%= @durations.endpoint.phrase %>">
     <div class="phxweb-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
       </svg>
-      <span class="phxweb-toolbar-value"><%= @duration.value %></span>
-      <span class="phxweb-toolbar-label"><%= @duration.label %></span>
+      <span class="phxweb-toolbar-value"><%= @durations.endpoint.value %></span>
+      <span class="phxweb-toolbar-label"><%= @durations.endpoint.label %></span>
     </div>
     <div class="phxweb-toolbar-info">
       <div class="phxweb-toolbar-info-item">
+        <b>Total Duration</b>
+        <span><%= @durations.total.value %><%= @durations.total.label %></span>
+      </div>
+      <div class="phxweb-toolbar-info-item">
         <b>Endpoint Duration</b>
-        <span><%= @duration.value %> <%= @duration.label %></span>
+        <span><%= @durations.endpoint.value %> <%= @durations.endpoint.label %></span>
       </div>
     </div>
   </div><% end %><%= if @memory do %>
-  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-duration" aria-label="Memory, <%= @memory.phrase %>">
+  <div class="phxweb-toolbar-panel phxweb-toolbar-panel-memory" aria-label="Memory, <%= @memory.phrase %>">
     <div class="phxweb-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>

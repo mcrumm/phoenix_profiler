@@ -67,6 +67,7 @@ defmodule PhoenixWeb.Profiler do
     }
   end
 
+  # TODO: remove this clause when we add config for profiler except_patterns
   @impl Plug
   def call(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
     # this clause is to ignore the phoenix live reload iframe in case someone installs
@@ -80,9 +81,37 @@ defmodule PhoenixWeb.Profiler do
     endpoint_config = endpoint.config(:phoenix_web_profiler)
 
     if endpoint_config do
+      start_time = System.monotonic_time()
+
       conn
       |> Request.apply_debug_token()
-      |> before_send_inject_debug_toolbar(endpoint, config)
+      |> telemetry(:start, %{system_time: System.system_time()})
+      |> before_send_profile(start_time, endpoint, config)
+    else
+      conn
+    end
+  end
+
+  defp before_send_profile(conn, start_time, endpoint, config) do
+    register_before_send(conn, fn conn ->
+      duration = System.monotonic_time() - start_time
+
+      conn
+      |> telemetry(:stop, %{duration: duration})
+      |> maybe_inject_debug_toolbar(endpoint, config)
+    end)
+  end
+
+  defp telemetry(conn, action, measurements) when action in [:start, :stop] do
+    :telemetry.execute([:phxweb, :profiler, action], measurements, %{conn: conn})
+    conn
+  end
+
+  defp maybe_inject_debug_toolbar(%{resp_body: nil} = conn, _, _), do: conn
+
+  defp maybe_inject_debug_toolbar(conn, endpoint, config) do
+    if html?(conn) do
+      inject_debug_toolbar(conn, endpoint, config)
     else
       conn
     end
@@ -91,25 +120,17 @@ defmodule PhoenixWeb.Profiler do
   # HTML Injection
   # Copyright (c) 2018 Chris McCord
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
-  defp before_send_inject_debug_toolbar(conn, endpoint, config) do
-    register_before_send(conn, fn conn ->
-      if conn.resp_body != nil and html?(conn) do
-        resp_body = IO.iodata_to_binary(conn.resp_body)
+  defp inject_debug_toolbar(conn, endpoint, config) do
+    resp_body = IO.iodata_to_binary(conn.resp_body)
 
-        if has_body?(resp_body) and Code.ensure_loaded?(endpoint) do
-          [page | rest] = String.split(resp_body, "</body>")
+    if has_body?(resp_body) and Code.ensure_loaded?(endpoint) do
+      [page | rest] = String.split(resp_body, "</body>")
 
-          body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
-          conn = put_in(conn.resp_body, body)
-
-          conn
-        else
-          conn
-        end
-      else
-        conn
-      end
-    end)
+      body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
+      put_in(conn.resp_body, body)
+    else
+      conn
+    end
   end
 
   defp html?(conn) do
@@ -122,27 +143,33 @@ defmodule PhoenixWeb.Profiler do
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
-    {token, session} = Session.debug_session(conn)
+    try do
+      {token, session} = Session.debug_session(conn)
 
-    motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
+      motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
-    attrs =
-      Keyword.merge(
-        config.toolbar_attrs,
-        id: Request.toolbar_id(conn),
-        class: String.trim("phxweb-toolbar #{motion_class}"),
-        role: "region",
-        name: "Phoenix Web Debug Toolbar"
-      )
+      attrs =
+        Keyword.merge(
+          config.toolbar_attrs,
+          id: Request.toolbar_id(conn),
+          class: String.trim("phxweb-toolbar #{motion_class}"),
+          role: "region",
+          name: "Phoenix Web Debug Toolbar"
+        )
 
-    View
-    |> Phoenix.View.render("toolbar.html", %{
-      conn: conn,
-      session: session,
-      token: token,
-      toolbar_attrs: attrs(attrs)
-    })
-    |> Phoenix.HTML.Safe.to_iodata()
+      View
+      |> Phoenix.View.render("toolbar.html", %{
+        conn: conn,
+        session: session,
+        token: token,
+        toolbar_attrs: attrs(attrs)
+      })
+      |> Phoenix.HTML.Safe.to_iodata()
+    catch
+      {kind, reason} ->
+        IO.puts(Exception.format(kind, reason, __STACKTRACE__))
+        conn
+    end
   end
 
   defp attrs(attrs) do
