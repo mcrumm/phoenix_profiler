@@ -25,6 +25,46 @@ Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
   phoenix_web_profiler: true
 )
 
+defmodule DemoWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
+
+  plug PhoenixWeb.Profiler
+
+  @session_options [
+    store: :cookie,
+    key: "_demo_key",
+    signing_salt: "/VEDsdfsffMnp5"
+  ]
+
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [
+      connect_info: [session: @session_options]
+    ]
+
+  socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
+
+  plug Plug.Static,
+    at: "/",
+    from: "dev/static",
+    gzip: false,
+    only: ~w(assets fonts images favicon.ico robots.txt)
+
+  plug Phoenix.LiveReloader
+  plug Phoenix.CodeReloader
+
+  plug Plug.RequestId
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+
+  plug Plug.Parsers,
+    parsers: [:urlencoded, :multipart, :json],
+    pass: ["*/*"],
+    json_decoder: Phoenix.json_library()
+
+  plug Plug.Session, @session_options
+
+  plug DemoWeb.Router
+end
+
 Application.put_env(:phoenix, :serve_endpoints, true)
 
 Task.start(fn ->

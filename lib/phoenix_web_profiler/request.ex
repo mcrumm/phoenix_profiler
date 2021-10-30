@@ -4,6 +4,7 @@ defmodule PhoenixWeb.Profiler.Request do
   import Plug.Conn
   alias PhoenixWeb.Profiler
   alias PhoenixWeb.Profiler.Dumped
+  alias PhoenixWeb.Profiler.Routes
 
   @session_key :phxweb_debug_session
   @token_key :pwdt
@@ -50,15 +51,22 @@ defmodule PhoenixWeb.Profiler.Request do
     {:memory, bytes} = Process.info(self(), :memory)
     memory = div(bytes, 1_024)
 
-    {token,
-     conn
-     |> request_info()
-     |> Map.merge(%{
-       dumped: Dumped.flush(),
-       dumped_assigns:
-         PhoenixWeb.Profiler.cleanup_assigns(conn.assigns, [:content, :live_module]),
-       memory: memory
-     })}
+    metrics = %{
+      endpoint_duration: Process.get(:phxweb_endpoint_duration),
+      memory: memory
+    }
+
+    route = Routes.route_info(conn)
+
+    profile = %{
+      conn: conn,
+      dumped: Dumped.flush(),
+      dumped_assigns: PhoenixWeb.Profiler.cleanup_assigns(conn.assigns, [:content, :live_module]),
+      metrics: metrics,
+      route: route
+    }
+
+    {token, profile}
   end
 
   def debug_token!(%Plug.Conn{private: %{@token_key => token}}), do: token
@@ -68,24 +76,4 @@ defmodule PhoenixWeb.Profiler.Request do
 
   def session_token!(%Plug.Conn{private: private}),
     do: raise("session token not found in #{inspect(private)}")
-
-  @doc """
-  Returns request metadata for a given `conn`.
-  """
-  def request_info(%Plug.Conn{} = conn) do
-    request = Map.take(conn, [:host, :method, :path_info, :status])
-
-    metadata =
-      Map.take(conn.private, [
-        :phoenix_action,
-        :phoenix_controller,
-        :phoenix_endpoint,
-        :phoenix_router,
-        :phoenix_view,
-        @session_key,
-        @token_key
-      ])
-
-    Map.merge(request, metadata)
-  end
 end
