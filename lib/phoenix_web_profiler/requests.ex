@@ -72,8 +72,8 @@ defmodule PhoenixWeb.Profiler.Requests do
     end
   end
 
-  # Extract current conn profile, merge with existing metrics stored in ETS,
-  # and put new values received on telemetry events.
+  # Update profile metrics stored in ETS, merging the current data extract from `conn`
+  # with metrics extracted from telemetry events.
   defp update_metrics(conn, table, key, duration) do
     {token, %{metrics: conn_metrics} = profile} = Request.profile_request(conn)
 
