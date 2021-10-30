@@ -39,18 +39,14 @@ defmodule PhoenixWeb.Profiler.Requests do
     # no-op
   end
 
-  def handle_event([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _table) do
-    Process.put(:phxweb_endpoint_duration, duration)
+  def handle_event([:phoenix, :endpoint, :stop], %{duration: duration}, meta, table) do
+    %{conn: conn} = meta
+    update_metrics(conn, table, :endpoint_duration, duration)
   end
 
   def handle_event([:phxweb, :profiler, :stop], %{duration: duration}, meta, table) do
     %{conn: conn} = meta
-
-    {token, profile} = Request.profile_request(conn)
-
-    profile = put_in(profile, [:metrics, :total_duration], duration)
-
-    :ets.insert(table, {token, profile})
+    update_metrics(conn, table, :total_duration, duration)
   end
 
   @impl GenServer
@@ -74,5 +70,22 @@ defmodule PhoenixWeb.Profiler.Requests do
       [{_token, value}] ->
         value
     end
+  end
+
+  # Extract current conn profile, merge with existing metrics stored in ETS,
+  # and put new values received on telemetry events.
+  defp update_metrics(conn, table, key, duration) do
+    {token, %{metrics: conn_metrics} = profile} = Request.profile_request(conn)
+
+    metrics =
+      case get(table, token) do
+        %{metrics: metrics} -> metrics
+        _ -> %{}
+      end
+      |> Map.merge(conn_metrics)
+      |> Map.put(key, duration)
+
+    profile = %{profile | metrics: metrics}
+    :ets.insert(table, {token, profile})
   end
 end

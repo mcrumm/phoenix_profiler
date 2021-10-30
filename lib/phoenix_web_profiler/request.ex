@@ -51,10 +51,7 @@ defmodule PhoenixWeb.Profiler.Request do
     {:memory, bytes} = Process.info(self(), :memory)
     memory = div(bytes, 1_024)
 
-    metrics = %{
-      endpoint_duration: Process.get(:phxweb_endpoint_duration),
-      memory: memory
-    }
+    metrics = %{memory: memory}
 
     route = Routes.route_info(conn)
 
