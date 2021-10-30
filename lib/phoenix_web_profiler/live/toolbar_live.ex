@@ -50,7 +50,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     # Usually this occurs after a node has been restarted and
     # a request is received for a stale token.
     assign(socket, %{
-      duration: nil,
+      durations: nil,
       request: %{
         status_code: ":|",
         status_phrase: "No Profiler Session (refresh)",
