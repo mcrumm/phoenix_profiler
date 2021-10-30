@@ -108,7 +108,7 @@ web module, typically found at `lib/my_app_web.ex`:
   def live_view do
     quote do
       # use...
-      use Phoenix.LiveProfiler
+      use PhoenixWeb.LiveProfiler
 
       # view helpers...
     end
