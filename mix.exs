@@ -7,7 +7,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
     [
       app: :phoenix_web_profiler,
       version: @version,
-      elixir: "~> 1.10",
+      elixir: "~> 1.7",
       compilers: [:phoenix] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       package: package(),
