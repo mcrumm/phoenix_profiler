@@ -49,9 +49,12 @@ defmodule PhoenixProfilerWeb.Request do
       memory: memory
     }
 
+    at = Process.get(:phxweb_profiler_time)
+
     route = Routes.route_info(conn)
 
     profile = %{
+      at: at,
       conn: Map.delete(conn, :resp_body),
       metrics: metrics,
       route: route
