@@ -101,7 +101,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     end)
   end
 
-  defp duration(duration) do
+  defp duration(duration) when is_integer(duration) do
     duration = System.convert_time_unit(duration, :native, :microsecond)
 
     if duration > 1000 do
@@ -112,6 +112,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       %{value: value, label: "µs", phrase: "#{value} microseconds"}
     end
   end
+
+  defp duration(_), do: nil
 
   defp memory(memory) do
     if memory > 1024 do
