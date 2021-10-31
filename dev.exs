@@ -2,7 +2,7 @@
 Logger.configure(level: :debug)
 
 # Configure esbuild (the version is required)
-Application.put_env(:esbuild, :version, "0.12.21")
+Application.put_env(:esbuild, :version, "0.13.10")
 
 Application.put_env(:esbuild, :default,
   args: ~w(js/app.js --bundle --target=es2016 --outdir=../static/assets),
