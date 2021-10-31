@@ -183,7 +183,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     {:noreply, assign_view(socket, view_or_nil)}
   end
 
-  @impl Phoenix.LiveView
   def handle_info(
         {:DOWN, ref, _, _pid, reason},
         %{private: %{monitor_ref: ref}} = socket
@@ -206,33 +205,27 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     {:noreply, clear_monitor(socket)}
   end
 
-  @impl Phoenix.LiveView
   def handle_info({Session, :join, %{phx_ref: ref}}, %{private: %{last_join_ref: ref}} = socket) do
     {:noreply, socket}
   end
 
-  @impl Phoenix.LiveView
   def handle_info({Session, :join, join}, socket) do
     socket = update_monitor(socket, join)
     {:noreply, update_view(socket, join)}
   end
 
-  @impl Phoenix.LiveView
   def handle_info(:cast_for_dumped, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
     {:noreply, cast_for_dumped(socket, pid)}
   end
 
-  @impl Phoenix.LiveView
   def handle_info(:cast_for_dumped, socket) do
     {:noreply, socket}
   end
 
-  @impl Phoenix.LiveView
   def handle_info({PhoenixWeb.LiveProfiler, :ping, _ref}, socket) do
     {:noreply, socket}
   end
 
-  @impl Phoenix.LiveView
   def handle_info(other, socket) do
     IO.inspect(other, label: "ToolbarLive received an unknown message")
     {:noreply, socket}
