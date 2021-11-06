@@ -1,6 +1,9 @@
 (function() {
   const SHOW = "phxweb-profiler-show"
 
+  // Browser
+  // Copyright (c) 2018 Chris McCord
+  // https://github.com/phoenixframework/phoenix_live_view/blob/2ea98193420d236cbd5797e0cd258233c4dff5a7/assets/js/phoenix_live_view/browser.js
   let Browser = {
     setLocal(localStorage, namespace, subkey, value) {
       let key = this.localKey(namespace, subkey)
