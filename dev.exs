@@ -1,6 +1,17 @@
 # iex -S mix dev
 Logger.configure(level: :debug)
 
+# Configure esbuild (the version is required)
+Application.put_env(:esbuild, :version, "0.13.10")
+
+Application.put_env(:esbuild, :default,
+  args: ~w(js/app.js --bundle --target=es2016 --outdir=../static/assets),
+  cd: Path.expand("dev/assets", __DIR__),
+  env: %{"NODE_PATH" => Path.expand("deps", __DIR__)}
+)
+
+Application.ensure_all_started(:esbuild)
+
 # Configures the endpoint
 Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
   url: [host: "localhost"],

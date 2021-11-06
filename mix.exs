@@ -7,7 +7,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
     [
       app: :phoenix_web_profiler,
       version: @version,
-      elixir: "~> 1.10",
+      elixir: "~> 1.7",
       compilers: [:phoenix] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       package: package(),
@@ -44,7 +44,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
       {:plug_cowboy, "~> 2.0", only: :dev},
       {:jason, "~> 1.0", only: [:dev, :test, :docs]},
       {:ex_doc, "~> 0.25", only: :docs},
-      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev}
+      {:esbuild, "~> 0.2", runtime: false}
     ]
   end
 
