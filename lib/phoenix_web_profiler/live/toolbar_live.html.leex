@@ -103,8 +103,7 @@
         </div>
       <% end %></div>
     </div>
-  </div><% end %>
-
+  </div><% end %><%= if PhoenixWeb.LiveProfiler.attach_hook_available?() do %>
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-dump phxweb-toolbar-status-normal" aria-label="Dumped assigns">
     <div class="phxweb-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,7 +117,7 @@
         </div>
       <% end %></div>
     </div>
-  </div>
+  </div><% end %>
 
   <div class="phxweb-toolbar-panel phxweb-toolbar-panel-config phxweb-toolbar-panel-right" aria-label="Config">
     <div class="phxweb-toolbar-icon">

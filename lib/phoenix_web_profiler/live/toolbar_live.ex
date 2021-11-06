@@ -23,11 +23,11 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
       assign(socket,
         dumped: [],
         dumped_count: 0,
+        dumped_assigns: [],
         exits: [],
         exits_count: 0,
         memory: nil,
-        system: system(),
-        dumped_assigns: []
+        system: system()
       )
 
     socket =

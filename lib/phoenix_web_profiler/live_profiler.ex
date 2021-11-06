@@ -174,12 +174,17 @@ defmodule PhoenixWeb.LiveProfiler do
   @doc false
   def on_mount(view_module, params, %{@session_key => _} = session, socket) do
     socket
-    |> attach_hook(:phxweb_profiler_dump_assigns, :handle_info, &__handle__info__/2)
+    |> maybe_attach_hook(:phxweb_profiler_dump_assigns, :handle_info, &__handle__info__/2)
     |> apply_profiler_hooks(connected?(socket), view_module, params, session)
   end
 
   def on_mount(_view_module, _params, _session, socket) do
     {:cont, socket}
+  end
+
+  # TODO: remove this check when we drop support for LV <= 0.15
+  defp maybe_attach_hook(socket, name, stage, fun) do
+    if attach_hook_available?(), do: attach_hook(socket, name, stage, fun), else: socket
   end
 
   defp __handle__info__({:phxweb_profiler, {:dump_assigns, ref}, to: lv_pid}, socket) do
@@ -206,5 +211,10 @@ defmodule PhoenixWeb.LiveProfiler do
     })
 
     {:cont, socket}
+  end
+
+  # TODO: remove this check when we drop support for LV <= 0.15
+  def attach_hook_available? do
+    function_exported?(Phoenix.LiveView, :attach_hook, 4)
   end
 end
