@@ -48,7 +48,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Profiler.{Dumped, PubSub, Request, Session, Server}
+  alias PhoenixWeb.Profiler.{Dumped, Request, Requests, Session}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -119,26 +119,23 @@ defmodule PhoenixWeb.LiveProfiler do
     config = endpoint.config(:phoenix_web_profiler)
 
     if config do
-      token = Plug.Conn.get_session(conn, @session_key)
-      conn = find_or_start_session(conn, token)
-
-      Plug.Conn.put_session(conn, @token_key, Request.debug_token!(conn))
+      debug_token = Plug.Conn.get_session(conn, @token_key)
+      find_or_start_session(conn, debug_token)
     else
       conn
     end
   end
 
   defp find_or_start_session(conn, token) when is_binary(token) and token != "" do
-    topic = Server.topic(token)
-    :ok = Phoenix.PubSub.subscribe(PubSub, topic)
-    ref = make_ref()
-    Phoenix.PubSub.broadcast_from(PubSub, self(), topic, {__MODULE__, :ping, {self(), ref}})
+    case Requests.multi_get(token) do
+      [%{conn: %{private: %{@private_key => pid}}} | _] ->
+        if Process.alive?(pid) do
+          Session.continue(conn, pid)
+        else
+          Session.listen(conn)
+        end
 
-    receive do
-      {Server, ^ref, _pid} ->
-        Plug.Conn.put_private(conn, @private_key, token)
-    after
-      50 ->
+      _ ->
         Session.listen(conn)
     end
   end
@@ -172,7 +169,7 @@ defmodule PhoenixWeb.LiveProfiler do
   end
 
   @doc false
-  def on_mount(view_module, params, %{@session_key => _} = session, socket) do
+  def on_mount(view_module, params, %{@token_key => _} = session, socket) do
     apply_profiler_hooks(socket, connected?(socket), view_module, params, session)
   end
 

@@ -12,17 +12,24 @@ defmodule PhoenixWeb.Profiler.Session do
   def token_key, do: @token_key
 
   def listen(%Plug.Conn{} = conn) do
-    session_token = Profiler.random_unique_id()
+    debug_token = Request.debug_token!(conn)
 
-    {:ok, _} =
+    {:ok, pid} =
       DynamicSupervisor.start_child(
         Profiler.DynamicSupervisor,
-        {Server, token: session_token}
+        {Server, token: debug_token}
       )
 
+    continue(conn, pid)
+  end
+
+  @doc """
+  Configures private/session data for a given `conn`.
+  """
+  def continue(conn, pid) do
     conn
-    |> Plug.Conn.put_session(@session_key, session_token)
-    |> Plug.Conn.put_private(@private_key, session_token)
+    |> Plug.Conn.put_private(@private_key, pid)
+    |> Plug.Conn.put_session(@token_key, Request.debug_token!(conn))
   end
 
   @doc """
@@ -82,27 +89,6 @@ defmodule PhoenixWeb.Profiler.Session do
     else
       socket
     end
-  end
-
-  @doc """
-  Builds the debug session data.
-
-  Returns `{debug_token :: String.t(), session :: map()}`.
-  """
-  def debug_session(%Plug.Conn{} = conn) do
-    debug_token = Request.debug_token!(conn)
-
-    session = %{
-      @token_key => debug_token
-    }
-
-    session =
-      case Map.fetch(conn.private, @private_key) do
-        {:ok, session_token} -> Map.put(session, @session_key, session_token)
-        :error -> session
-      end
-
-    {debug_token, session}
   end
 
   def session_token!(%Plug.Conn{private: %{@private_key => session_token}}) do

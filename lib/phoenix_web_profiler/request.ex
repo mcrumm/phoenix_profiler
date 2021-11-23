@@ -71,6 +71,18 @@ defmodule PhoenixWeb.Profiler.Request do
   def debug_token!(%Plug.Conn{private: %{@token_key => token}}), do: token
   def debug_token!(%Plug.Conn{}), do: raise("debug token not set")
 
+  @doc """
+  Builds the debug session data.
+
+  Returns `{debug_token :: String.t(), session :: map()}`.
+  """
+  def debug_session(%Plug.Conn{} = conn) do
+    debug_token = debug_token!(conn)
+    session = %{@token_key => debug_token}
+
+    {debug_token, session}
+  end
+
   def session_token!(%Plug.Conn{private: %{@session_key => token}}), do: token
 
   def session_token!(%Plug.Conn{private: private}),

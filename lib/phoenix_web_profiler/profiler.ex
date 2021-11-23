@@ -6,7 +6,7 @@ defmodule PhoenixWeb.Profiler do
              |> Enum.fetch!(1)
 
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Dumped, Request, Session, View}
+  alias PhoenixWeb.Profiler.{Dumped, Request, View}
   require Logger
 
   @doc """
@@ -144,7 +144,7 @@ defmodule PhoenixWeb.Profiler do
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
     try do
-      {token, session} = Session.debug_session(conn)
+      {token, session} = Request.debug_session(conn)
 
       motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
