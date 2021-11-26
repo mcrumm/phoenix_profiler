@@ -11,6 +11,11 @@ defmodule DemoWeb.AppLive.Index do
       <h2>AppLive Page</h2>
       <p>Action=<%= @live_action %></p>
       <button phx-click="plus">+</button><button phx-click="minus">-</button>
+      <p>Links:</p>
+      <ul>
+        <li><%= live_redirect "Navigate to :index", to: Routes.app_index_path(@socket, :index) %></li>
+        <li><%= live_redirect "Navigate to :foo", to: Routes.app_index_path(@socket, :foo) %></li>
+      </ul>
     </section>
     """
   end

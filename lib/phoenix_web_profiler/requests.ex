@@ -4,11 +4,22 @@ defmodule PhoenixWeb.Profiler.Requests do
   use GenServer
   alias PhoenixWeb.Profiler.Request
 
-  @tab :phoenix_web_profiler_requests
+  ## Client API
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
+
+  def lookup!(token) do
+    case GenServer.call(__MODULE__, {:whereis, token}) do
+      nil -> raise "no profile for token #{token}"
+      profile -> profile
+    end
+  end
+
+  ## Server API
+
+  @tab :phoenix_web_profiler_requests
 
   @impl GenServer
   def init(_arg) do

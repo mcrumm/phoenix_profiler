@@ -22,6 +22,7 @@ defmodule DemoWeb.Router do
     get "/hello/:name", PageController, :hello
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
     live "/app", AppLive.Index, :index
+    live "/app/foo", AppLive.Index, :foo
 
     forward "/plug-router", PlugRouter
   end

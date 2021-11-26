@@ -4,16 +4,13 @@ defmodule PhoenixWeb.ProfilerTest do
   import Plug.Test
   import Plug.Conn
 
-  alias PhoenixWeb.Profiler.{Request, Session}
+  alias PhoenixWeb.Profiler.Request
 
   doctest PhoenixWeb.Profiler
 
   test "keys" do
     assert Request.token_key() == :pwdt
-    assert Request.session_key() == :phxweb_debug_session
-
-    assert Session.token_key() == "pwdt"
-    assert Session.session_key() == "phxweb_debug_session"
+    assert Request.session_key() == "pwdt"
   end
 
   defp conn(path) do
@@ -54,7 +51,6 @@ defmodule PhoenixWeb.ProfilerTest do
       conn("/")
       |> put_resp_content_type("text/html")
       |> PhoenixWeb.Profiler.call(opts)
-      |> put_private(Request.session_key(), "test")
       |> send_resp(200, "<html><body><h1>PhoenixWebProfiler</h1></body></html>")
 
     token = Request.debug_token!(conn)
@@ -71,7 +67,6 @@ defmodule PhoenixWeb.ProfilerTest do
       |> put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.EndpointDisabled)
       |> put_resp_content_type("text/html")
       |> PhoenixWeb.Profiler.call(opts)
-      |> put_private(Request.session_key(), "test")
       |> send_resp(200, "<html><body><h1>PhoenixWebProfiler</h1></body></html>")
 
     assert get_resp_header(conn, Request.token_header_key()) == []
@@ -86,7 +81,6 @@ defmodule PhoenixWeb.ProfilerTest do
       conn("/")
       |> put_resp_content_type("text/html")
       |> PhoenixWeb.Profiler.call(opts)
-      |> put_private(Request.session_key(), "test")
       |> send_resp(200, "<h1>PhoenixWebProfiler</h1>")
 
     assert to_string(conn.resp_body) == "<h1>PhoenixWebProfiler</h1>"

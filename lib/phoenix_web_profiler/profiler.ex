@@ -144,31 +144,35 @@ defmodule PhoenixWeb.Profiler do
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
     try do
-      {token, session} = Request.debug_session(conn)
+      if Code.ensure_loaded?(PhoenixWeb.Profiler.ToolbarLive) do
+        {token, session} = Request.debug_session(conn)
 
-      motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
+        motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
-      attrs =
-        Keyword.merge(
-          config.toolbar_attrs,
-          id: Request.toolbar_id(conn),
-          class: String.trim("phxweb-toolbar #{motion_class}"),
-          role: "region",
-          name: "Phoenix Web Debug Toolbar"
-        )
+        attrs =
+          Keyword.merge(
+            config.toolbar_attrs,
+            id: Request.toolbar_id(conn),
+            class: String.trim("phxweb-toolbar #{motion_class}"),
+            role: "region",
+            name: "Phoenix Web Debug Toolbar"
+          )
 
-      View
-      |> Phoenix.View.render("toolbar.html", %{
-        conn: conn,
-        session: session,
-        token: token,
-        toolbar_attrs: attrs(attrs)
-      })
-      |> Phoenix.HTML.Safe.to_iodata()
+        View
+        |> Phoenix.View.render("toolbar.html", %{
+          conn: conn,
+          session: session,
+          token: token,
+          toolbar_attrs: attrs(attrs)
+        })
+        |> Phoenix.HTML.Safe.to_iodata()
+      else
+        []
+      end
     catch
       {kind, reason} ->
         IO.puts(Exception.format(kind, reason, __STACKTRACE__))
-        conn
+        []
     end
   end
 

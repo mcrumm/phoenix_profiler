@@ -35,10 +35,15 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
       metrics: metrics
     } = profile
 
-    assert get_in(profile.conn.private, [PhoenixWeb.Profiler.Request.session_key()])
     assert metrics.total_duration > 0
     assert metrics.endpoint_duration > 0
     assert metrics.memory > 0
+  end
+
+  test "records debug token to browser session", %{conn: conn} do
+    conn = get(conn, "/")
+    [token] = Plug.Conn.get_resp_header(conn, "x-debug-token")
+    assert Plug.Conn.get_session(conn) == %{"pwdt" => token}
   end
 
   test "records debug profile through forwarded plug", %{conn: conn} do
@@ -72,7 +77,6 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
       metrics: metrics
     } = profile
 
-    refute get_in(profile.conn.private, [PhoenixWeb.Profiler.Request.session_key()])
     assert metrics.endpoint_duration > 0
     assert metrics.memory > 0
   end

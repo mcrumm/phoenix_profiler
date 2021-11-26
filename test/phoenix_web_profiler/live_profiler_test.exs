@@ -4,8 +4,6 @@ defmodule PhoenixWeb.LiveProfilerTest do
   import Plug.Test
   import Plug.Conn
 
-  alias PhoenixWeb.Profiler.Session
-
   defp conn(path) do
     :get
     |> conn(path)
@@ -26,7 +24,7 @@ defmodule PhoenixWeb.LiveProfilerTest do
     end
   end
 
-  test "injects debug session token if configured" do
+  test "injects debug token into the session if configured" do
     opts = PhoenixWeb.LiveProfiler.init([])
 
     conn =
@@ -35,10 +33,11 @@ defmodule PhoenixWeb.LiveProfilerTest do
       |> PhoenixWeb.LiveProfiler.call(opts)
       |> send_resp(200, "")
 
-    assert Session.session_token!(conn)
+    assert %{"pwdt" => token} = Plug.Conn.get_session(conn)
+    assert is_binary(token) and token != ""
   end
 
-  test "skips injecting session token if disabled at the Endpoint" do
+  test "skips injecting debug token into the session if disabled at the Endpoint" do
     opts = PhoenixWeb.LiveProfiler.init([])
 
     conn =
@@ -48,8 +47,6 @@ defmodule PhoenixWeb.LiveProfilerTest do
       |> PhoenixWeb.LiveProfiler.call(opts)
       |> send_resp(200, "")
 
-    assert_raise RuntimeError, "session token not set", fn ->
-      Session.session_token!(conn)
-    end
+    assert Plug.Conn.get_session(conn) == %{}
   end
 end

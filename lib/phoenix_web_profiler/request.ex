@@ -6,12 +6,12 @@ defmodule PhoenixWeb.Profiler.Request do
   alias PhoenixWeb.Profiler.Dumped
   alias PhoenixWeb.Profiler.Routes
 
-  @session_key :phxweb_debug_session
+  @session_key "pwdt"
   @token_key :pwdt
   @token_header_key "x-debug-token"
 
   @doc """
-  Returns an atom that is the debug session key.
+  Returns a String that is the debug session key.
   """
   def session_key, do: @session_key
 
@@ -58,8 +58,11 @@ defmodule PhoenixWeb.Profiler.Request do
 
     route = Routes.route_info(conn)
 
+    at = Process.get(:phxweb_profiler_time)
+
     profile = %{
-      conn: conn,
+      at: at,
+      conn: Map.delete(conn, :resp_body),
       dumped: Dumped.flush(),
       metrics: metrics,
       route: route
@@ -78,13 +81,8 @@ defmodule PhoenixWeb.Profiler.Request do
   """
   def debug_session(%Plug.Conn{} = conn) do
     debug_token = debug_token!(conn)
-    session = %{@token_key => debug_token}
+    session = %{@session_key => debug_token}
 
     {debug_token, session}
   end
-
-  def session_token!(%Plug.Conn{private: %{@session_key => token}}), do: token
-
-  def session_token!(%Plug.Conn{private: private}),
-    do: raise("session token not found in #{inspect(private)}")
 end

@@ -28,7 +28,7 @@ defmodule PhoenixWeb.Profiler.Routes do
   end
 
   # From LiveProfiler presence
-  def plug_action(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
+  def plug_action(%{root_pid: _, live_action: action, root_view: lv}) do
     {lv, action}
   end
 

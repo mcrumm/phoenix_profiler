@@ -48,7 +48,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Profiler.{Dumped, Request, Requests, Session}
+  alias PhoenixWeb.Profiler.{Dumped, Request, Transports}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -106,9 +106,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   @behaviour Plug
 
-  @private_key Request.session_key()
-  @session_key Session.session_key()
-  @token_key Request.token_key()
+  @session_key Request.session_key()
 
   @impl Plug
   def init(opts), do: opts
@@ -119,29 +117,10 @@ defmodule PhoenixWeb.LiveProfiler do
     config = endpoint.config(:phoenix_web_profiler)
 
     if config do
-      debug_token = Plug.Conn.get_session(conn, @token_key)
-      find_or_start_session(conn, debug_token)
+      Plug.Conn.put_session(conn, @session_key, Request.debug_token!(conn))
     else
       conn
     end
-  end
-
-  defp find_or_start_session(conn, token) when is_binary(token) and token != "" do
-    case Requests.multi_get(token) do
-      [%{conn: %{private: %{@private_key => pid}}} | _] ->
-        if Process.alive?(pid) do
-          Session.continue(conn, pid)
-        else
-          Session.listen(conn)
-        end
-
-      _ ->
-        Session.listen(conn)
-    end
-  end
-
-  defp find_or_start_session(conn, _token) do
-    Session.listen(conn)
   end
 
   @doc false
@@ -169,7 +148,7 @@ defmodule PhoenixWeb.LiveProfiler do
   end
 
   @doc false
-  def on_mount(view_module, params, %{@token_key => _} = session, socket) do
+  def on_mount(view_module, params, %{@session_key => _} = session, socket) do
     apply_profiler_hooks(socket, connected?(socket), view_module, params, session)
   end
 
@@ -181,15 +160,15 @@ defmodule PhoenixWeb.LiveProfiler do
     {:cont, socket}
   end
 
-  defp apply_profiler_hooks(socket, _connected? = true, view_module, _params, session) do
-    Session.track(socket, session, %{
-      kind: :profile,
-      phoenix_live_action: socket.assigns.live_action,
-      root_view: socket.private[:root_view],
-      transport_pid: transport_pid(socket),
-      view_module: view_module
-    })
+  defp apply_profiler_hooks(socket, _connected? = true, _view_module, _params, _session) do
+    {:cont, maybe_store_socket(socket)}
+  end
 
-    {:cont, socket}
+  defp maybe_store_socket(socket) do
+    if Transports.root?(socket) do
+      Transports.put(socket)
+    else
+      socket
+    end
   end
 end

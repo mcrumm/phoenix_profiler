@@ -2,40 +2,39 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.Profiler.{Presence, Routes, Session}
+  alias PhoenixWeb.Profiler.{Request, Requests, Routes, Transports}
 
   @cast_for_dumped_wait 100
-  @debug_key Session.token_key()
+  @debug_key Atom.to_string(Request.token_key())
+  @expected_exits [:shutdown, {:shutdown, :left}, {:shutdown, :duplicate_join}]
 
   @impl Phoenix.LiveView
-  def mount(_, %{@debug_key => token} = session, socket) do
+  def mount(_, %{@debug_key => token}, socket) do
     socket =
       socket
-      |> assign(:token, token)
-      |> put_private(:topic, Session.topic(session))
-      |> Session.track(session, %{kind: :toolbar})
-      |> Session.subscribe()
       |> put_private(:dumped_ref, nil)
       |> put_private(:monitor_ref, nil)
-
-    socket =
-      assign(socket,
+      |> assign(
         dumped: [],
         dumped_count: 0,
         exits: [],
         exits_count: 0,
         memory: nil,
+        token: token,
         system: system()
       )
 
     socket =
-      case Session.info(session) do
-        nil ->
-          assign_minimal_toolbar(socket)
+      case Requests.multi_get(token) do
+        [info] -> assign_toolbar(socket, info)
+        [] -> assign_minimal_toolbar(socket)
+      end
 
-        info ->
-          socket = put_private(socket, :profilerinfo, info)
-          assign_toolbar(socket, info)
+    socket =
+      if connected?(socket) do
+        update_monitor(socket, Transports.get(socket))
+      else
+        socket
       end
 
     {:ok, socket, temporary_assigns: [exits: []]}
@@ -168,50 +167,34 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: _payload}, socket) do
-    # assumes only one process under profile per debug token.
-    # a unique debug token is generated per stateless request,
-    # so that should be a safe assumption.
-    view_or_nil =
-      socket.private.topic
-      |> Presence.list()
-      |> get_in([socket.assigns.token, :metas])
-      |> Kernel.||([])
-      |> Enum.find(&(&1.kind == :profile))
-
-    socket = update_monitor(socket, view_or_nil)
-    {:noreply, assign_view(socket, view_or_nil)}
-  end
-
   def handle_info(
         {:DOWN, ref, _, _pid, reason},
         %{private: %{monitor_ref: ref}} = socket
       ) do
     socket =
       case reason do
-        {:shutdown, :left} ->
-          socket
-
-        {:shutdown, :duplicate_join} ->
-          socket
-
-        :shutdown ->
+        reason when reason in @expected_exits ->
           socket
 
         other ->
           apply_exit_reason(socket, other)
       end
 
-    {:noreply, clear_monitor(socket)}
+    {:noreply,
+     socket
+     |> Transports.delete()
+     |> clear_monitor()
+     |> schedule_next_lookup()}
   end
 
-  def handle_info({Session, :join, %{phx_ref: ref}}, %{private: %{last_join_ref: ref}} = socket) do
+  def handle_info(:lookup, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
     {:noreply, socket}
   end
 
-  def handle_info({Session, :join, join}, socket) do
-    socket = update_monitor(socket, join)
-    {:noreply, update_view(socket, join)}
+  def handle_info(:lookup, socket) do
+    view = Transports.get(socket)
+    socket = update_monitor(socket, view)
+    {:noreply, assign_view(socket, view)}
   end
 
   def handle_info(:cast_for_dumped, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
@@ -219,10 +202,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   def handle_info(:cast_for_dumped, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_info({PhoenixWeb.LiveProfiler, :ping, _ref}, socket) do
     {:noreply, socket}
   end
 
@@ -248,13 +227,18 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     %{socket | private: private}
   end
 
-  # no process under profile
-  defp update_monitor(socket, nil) do
+  defp schedule_next_lookup(socket) do
+    Process.send_after(self(), :lookup, 100)
     socket
   end
 
+  # no process under profile, schedule next check
+  defp update_monitor(socket, nil) do
+    schedule_next_lookup(socket)
+  end
+
   # process under profile did not change
-  defp update_monitor(%{private: %{lv_pid: pid}} = socket, %{pid: pid}) do
+  defp update_monitor(%{private: %{lv_pid: pid}} = socket, %{root_pid: pid}) do
     socket
   end
 
@@ -269,17 +253,13 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     do_monitor_view(socket, view)
   end
 
-  defp do_monitor_view(socket, %{pid: pid, phx_ref: phx_ref}) do
+  defp do_monitor_view(socket, %{root_pid: pid}) do
     ref = Process.monitor(pid)
-    socket = cast_for_dumped(socket, pid)
 
-    private =
-      socket.private
-      |> Map.put(:last_join_ref, phx_ref)
-      |> Map.put(:monitor_ref, ref)
-      |> Map.put(:lv_pid, pid)
-
-    %{socket | private: private}
+    socket
+    |> cast_for_dumped(pid)
+    |> put_private(:monitor_ref, ref)
+    |> put_private(:lv_pid, pid)
   end
 
   defp assign_view(socket, nil), do: socket
