@@ -10,7 +10,7 @@ defmodule PhoenixWeb.ProfilerTest do
 
   test "keys" do
     assert Request.token_key() == :pwdt
-    assert Request.session_key() == "pwdt"
+    assert Request.token_header_key() == "x-debug-token"
   end
 
   defp conn(path) do

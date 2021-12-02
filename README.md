@@ -25,10 +25,9 @@ To start using the profiler, you will need the following steps:
 2. Enable the profiler on your Endpoint
 3. Configure LiveView
 4. Add the `PhoenixWeb.Profiler` Plug
-5. Add the `PhoenixWeb.LiveProfiler` Plug
-6. `use PhoenixWeb.LiveProfiler` on your LiveViews
-7. Import the `dump/1` macro
-8. Configure the toolbar (optional)
+5. `use PhoenixWeb.LiveProfiler` on your LiveViews
+6. Import the `dump/1` macro
+7. Configure the toolbar (optional)
 
 ### 1. Add the phoenix_web_profiler dependency
 
@@ -83,19 +82,6 @@ All configuration is done on the Plug. The following options are available:
 * `:toolbar_attrs` - HTML attributes to be given to the element
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
-
-### 5. Add the PhoenixWeb.LiveProfiler Plug
-
-Add the LiveProfiler plug on the bottom of the
-`:browser` pipeline on your Router, typically found in
-`lib/my_app_web/router.ex`:
-
-```elixir
-pipeline :browser do
-  # plugs...
-  plug PhoenixWeb.LiveProfiler
-end
-```
 
 ### 6. Use PhoenixWeb.LiveProfiler on your LiveViews
 

@@ -12,7 +12,6 @@ defmodule DemoWeb.Router do
     plug :put_root_layout, {DemoWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug PhoenixWeb.LiveProfiler
   end
 
   scope "/", DemoWeb do

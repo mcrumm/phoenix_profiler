@@ -2,36 +2,14 @@ defmodule PhoenixWeb.LiveProfiler do
   @moduledoc """
   Interactive profiler for LiveView processes.
 
-  LiveProfiler performs two roles:
+  When you use LiveProfiler, once the LiveView is connected,
+  the profiler will join the LiveView process to the debug
+  session for a given token. Once joined, the LiveView
+  becomes a "process under profile". These processes can be
+  monitored from the Phoenix Web Debug Toolbar in order to
+  triage issues and tune performance.
 
-  * As a Plug, LiveProfiler injects the debug token into the
-    session of the stateless HTTP response. The session acts
-    as a transport between the stateless request/response and
-    the LiveView process. Once the client makes the stateful
-    connection, the debug token is picked up by the LiveView
-    during the `mount` stage of the LiveView lifecycle.
-
-  * When you use LiveProfiler, once the LiveView is connected,
-    the profiler will join the LiveView process to the debug
-    session for a given token. Once joined, the LiveView
-    becomes a "process under profile". These processes can be
-    monitored from the Phoenix Web Debug Toolbar in order to
-    triage issues and tune performance.
-
-  ## As a Plug
-
-  As a Plug, LiveProfiler lives on the bottom of the `:browser` pipeline
-  on your Router module, typically found in `lib/my_app_web/router.ex`:
-
-      pipeline :browser do
-        # plugs...
-        plug PhoenixWeb.LiveProfiler
-      end
-
-  ## As a lifecycle hook
-
-  As a LiveView lifecycle hook, LiveProfiler lives on a
-  module where you use LiveView:
+  LiveProfiler lives on a module where you use LiveView:
 
       defmodule PageLive do
         # use...
@@ -45,10 +23,9 @@ defmodule PhoenixWeb.LiveProfiler do
   hook will be installed automatically when you `use PhoenixWeb.LiveProfiler`.
 
   See the LiveView Profiling section of the [`Profiler`](`PhoenixWeb.Profiler`) module docs.
-
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Profiler.{Dumped, Request}
+  alias PhoenixWeb.Profiler.Dumped
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -101,25 +78,6 @@ defmodule PhoenixWeb.LiveProfiler do
           PhoenixWeb.LiveProfiler.mount_profiler(socket, params, session, __MODULE__)
         end
       end
-    end
-  end
-
-  @behaviour Plug
-
-  @session_key Request.session_key()
-
-  @impl Plug
-  def init(opts), do: opts
-
-  @impl Plug
-  def call(conn, _) do
-    endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(:phoenix_web_profiler)
-
-    if config do
-      Plug.Conn.put_session(conn, @session_key, Request.debug_token!(conn))
-    else
-      conn
     end
   end
 

@@ -31,7 +31,6 @@ defmodule PhoenixWeb.ProfilerTest.Router do
 
   pipeline :browser do
     plug :fetch_session
-    plug PhoenixWeb.LiveProfiler
   end
 
   pipeline :api do
