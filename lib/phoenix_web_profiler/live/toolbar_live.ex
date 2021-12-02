@@ -7,7 +7,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   @cast_for_dumped_wait 100
   @debug_key Atom.to_string(Request.token_key())
-  @expected_exits [:shutdown, {:shutdown, :left}, {:shutdown, :duplicate_join}]
 
   @impl Phoenix.LiveView
   def mount(_, %{@debug_key => token}, socket) do
@@ -164,25 +163,12 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info({:exception, _kind, reason, _stacktrace}, socket) do
-    socket =
-      case reason do
-        reason when reason in @expected_exits ->
-          socket
-
-        other ->
-          apply_exit_reason(socket, other)
-      end
-
-    {:noreply, socket}
+  def handle_info({:exception, kind, reason, stacktrace}, socket) do
+    apply_exception(socket, kind, reason, stacktrace)
   end
 
   def handle_info({:navigation, view}, socket) do
     {:noreply, update_view(socket, view)}
-  end
-
-  def handle_info({:telemetry, _, _, _}, socket) do
-    {:noreply, socket}
   end
 
   def handle_info(:cast_for_dumped, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
@@ -198,16 +184,17 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     {:noreply, socket}
   end
 
-  defp apply_exit_reason(socket, reason) do
-    exit_reason = %{
+  defp apply_exception(socket, kind, reason, stacktrace) do
+    exception = %{
       ref: Phoenix.LiveView.Utils.random_id(),
-      reason: Exception.format_exit(reason),
+      reason: Exception.format(kind, reason, stacktrace),
       at: Time.utc_now() |> Time.truncate(:second)
     }
 
-    socket
-    |> update(:exits, &[exit_reason | &1])
-    |> update(:exits_count, &(&1 + 1))
+    {:noreply,
+     socket
+     |> update(:exits, &[exception | &1])
+     |> update(:exits_count, &(&1 + 1))}
   end
 
   defp cast_for_dumped(%Phoenix.LiveView.Socket{} = socket, pid)

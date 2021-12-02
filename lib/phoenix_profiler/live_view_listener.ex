@@ -16,8 +16,6 @@ defmodule PhoenixProfiler.LiveViewListener do
 
       {:exception, atom(), any(), list()}
 
-      {:telemetry, list(atom()), map(), map()}
-
   """
   def listen(%LiveView.Socket{transport_pid: transport}) do
     listen(transport, [])
@@ -41,7 +39,7 @@ defmodule PhoenixProfiler.LiveViewListener do
   @impl true
   def init({parent, transport, _opts}) do
     Process.flag(:trap_exit, true)
-    parent_ref = Process.monitor(parent)
+    ref = Process.monitor(parent)
 
     :telemetry.attach_many(
       {__MODULE__, self()},
@@ -60,42 +58,23 @@ defmodule PhoenixProfiler.LiveViewListener do
       %{listener: self(), parent: parent, transport: transport}
     )
 
-    {:ok,
-     %{
-       parent_ref: parent_ref,
-       parent: parent,
-       ref: nil,
-       root_pid: nil,
-       transport: transport
-     }}
+    {:ok, %{parent: parent, ref: ref, root_pid: nil, transport: transport}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, _, _, _}, %{parent_ref: ref} = state) do
+  def handle_info({:DOWN, ref, _, _, _}, %{ref: ref} = state) do
     {:stop, :shutdown, state}
   end
 
-  def handle_info({:DOWN, ref, _, _, reason}, %{ref: ref} = state) do
-    notify_exception(state.parent, :exit, reason)
-    {:noreply, %{state | ref: nil, root_pid: nil}}
-  end
-
-  def handle_info({:telemetry, event, measurements, metadata} = telemetry, state) do
-    notify_telemetry(state.parent, telemetry)
-
+  def handle_info({:telemetry, event, measurements, metadata}, state) do
     case event do
       [:phoenix, :live_view, stage, action] ->
-        {_ref, state} = update_monitor(state, metadata.socket)
+        state = check_navigation(state, metadata.socket)
         handle_lifecycle(stage, action, measurements, metadata, state)
 
       _ ->
         {:noreply, state}
     end
-  end
-
-  defp handle_lifecycle(:mount, :stop, _, metadata, state) do
-    notify_navigation(state.parent, metadata.socket)
-    {:noreply, state}
   end
 
   defp handle_lifecycle(_stage, :exception, _measurements, metadata, state) do
@@ -126,16 +105,17 @@ defmodule PhoenixProfiler.LiveViewListener do
 
   def telemetry_callback(_, _, _, _), do: :ok
 
+  defp check_navigation(state, %{root_pid: pid} = socket) do
+    if LiveView.connected?(socket) and state.root_pid != pid do
+      notify_navigation(state.parent, socket)
+      %{state | root_pid: pid}
+    else
+      state
+    end
+  end
+
   defp notify_exception(pid, %{kind: kind, reason: reason} = metadata) do
-    notify_exception(pid, kind, reason, Map.get(metadata, :stacktrace, []))
-  end
-
-  defp notify_exception(pid, kind, reason) do
-    notify_exception(pid, kind, reason, [])
-  end
-
-  defp notify_exception(pid, kind, reason, stacktrace) do
-    send(pid, {:exception, kind, reason, stacktrace})
+    send(pid, {:exception, kind, reason, Map.get(metadata, :stacktrace, [])})
   end
 
   defp notify_navigation(pid, socket) do
@@ -146,18 +126,5 @@ defmodule PhoenixProfiler.LiveViewListener do
       |> Map.put_new(:root_view, socket.private[:root_view])
 
     send(pid, {:navigation, view})
-  end
-
-  defp notify_telemetry(pid, {:telemetry, _, _, _} = telemetry) do
-    send(pid, telemetry)
-  end
-
-  defp update_monitor(state, %{root_pid: pid} = socket) do
-    if LiveView.connected?(socket) and state.root_pid != pid do
-      if is_reference(state.ref), do: Process.demonitor(state.ref)
-      {state.ref, %{state | ref: Process.monitor(pid), root_pid: pid}}
-    else
-      {state.ref, state}
-    end
   end
 end
