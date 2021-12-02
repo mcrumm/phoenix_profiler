@@ -8,6 +8,12 @@ defmodule PhoenixProfiler.Requests do
   end
 
   def init(_) do
+    unless Code.ensure_loaded?(:persistent_term) do
+      require Logger
+      Logger.error("PhoenixProfiler requires Erlang/OTP 21.3+")
+      raise "PhoenixProfiler requires Erlang/OTP 21.3+"
+    end
+
     tab = :ets.new(__MODULE__, [:set, :public, :named_table, {:write_concurrency, true}])
 
     :persistent_term.put(__MODULE__, tab)
