@@ -8,7 +8,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   @cast_for_dumped_wait 100
 
   @impl Phoenix.LiveView
-  def mount(_, %{"token" => token, "node" => node}, socket) do
+  def mount(_, %{"node" => node, "token" => token}, socket) do
     socket =
       socket
       |> Utils.put_private(:dumped_ref, nil)

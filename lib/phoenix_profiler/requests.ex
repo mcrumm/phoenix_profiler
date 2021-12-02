@@ -14,7 +14,7 @@ defmodule PhoenixProfiler.Requests do
       raise "PhoenixProfiler requires Erlang/OTP 21.3+"
     end
 
-    tab = :ets.new(__MODULE__, [:set, :public, :named_table, {:write_concurrency, true}])
+    tab = :ets.new(__MODULE__, [:set, :public, {:write_concurrency, true}])
 
     :persistent_term.put(__MODULE__, tab)
 

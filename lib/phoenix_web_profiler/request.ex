@@ -52,10 +52,7 @@ defmodule PhoenixWeb.Profiler.Request do
 
     route = Routes.route_info(conn)
 
-    at = Process.get(:phxweb_profiler_time)
-
     profile = %{
-      at: at,
       conn: Map.delete(conn, :resp_body),
       dumped: Dumped.flush(),
       metrics: metrics,
