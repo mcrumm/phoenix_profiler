@@ -27,7 +27,7 @@ defmodule PhoenixWeb.Profiler.Routes do
     end
   end
 
-  # From LiveProfiler presence
+  # From LiveViewListener telemetry
   def plug_action(%{root_pid: _, live_action: action, root_view: lv}) do
     {lv, action}
   end

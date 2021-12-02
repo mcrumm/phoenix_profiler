@@ -2,7 +2,8 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixWeb.Profiler.{Request, Requests, Routes, Transports}
+  alias PhoenixProfiler.Utils
+  alias PhoenixWeb.Profiler.{Request, Requests, Routes}
 
   @cast_for_dumped_wait 100
   @debug_key Atom.to_string(Request.token_key())
@@ -12,8 +13,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   def mount(_, %{@debug_key => token}, socket) do
     socket =
       socket
-      |> put_private(:dumped_ref, nil)
-      |> put_private(:monitor_ref, nil)
+      |> Utils.put_private(:dumped_ref, nil)
       |> assign(
         dumped: [],
         dumped_count: 0,
@@ -30,12 +30,9 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
         [] -> assign_minimal_toolbar(socket)
       end
 
-    socket =
-      if connected?(socket) do
-        update_monitor(socket, Transports.get(socket))
-      else
-        socket
-      end
+    if connected?(socket) do
+      PhoenixProfiler.LiveViewListener.listen(socket)
+    end
 
     {:ok, socket, temporary_assigns: [exits: []]}
   end
@@ -157,7 +154,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     {:noreply,
      socket
      |> update_dumped(flushed)
-     |> put_private(:dumped_ref, nil)}
+     |> Utils.put_private(:dumped_ref, nil)}
   end
 
   # stale dumped ref
@@ -167,10 +164,7 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info(
-        {:DOWN, ref, _, _pid, reason},
-        %{private: %{monitor_ref: ref}} = socket
-      ) do
+  def handle_info({:exception, _kind, reason, _stacktrace}, socket) do
     socket =
       case reason do
         reason when reason in @expected_exits ->
@@ -180,21 +174,15 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
           apply_exit_reason(socket, other)
       end
 
-    {:noreply,
-     socket
-     |> Transports.delete()
-     |> clear_monitor()
-     |> schedule_next_lookup()}
-  end
-
-  def handle_info(:lookup, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
     {:noreply, socket}
   end
 
-  def handle_info(:lookup, socket) do
-    view = Transports.get(socket)
-    socket = update_monitor(socket, view)
-    {:noreply, assign_view(socket, view)}
+  def handle_info({:navigation, view}, socket) do
+    {:noreply, update_view(socket, view)}
+  end
+
+  def handle_info({:telemetry, _, _, _}, socket) do
+    {:noreply, socket}
   end
 
   def handle_info(:cast_for_dumped, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
@@ -222,64 +210,12 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     |> update(:exits_count, &(&1 + 1))
   end
 
-  defp clear_monitor(%{private: private} = socket) do
-    private = private |> Map.delete(:monitor_ref) |> Map.delete(:lv_pid)
-    %{socket | private: private}
-  end
-
-  defp schedule_next_lookup(socket) do
-    Process.send_after(self(), :lookup, 100)
-    socket
-  end
-
-  # no process under profile, schedule next check
-  defp update_monitor(socket, nil) do
-    schedule_next_lookup(socket)
-  end
-
-  # process under profile did not change
-  defp update_monitor(%{private: %{lv_pid: pid}} = socket, %{root_pid: pid}) do
-    socket
-  end
-
-  # process under profile did change
-  defp update_monitor(%{private: %{monitor_ref: ref}} = socket, view) when is_reference(ref) do
-    Process.demonitor(ref)
-    do_monitor_view(socket, view)
-  end
-
-  # set process under profile
-  defp update_monitor(socket, view) do
-    do_monitor_view(socket, view)
-  end
-
-  defp do_monitor_view(socket, %{root_pid: pid}) do
-    ref = Process.monitor(pid)
-
-    socket
-    |> cast_for_dumped(pid)
-    |> put_private(:monitor_ref, ref)
-    |> put_private(:lv_pid, pid)
-  end
-
-  defp assign_view(socket, nil), do: socket
-
-  defp assign_view(socket, view) do
-    update_view(socket, view)
-  end
-
   defp cast_for_dumped(%Phoenix.LiveView.Socket{} = socket, pid)
        when is_pid(pid) do
     dumped_ref = make_ref()
     GenServer.cast(pid, {PhoenixWeb.LiveProfiler, {:dump, dumped_ref}, to: self()})
 
-    put_private(socket, :dumped_ref, dumped_ref)
-  end
-
-  defp put_private(%Phoenix.LiveView.Socket{private: private} = socket, key, value)
-       when is_atom(key) do
-    private = Map.put(private, key, value)
-    %{socket | private: private}
+    Utils.put_private(socket, :dumped_ref, dumped_ref)
   end
 
   defp format_module_function(module, {function, arity}) do

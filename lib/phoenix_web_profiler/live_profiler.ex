@@ -48,7 +48,7 @@ defmodule PhoenixWeb.LiveProfiler do
 
   """
   import Phoenix.LiveView
-  alias PhoenixWeb.Profiler.{Dumped, Request, Transports}
+  alias PhoenixWeb.Profiler.{Dumped, Request}
 
   defmacro __using__(_) do
     quoted_mount_profiler = quoted_mount_profiler()
@@ -148,27 +148,13 @@ defmodule PhoenixWeb.LiveProfiler do
   end
 
   @doc false
-  def on_mount(view_module, params, %{@session_key => _} = session, socket) do
-    apply_profiler_hooks(socket, connected?(socket), view_module, params, session)
-  end
-
-  def on_mount(_view_module, _params, _session, socket) do
-    {:cont, socket}
-  end
-
-  defp apply_profiler_hooks(socket, _connected? = false, _view_module, _params, _session) do
-    {:cont, socket}
-  end
-
-  defp apply_profiler_hooks(socket, _connected? = true, _view_module, _params, _session) do
-    {:cont, maybe_store_socket(socket)}
-  end
-
-  defp maybe_store_socket(socket) do
-    if Transports.root?(socket) do
-      Transports.put(socket)
+  def on_mount(view_module, _params, _session, socket) do
+    if connected?(socket) do
+      profile_key = {view_module, make_ref()}
+      Process.put(:phxprof_profiling, profile_key)
+      {:cont, PhoenixProfiler.Utils.put_private(socket, :phxprof_profiling, profile_key)}
     else
-      socket
+      {:cont, socket}
     end
   end
 end
