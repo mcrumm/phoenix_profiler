@@ -2,45 +2,51 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixProfiler.Utils
-  alias PhoenixWeb.Profiler.{Request, Requests, Routes}
+  alias PhoenixProfiler.{LiveViewListener, Requests, Utils}
+  alias PhoenixWeb.Profiler.Routes
 
   @cast_for_dumped_wait 100
-  @debug_key Atom.to_string(Request.token_key())
 
   @impl Phoenix.LiveView
-  def mount(_, %{@debug_key => token}, socket) do
+  def mount(_, %{"token" => token, "node" => node}, socket) do
     socket =
       socket
       |> Utils.put_private(:dumped_ref, nil)
-      |> assign(
-        dumped: [],
-        dumped_count: 0,
-        exits: [],
-        exits_count: 0,
-        memory: nil,
-        token: token,
-        system: system()
-      )
+      |> assign_defaults()
+      |> assign(:system, system())
+      |> assign(:token, token)
 
     socket =
-      case Requests.multi_get(token) do
-        [info] -> assign_toolbar(socket, info)
-        [] -> assign_minimal_toolbar(socket)
+      case Requests.remote_get(node, token) do
+        nil -> assign_error_toolbar(socket)
+        profile -> assign_toolbar(socket, profile)
       end
 
     if connected?(socket) do
-      PhoenixProfiler.LiveViewListener.listen(socket)
+      LiveViewListener.listen(socket)
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}
   end
 
   def mount(_, _, socket) do
-    {:ok, assign_minimal_toolbar(socket)}
+    {:ok,
+     socket
+     |> assign_defaults()
+     |> assign_error_toolbar()}
   end
 
-  defp assign_minimal_toolbar(socket) do
+  defp assign_defaults(socket) do
+    assign(socket,
+      dumped: [],
+      dumped_count: 0,
+      exits: [],
+      exits_count: 0,
+      memory: nil
+    )
+  end
+
+  defp assign_error_toolbar(socket) do
     # Apply the minimal assigns when the profiler server is not started.
     # Usually this occurs after a node has been restarted and
     # a request is received for a stale token.

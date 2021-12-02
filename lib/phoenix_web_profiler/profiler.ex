@@ -145,8 +145,7 @@ defmodule PhoenixWeb.Profiler do
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
     try do
       if Code.ensure_loaded?(PhoenixWeb.Profiler.ToolbarLive) do
-        {token, session} = Request.debug_session(conn)
-
+        token = Request.debug_token!(conn)
         motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
         attrs =
@@ -161,7 +160,7 @@ defmodule PhoenixWeb.Profiler do
         View
         |> Phoenix.View.render("toolbar.html", %{
           conn: conn,
-          session: session,
+          session: %{"token" => token, "node" => node()},
           token: token,
           toolbar_attrs: attrs(attrs)
         })

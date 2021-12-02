@@ -6,14 +6,8 @@ defmodule PhoenixWeb.Profiler.Request do
   alias PhoenixWeb.Profiler.Dumped
   alias PhoenixWeb.Profiler.Routes
 
-  @session_key "pwdt"
   @token_key :pwdt
   @token_header_key "x-debug-token"
-
-  @doc """
-  Returns a String that is the debug session key.
-  """
-  def session_key, do: @session_key
 
   @doc """
   Returns an atom that is the debug token key.
@@ -71,18 +65,11 @@ defmodule PhoenixWeb.Profiler.Request do
     {token, profile}
   end
 
+  @doc """
+  Returns the debug token stored on a given `conn`.
+
+  Raises if no debug token was set.
+  """
   def debug_token!(%Plug.Conn{private: %{@token_key => token}}), do: token
   def debug_token!(%Plug.Conn{}), do: raise("debug token not set")
-
-  @doc """
-  Builds the debug session data.
-
-  Returns `{debug_token :: String.t(), session :: map()}`.
-  """
-  def debug_session(%Plug.Conn{} = conn) do
-    debug_token = debug_token!(conn)
-    session = %{@session_key => debug_token}
-
-    {debug_token, session}
-  end
 end
