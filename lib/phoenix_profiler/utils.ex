@@ -30,8 +30,6 @@ defmodule PhoenixProfiler.Utils do
 
   @doc """
   Disables the live profiler on a given `socket`.
-
-  Raises if the socket
   """
   def disable_live_profiler(%LiveView.Socket{} = socket) do
     put_private(socket, :phxprof_enabled, false)
