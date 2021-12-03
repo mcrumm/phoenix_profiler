@@ -1,4 +1,4 @@
-defmodule PhoenixWeb.ProfilerTest do
+defmodule PhoenixProfilerTest do
   use ExUnit.Case, async: true
 
   import Plug.Test
@@ -16,7 +16,7 @@ defmodule PhoenixWeb.ProfilerTest do
   defp conn(path) do
     :get
     |> conn(path)
-    |> Plug.Conn.put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.Endpoint)
+    |> Plug.Conn.put_private(:phoenix_endpoint, PhoenixProfilerTest.Endpoint)
   end
 
   test "injects debug token header if configured" do
@@ -37,7 +37,7 @@ defmodule PhoenixWeb.ProfilerTest do
 
     conn =
       conn("/")
-      |> put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.EndpointDisabled)
+      |> put_private(:phoenix_endpoint, PhoenixProfilerTest.EndpointDisabled)
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
@@ -64,7 +64,7 @@ defmodule PhoenixWeb.ProfilerTest do
 
     conn =
       conn("/")
-      |> put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.EndpointDisabled)
+      |> put_private(:phoenix_endpoint, PhoenixProfilerTest.EndpointDisabled)
       |> put_resp_content_type("text/html")
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixWebProfiler</h1></body></html>")

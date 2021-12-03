@@ -3,7 +3,7 @@ defmodule PhoenixProfiler.LiveViewListenerTest do
 
   import Phoenix.ConnTest
   import Phoenix.LiveViewTest
-  @endpoint PhoenixWeb.ProfilerTest.Endpoint
+  @endpoint PhoenixProfilerTest.Endpoint
 
   alias PhoenixProfiler.LiveViewListener
 

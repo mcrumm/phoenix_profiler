@@ -1,24 +1,24 @@
-Application.put_env(:phoenix_profiler, PhoenixWeb.ProfilerTest.Endpoint,
+Application.put_env(:phoenix_profiler, PhoenixProfilerTest.Endpoint,
   url: [host: "localhost", port: 4000],
   secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
   live_view: [signing_salt: "NbA2FdHo"],
-  render_errors: [view: PhoenixWeb.ProfilerTest.ErrorView],
+  render_errors: [view: PhoenixProfilerTest.ErrorView],
   check_origin: false,
-  pubsub_server: PhoenixWeb.ProfilerTest.PubSub,
+  pubsub_server: PhoenixProfilerTest.PubSub,
   phoenix_profiler: true
 )
 
-Application.put_env(:phoenix_profiler, PhoenixWeb.ProfilerTest.EndpointDisabled,
+Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
   url: [host: "localhost", port: 4000],
   secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
   live_view: [signing_salt: "NbA2FdHo"],
-  render_errors: [view: PhoenixWeb.ProfilerTest.ErrorView],
+  render_errors: [view: PhoenixProfilerTest.ErrorView],
   check_origin: false,
-  pubsub_server: PhoenixWeb.ProfilerTest.PubSub,
+  pubsub_server: PhoenixProfilerTest.PubSub,
   phoenix_profiler: false
 )
 
-defmodule PhoenixWeb.ProfilerTest.ErrorView do
+defmodule PhoenixProfilerTest.ErrorView do
   use Phoenix.View, root: "test/templates"
 
   def template_not_found(template, _assigns) do
@@ -26,7 +26,7 @@ defmodule PhoenixWeb.ProfilerTest.ErrorView do
   end
 end
 
-defmodule PhoenixWeb.ProfilerTest.Router do
+defmodule PhoenixProfilerTest.Router do
   use Phoenix.Router
 
   pipeline :browser do
@@ -37,7 +37,7 @@ defmodule PhoenixWeb.ProfilerTest.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", PhoenixWeb.ProfilerTest do
+  scope "/", PhoenixProfilerTest do
     pipe_through :browser
 
     get "/", PageController, :index
@@ -45,14 +45,14 @@ defmodule PhoenixWeb.ProfilerTest.Router do
     forward "/plug-router", PlugRouter
   end
 
-  scope "/api", PhoenixWeb.ProfilerTest do
+  scope "/api", PhoenixProfilerTest do
     pipe_through :api
 
     get "/", APIController, :index
   end
 end
 
-defmodule PhoenixWeb.ProfilerTest.PlugRouter do
+defmodule PhoenixProfilerTest.PlugRouter do
   use Plug.Router
   import Phoenix.Controller
 
@@ -68,7 +68,7 @@ defmodule PhoenixWeb.ProfilerTest.PlugRouter do
   end
 end
 
-defmodule PhoenixWeb.ProfilerTest.PageController do
+defmodule PhoenixProfilerTest.PageController do
   use Phoenix.Controller
 
   def index(conn, _params) do
@@ -78,7 +78,7 @@ defmodule PhoenixWeb.ProfilerTest.PageController do
   end
 end
 
-defmodule PhoenixWeb.ProfilerTest.APIController do
+defmodule PhoenixProfilerTest.APIController do
   use Phoenix.Controller
 
   def index(conn, _params) do
@@ -88,7 +88,7 @@ defmodule PhoenixWeb.ProfilerTest.APIController do
   end
 end
 
-defmodule PhoenixWeb.ProfilerTest.Endpoint do
+defmodule PhoenixProfilerTest.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
 
   plug PhoenixProfiler
@@ -99,18 +99,18 @@ defmodule PhoenixWeb.ProfilerTest.Endpoint do
     key: "_live_view_key",
     signing_salt: "/VEDsdfsffMnp5"
 
-  plug PhoenixWeb.ProfilerTest.Router
+  plug PhoenixProfilerTest.Router
 end
 
-defmodule PhoenixWeb.ProfilerTest.EndpointDisabled do
+defmodule PhoenixProfilerTest.EndpointDisabled do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
 end
 
 Supervisor.start_link(
   [
-    {Phoenix.PubSub, name: PhoenixWeb.ProfilerTest.PubSub, adapter: Phoenix.PubSub.PG2},
-    PhoenixWeb.ProfilerTest.Endpoint,
-    PhoenixWeb.ProfilerTest.EndpointDisabled
+    {Phoenix.PubSub, name: PhoenixProfilerTest.PubSub, adapter: Phoenix.PubSub.PG2},
+    PhoenixProfilerTest.Endpoint,
+    PhoenixProfilerTest.EndpointDisabled
   ],
   strategy: :one_for_one
 )

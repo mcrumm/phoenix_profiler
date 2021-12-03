@@ -2,7 +2,7 @@ defmodule PhoenixProfilerWeb.RequestsTest do
   use ExUnit.Case, async: true
   import Phoenix.ConnTest
   alias PhoenixProfiler.Requests
-  alias PhoenixWeb.ProfilerTest.Endpoint
+  alias PhoenixProfilerTest.Endpoint
 
   @endpoint Endpoint
 
@@ -22,10 +22,10 @@ defmodule PhoenixProfilerWeb.RequestsTest do
         path_info: [],
         private: %{
           phoenix_action: :index,
-          phoenix_controller: PhoenixWeb.ProfilerTest.PageController,
-          phoenix_endpoint: PhoenixWeb.ProfilerTest.Endpoint,
-          phoenix_router: PhoenixWeb.ProfilerTest.Router,
-          phoenix_view: PhoenixWeb.ProfilerTest.PageView
+          phoenix_controller: PhoenixProfilerTest.PageController,
+          phoenix_endpoint: PhoenixProfilerTest.Endpoint,
+          phoenix_router: PhoenixProfilerTest.Router,
+          phoenix_view: PhoenixProfilerTest.PageView
         },
         status: 200
       },
@@ -55,10 +55,10 @@ defmodule PhoenixProfilerWeb.RequestsTest do
         path_info: ["api"],
         private: %{
           phoenix_action: :index,
-          phoenix_controller: PhoenixWeb.ProfilerTest.APIController,
-          phoenix_endpoint: PhoenixWeb.ProfilerTest.Endpoint,
-          phoenix_router: PhoenixWeb.ProfilerTest.Router,
-          phoenix_view: PhoenixWeb.ProfilerTest.APIView
+          phoenix_controller: PhoenixProfilerTest.APIController,
+          phoenix_endpoint: PhoenixProfilerTest.Endpoint,
+          phoenix_router: PhoenixProfilerTest.Router,
+          phoenix_view: PhoenixProfilerTest.APIView
         },
         status: 200
       },
