@@ -45,7 +45,7 @@ defmodule PhoenixProfilerWeb.Request do
     memory = div(bytes, 1_024)
 
     metrics = %{
-      endpoint_duration: Process.get(:phxweb_endpoint_duration),
+      endpoint_duration: Process.get(:phxprof_endpoint_duration),
       memory: memory
     }
 

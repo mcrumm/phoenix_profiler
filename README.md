@@ -108,7 +108,7 @@ This is all. Run `mix phx.server` and observe the toolbar on your browser reques
 
 It's also possible to configure the toolbar by exporting ENV vars as you wish:
 
-* `PHOENIX_WEB_PROFILER_REDUCED_MOTION` - To disable the show/hide animation.
+* `PHOENIX_PROFILER_REDUCED_MOTION` - To disable the show/hide animation.
   Expects to be defined with any value. Defaults to empty (unset).
 
 <!-- MDOC -->

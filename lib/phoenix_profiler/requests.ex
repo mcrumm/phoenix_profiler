@@ -22,9 +22,9 @@ defmodule PhoenixProfiler.Requests do
     :telemetry.attach_many(
       {__MODULE__, tab},
       [
-        [:phxweb, :profiler, :start],
+        [:phxprof, :plug, :start],
         [:phoenix, :endpoint, :stop],
-        [:phxweb, :profiler, :stop]
+        [:phxprof, :plug, :stop]
       ],
       &__MODULE__.telemetry_callback/4,
       tab
@@ -51,15 +51,20 @@ defmodule PhoenixProfiler.Requests do
     :rpc.call(node, __MODULE__, :get, [token])
   end
 
-  def telemetry_callback([:phxweb, :profiler, :start], _measurements, _meta, _table) do
+  def telemetry_callback([:phxprof, :plug, :start], _measurements, _meta, _table) do
     # no-op
   end
 
   def telemetry_callback([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _table) do
-    Process.put(:phxweb_endpoint_duration, duration)
+    Process.put(:phxprof_endpoint_duration, duration)
   end
 
-  def telemetry_callback([:phxweb, :profiler, :stop], %{duration: duration}, %{conn: conn}, table) do
+  def telemetry_callback(
+        [:phxprof, :plug, :stop],
+        %{duration: duration},
+        %{conn: conn},
+        table
+      ) do
     {token, profile} = Request.profile_request(conn)
 
     profile = put_in(profile, [:metrics, :total_duration], duration)

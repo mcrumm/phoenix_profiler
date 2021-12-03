@@ -50,7 +50,7 @@ defmodule PhoenixProfilerWeb.Plug do
   end
 
   defp telemetry(conn, action, measurements) when action in [:start, :stop] do
-    :telemetry.execute([:phxweb, :profiler, action], measurements, %{conn: conn})
+    :telemetry.execute([:phxprof, :plug, action], measurements, %{conn: conn})
     conn
   end
 
@@ -93,13 +93,13 @@ defmodule PhoenixProfilerWeb.Plug do
     try do
       if Code.ensure_loaded?(PhoenixProfilerWeb.ToolbarLive) do
         token = Request.debug_token!(conn)
-        motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
+        motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
         attrs =
           Keyword.merge(
             config.toolbar_attrs,
             id: Request.toolbar_id(conn),
-            class: String.trim("phxweb-toolbar #{motion_class}"),
+            class: String.trim("phxprof-toolbar #{motion_class}"),
             role: "region",
             name: "Phoenix Web Debug Toolbar"
           )

@@ -56,7 +56,7 @@ defmodule PhoenixProfilerTest do
     token = Request.debug_token!(conn)
 
     assert to_string(conn.resp_body) =~
-             ~s[<html><body><h1>PhoenixProfiler</h1><div id="pwdt#{token}" class="phxweb-toolbar" role="region" name="Phoenix Web Debug Toolbar">]
+             ~s[<html><body><h1>PhoenixProfiler</h1><div id="pwdt#{token}" class="phxprof-toolbar" role="region" name="Phoenix Web Debug Toolbar">]
   end
 
   test "skips debug toolbar injection when disabled at the Endpoint" do
