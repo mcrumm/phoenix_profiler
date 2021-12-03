@@ -4,10 +4,10 @@ defmodule PhoenixWeb.Profiler.View do
   import Phoenix.LiveView.Helpers
   alias PhoenixWeb.Profiler
 
-  toolbar_css_path = Application.app_dir(:phoenix_web_profiler, "priv/static/toolbar.css")
+  toolbar_css_path = Application.app_dir(:phoenix_profiler, "priv/static/toolbar.css")
   @external_resource toolbar_css_path
 
-  toolbar_js_path = Application.app_dir(:phoenix_web_profiler, "priv/static/toolbar.js")
+  toolbar_js_path = Application.app_dir(:phoenix_profiler, "priv/static/toolbar.js")
   @external_resource toolbar_js_path
 
   @toolbar_css File.read!(toolbar_css_path)

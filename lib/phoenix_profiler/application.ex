@@ -1,6 +1,5 @@
-defmodule PhoenixWeb.Profiler.Application do
+defmodule PhoenixProfiler.Application do
   @moduledoc false
-
   use Application
 
   @impl true

@@ -25,7 +25,7 @@ defmodule PhoenixProfilerWeb.Plug do
 
   def call(conn, config) do
     endpoint = conn.private.phoenix_endpoint
-    endpoint_config = endpoint.config(:phoenix_web_profiler)
+    endpoint_config = endpoint.config(:phoenix_profiler)
 
     if endpoint_config do
       start_time = System.monotonic_time()

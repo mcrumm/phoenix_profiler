@@ -1,21 +1,21 @@
-Application.put_env(:phoenix_web_profiler, PhoenixWeb.ProfilerTest.Endpoint,
+Application.put_env(:phoenix_profiler, PhoenixWeb.ProfilerTest.Endpoint,
   url: [host: "localhost", port: 4000],
   secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
   live_view: [signing_salt: "NbA2FdHo"],
   render_errors: [view: PhoenixWeb.ProfilerTest.ErrorView],
   check_origin: false,
   pubsub_server: PhoenixWeb.ProfilerTest.PubSub,
-  phoenix_web_profiler: true
+  phoenix_profiler: true
 )
 
-Application.put_env(:phoenix_web_profiler, PhoenixWeb.ProfilerTest.EndpointDisabled,
+Application.put_env(:phoenix_profiler, PhoenixWeb.ProfilerTest.EndpointDisabled,
   url: [host: "localhost", port: 4000],
   secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
   live_view: [signing_salt: "NbA2FdHo"],
   render_errors: [view: PhoenixWeb.ProfilerTest.ErrorView],
   check_origin: false,
   pubsub_server: PhoenixWeb.ProfilerTest.PubSub,
-  phoenix_web_profiler: false
+  phoenix_profiler: false
 )
 
 defmodule PhoenixWeb.ProfilerTest.ErrorView do
@@ -89,7 +89,7 @@ defmodule PhoenixWeb.ProfilerTest.APIController do
 end
 
 defmodule PhoenixWeb.ProfilerTest.Endpoint do
-  use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
+  use Phoenix.Endpoint, otp_app: :phoenix_profiler
 
   plug PhoenixProfiler
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
@@ -103,7 +103,7 @@ defmodule PhoenixWeb.ProfilerTest.Endpoint do
 end
 
 defmodule PhoenixWeb.ProfilerTest.EndpointDisabled do
-  use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
+  use Phoenix.Endpoint, otp_app: :phoenix_profiler
 end
 
 Supervisor.start_link(

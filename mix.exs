@@ -1,11 +1,11 @@
-defmodule PhoenixWeb.Profiler.MixProject do
+defmodule PhoenixProfiler.MixProject do
   use Mix.Project
 
   @version "0.1.0"
 
   def project do
     [
-      app: :phoenix_web_profiler,
+      app: :phoenix_profiler,
       version: @version,
       elixir: "~> 1.7",
       compilers: [:phoenix] ++ Mix.compilers(),
@@ -25,7 +25,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {PhoenixWeb.Profiler.Application, []}
+      mod: {PhoenixProfiler.Application, []}
     ]
   end
 

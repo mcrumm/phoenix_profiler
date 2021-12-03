@@ -31,19 +31,19 @@ To start using the profiler, you will need the following steps:
 Add phoenix_web_profiler to your `mix.exs`:
 
 ```elixir
-{:phoenix_web_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_web_profiler.git"}
+{:phoenix_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_web_profiler.git"}
 ```
 
 ### 2. Enable the profiler on your Endpoint
 
 The Phoenix Web Profiler is disabled by default. In order to enable it,
 update your endpoint's `:dev` configuration to include the
-`:phoenix_web_profiler` key:
+`:phoenix_profiler` key:
 
 ```elixir
 # config/dev.exs
 config :my_app, MyAppWeb.Endpoint,
-  phoenix_web_profiler: true
+  phoenix_profiler: true
 ```
 
 ### 3. Configure LiveView
