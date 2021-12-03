@@ -1,9 +1,9 @@
-defmodule PhoenixWeb.Profiler.Request do
+defmodule PhoenixProfilerWeb.Request do
   # Operations over Plug.Conn
   @moduledoc false
   import Plug.Conn
   alias PhoenixProfiler.Utils
-  alias PhoenixWeb.Profiler.Routes
+  alias PhoenixProfilerWeb.Routes
 
   @token_key :pwdt
   @token_header_key "x-debug-token"

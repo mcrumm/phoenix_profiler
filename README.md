@@ -19,7 +19,7 @@ Provides a **development tool** that gives detailed information about the execut
 
 To start using the profiler, you will need the following steps:
 
-1. Add the `phoenix_web_profiler` dependency
+1. Add the `phoenix_profiler` dependency
 2. Enable the profiler on your Endpoint
 3. Configure LiveView
 4. Add the `PhoenixProfiler` Plug
@@ -28,10 +28,10 @@ To start using the profiler, you will need the following steps:
 
 ### 1. Add the phoenix_web_profiler dependency
 
-Add phoenix_web_profiler to your `mix.exs`:
+Add phoenix_profiler to your `mix.exs`:
 
 ```elixir
-{:phoenix_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_web_profiler.git"}
+{:phoenix_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_profiler.git"}
 ```
 
 ### 2. Enable the profiler on your Endpoint

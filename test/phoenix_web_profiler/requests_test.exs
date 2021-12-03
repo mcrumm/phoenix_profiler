@@ -1,4 +1,4 @@
-defmodule PhoenixWeb.Profiler.RequestsTest do
+defmodule PhoenixProfilerWeb.RequestsTest do
   use ExUnit.Case, async: true
   import Phoenix.ConnTest
   alias PhoenixProfiler.Requests

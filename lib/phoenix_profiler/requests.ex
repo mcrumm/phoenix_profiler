@@ -2,6 +2,7 @@ defmodule PhoenixProfiler.Requests do
   # GenServer that is the owner of the ETS table for requests
   @moduledoc false
   use GenServer
+  alias PhoenixProfilerWeb.Request
 
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
@@ -59,7 +60,7 @@ defmodule PhoenixProfiler.Requests do
   end
 
   def telemetry_callback([:phxweb, :profiler, :stop], %{duration: duration}, %{conn: conn}, table) do
-    {token, profile} = PhoenixWeb.Profiler.Request.profile_request(conn)
+    {token, profile} = Request.profile_request(conn)
 
     profile = put_in(profile, [:metrics, :total_duration], duration)
 

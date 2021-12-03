@@ -4,7 +4,7 @@ defmodule PhoenixWeb.ProfilerTest do
   import Plug.Test
   import Plug.Conn
 
-  alias PhoenixWeb.Profiler.Request
+  alias PhoenixProfilerWeb.Request
 
   doctest PhoenixProfiler
 

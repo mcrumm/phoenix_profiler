@@ -1,4 +1,4 @@
-defmodule PhoenixWeb.Profiler.Routes do
+defmodule PhoenixProfilerWeb.Routes do
   # Router introspection for the profiler
   @moduledoc false
 

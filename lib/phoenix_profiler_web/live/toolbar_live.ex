@@ -1,9 +1,9 @@
-defmodule PhoenixWeb.Profiler.ToolbarLive do
+defmodule PhoenixProfilerWeb.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
   alias PhoenixProfiler.{LiveViewListener, Requests}
-  alias PhoenixWeb.Profiler.Routes
+  alias PhoenixProfilerWeb.Routes
 
   @impl Phoenix.LiveView
   def mount(_, %{"node" => node, "token" => token}, socket) do

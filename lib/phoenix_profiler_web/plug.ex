@@ -1,7 +1,7 @@
 defmodule PhoenixProfilerWeb.Plug do
   @moduledoc false
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Request, View}
+  alias PhoenixProfilerWeb.{Request, ToolbarView}
   require Logger
 
   def init(opts) do
@@ -91,7 +91,7 @@ defmodule PhoenixProfilerWeb.Plug do
 
   defp debug_toolbar_assets_tag(conn, _endpoint, config) do
     try do
-      if Code.ensure_loaded?(PhoenixWeb.Profiler.ToolbarLive) do
+      if Code.ensure_loaded?(PhoenixProfilerWeb.ToolbarLive) do
         token = Request.debug_token!(conn)
         motion_class = if System.get_env("PHOENIX_WEB_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
@@ -104,8 +104,8 @@ defmodule PhoenixProfilerWeb.Plug do
             name: "Phoenix Web Debug Toolbar"
           )
 
-        View
-        |> Phoenix.View.render("toolbar.html", %{
+        ToolbarView
+        |> Phoenix.View.render("index.html", %{
           conn: conn,
           session: %{"token" => token, "node" => node()},
           token: token,

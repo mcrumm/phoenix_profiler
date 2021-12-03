@@ -13,7 +13,7 @@ defmodule PhoenixProfiler.MixProject do
       package: package(),
       deps: deps(),
       docs: docs(),
-      homepage_url: "https://github.com/mcrumm/phoenix_web_profiler",
+      homepage_url: "https://github.com/mcrumm/phoenix_profiler",
       description: "Phoenix Web Profiler & Debug Toolbar",
       aliases: aliases()
     ]
@@ -53,7 +53,7 @@ defmodule PhoenixProfiler.MixProject do
     [
       main: "PhoenixProfiler",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/mcrumm/phoenix_web_profiler"
+      source_url: "https://github.com/mcrumm/phoenix_profiler"
     ]
   end
 
@@ -61,7 +61,7 @@ defmodule PhoenixProfiler.MixProject do
     [
       maintainers: ["Michael Allen Crumm Jr."],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/mcrumm/phoenix_web_profiler"},
+      links: %{github: "https://github.com/mcrumm/phoenix_profiler"},
       files: ~w(lib priv CHANGELOG.md LICENSE mix.exs README.md)
     ]
   end

@@ -28,7 +28,7 @@ Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"lib/phoenix_web_profiler/.*(ex)$",
+      ~r"lib/phoenix_profiler/.*(ex)$",
       ~r"dev/demo_web/(live|views)/.*(ex)$",
       ~r"dev/demo_web/templates/.*(eex)$"
     ]
