@@ -1,5 +1,5 @@
 (function() {
-  var SHOW = "phxweb-profiler-show";
+  var SHOW = "phxprof-toolbar-show";
 
   // Browser
   // Copyright (c) 2018 Chris McCord
@@ -35,7 +35,7 @@
   var showToolbar = function() { Browser.show(localStorage); };
   var hideToolbar = function() { Browser.hide(localStorage); };
 
-  var toolbar = document.querySelector(".phxweb-toolbar");
+  var toolbar = document.querySelector(".phxprof-toolbar");
 
   var showButton = toolbar.querySelector("button.show-button");
   showButton.addEventListener("click", showToolbar);

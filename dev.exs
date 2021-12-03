@@ -13,7 +13,7 @@ Application.put_env(:esbuild, :default,
 Application.ensure_all_started(:esbuild)
 
 # Configures the endpoint
-Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
+Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "Hu4qQN3iKzTV4fJxhorPQlA/osH9fAMtbtjVS58PFgfw3ja5Z18Q/WSNR9wP4OfW",
   live_view: [signing_salt: "hMegieSe"],
@@ -28,18 +28,18 @@ Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"lib/phoenix_web_profiler/.*(ex)$",
+      ~r"lib/phoenix_profiler/.*(ex)$",
       ~r"dev/demo_web/(live|views)/.*(ex)$",
       ~r"dev/demo_web/templates/.*(eex)$"
     ]
   ],
-  phoenix_web_profiler: true
+  phoenix_profiler: true
 )
 
 defmodule DemoWeb.Endpoint do
-  use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
+  use Phoenix.Endpoint, otp_app: :phoenix_profiler
 
-  plug PhoenixWeb.Profiler
+  plug PhoenixProfiler
 
   @session_options [
     store: :cookie,

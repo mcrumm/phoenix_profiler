@@ -12,7 +12,6 @@ defmodule DemoWeb.Router do
     plug :put_root_layout, {DemoWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug PhoenixWeb.LiveProfiler
   end
 
   scope "/", DemoWeb do
@@ -22,6 +21,7 @@ defmodule DemoWeb.Router do
     get "/hello/:name", PageController, :hello
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
     live "/app", AppLive.Index, :index
+    live "/app/foo", AppLive.Index, :foo
 
     forward "/plug-router", PlugRouter
   end

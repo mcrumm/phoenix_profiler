@@ -1,4 +1,4 @@
-defmodule PhoenixWeb.Profiler.Routes do
+defmodule PhoenixProfilerWeb.Routes do
   # Router introspection for the profiler
   @moduledoc false
 
@@ -27,8 +27,8 @@ defmodule PhoenixWeb.Profiler.Routes do
     end
   end
 
-  # From LiveProfiler presence
-  def plug_action(%{kind: :profile, phoenix_live_action: action, view_module: lv}) do
+  # From LiveViewListener telemetry
+  def plug_action(%{root_pid: _, live_action: action, root_view: lv}) do
     {lv, action}
   end
 

@@ -1,11 +1,11 @@
-defmodule PhoenixWeb.Profiler.MixProject do
+defmodule PhoenixProfiler.MixProject do
   use Mix.Project
 
   @version "0.1.0"
 
   def project do
     [
-      app: :phoenix_web_profiler,
+      app: :phoenix_profiler,
       version: @version,
       elixir: "~> 1.7",
       compilers: [:phoenix] ++ Mix.compilers(),
@@ -13,7 +13,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
       package: package(),
       deps: deps(),
       docs: docs(),
-      homepage_url: "https://github.com/mcrumm/phoenix_web_profiler",
+      homepage_url: "https://github.com/mcrumm/phoenix_profiler",
       description: "Phoenix Web Profiler & Debug Toolbar",
       aliases: aliases()
     ]
@@ -25,7 +25,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {PhoenixWeb.Profiler.Application, []}
+      mod: {PhoenixProfiler.Application, []}
     ]
   end
 
@@ -44,15 +44,16 @@ defmodule PhoenixWeb.Profiler.MixProject do
       {:plug_cowboy, "~> 2.0", only: :dev},
       {:jason, "~> 1.0", only: [:dev, :test, :docs]},
       {:ex_doc, "~> 0.25", only: :docs},
-      {:esbuild, "~> 0.2", runtime: false}
+      {:esbuild, "~> 0.2", runtime: false},
+      {:floki, ">= 0.26.0", only: :test}
     ]
   end
 
   defp docs do
     [
-      main: "PhoenixWeb.Profiler",
+      main: "PhoenixProfiler",
       source_ref: "v#{@version}",
-      source_url: "https://github.com/mcrumm/phoenix_web_profiler"
+      source_url: "https://github.com/mcrumm/phoenix_profiler"
     ]
   end
 
@@ -60,7 +61,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
     [
       maintainers: ["Michael Allen Crumm Jr."],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/mcrumm/phoenix_web_profiler"},
+      links: %{github: "https://github.com/mcrumm/phoenix_profiler"},
       files: ~w(lib priv CHANGELOG.md LICENSE mix.exs README.md)
     ]
   end
