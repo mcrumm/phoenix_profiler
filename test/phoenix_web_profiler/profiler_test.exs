@@ -6,7 +6,7 @@ defmodule PhoenixWeb.ProfilerTest do
 
   alias PhoenixWeb.Profiler.Request
 
-  doctest PhoenixWeb.Profiler
+  doctest PhoenixProfiler
 
   test "keys" do
     assert Request.token_key() == :pwdt
@@ -20,11 +20,11 @@ defmodule PhoenixWeb.ProfilerTest do
   end
 
   test "injects debug token header if configured" do
-    opts = PhoenixWeb.Profiler.init([])
+    opts = PhoenixProfiler.init([])
 
     conn =
       conn("/")
-      |> PhoenixWeb.Profiler.call(opts)
+      |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
     token = Request.debug_token!(conn)
@@ -33,24 +33,24 @@ defmodule PhoenixWeb.ProfilerTest do
   end
 
   test "skips debug token when disabled at the Endpoint" do
-    opts = PhoenixWeb.Profiler.init([])
+    opts = PhoenixProfiler.init([])
 
     conn =
       conn("/")
       |> put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.EndpointDisabled)
-      |> PhoenixWeb.Profiler.call(opts)
+      |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
     assert get_resp_header(conn, Request.token_header_key()) == []
   end
 
   test "injects debug toolbar for html requests if configured and contains the <body> tag" do
-    opts = PhoenixWeb.Profiler.init([])
+    opts = PhoenixProfiler.init([])
 
     conn =
       conn("/")
       |> put_resp_content_type("text/html")
-      |> PhoenixWeb.Profiler.call(opts)
+      |> PhoenixProfiler.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixWebProfiler</h1></body></html>")
 
     token = Request.debug_token!(conn)
@@ -60,13 +60,13 @@ defmodule PhoenixWeb.ProfilerTest do
   end
 
   test "skips debug toolbar injection when disabled at the Endpoint" do
-    opts = PhoenixWeb.Profiler.init([])
+    opts = PhoenixProfiler.init([])
 
     conn =
       conn("/")
       |> put_private(:phoenix_endpoint, PhoenixWeb.ProfilerTest.EndpointDisabled)
       |> put_resp_content_type("text/html")
-      |> PhoenixWeb.Profiler.call(opts)
+      |> PhoenixProfiler.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixWebProfiler</h1></body></html>")
 
     assert get_resp_header(conn, Request.token_header_key()) == []
@@ -75,24 +75,24 @@ defmodule PhoenixWeb.ProfilerTest do
   end
 
   test "skips toolbar injection if html response is missing the body tag" do
-    opts = PhoenixWeb.Profiler.init([])
+    opts = PhoenixProfiler.init([])
 
     conn =
       conn("/")
       |> put_resp_content_type("text/html")
-      |> PhoenixWeb.Profiler.call(opts)
+      |> PhoenixProfiler.call(opts)
       |> send_resp(200, "<h1>PhoenixWebProfiler</h1>")
 
     assert to_string(conn.resp_body) == "<h1>PhoenixWebProfiler</h1>"
   end
 
   test "skips toolbar injection if not an html request" do
-    opts = PhoenixWeb.Profiler.init([])
+    opts = PhoenixProfiler.init([])
 
     conn =
       conn("/")
       |> put_resp_content_type("application/json")
-      |> PhoenixWeb.Profiler.call(opts)
+      |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
     token = Request.debug_token!(conn)

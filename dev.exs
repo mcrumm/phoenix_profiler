@@ -39,7 +39,7 @@ Application.put_env(:phoenix_web_profiler, DemoWeb.Endpoint,
 defmodule DemoWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
 
-  plug PhoenixWeb.Profiler
+  plug PhoenixProfiler
 
   @session_options [
     store: :cookie,

@@ -1,6 +1,17 @@
 defmodule PhoenixProfiler do
-  alias Phoenix.LiveView
-  alias PhoenixProfiler.Utils
+  @external_resource "README.md"
+  @moduledoc @external_resource
+             |> File.read!()
+             |> String.split("<!-- MDOC -->")
+             |> Enum.fetch!(1)
+
+  @behaviour Plug
+
+  @impl Plug
+  defdelegate init(opts), to: PhoenixProfilerWeb.Plug
+
+  @impl Plug
+  defdelegate call(conn, opts), to: PhoenixProfilerWeb.Plug
 
   # TODO: Remove when we support only LiveView 0.17+
   @doc false
@@ -17,36 +28,40 @@ defmodule PhoenixProfiler do
   defdelegate on_mount(arg, params, session, socket), to: PhoenixProfilerWeb.Hooks
 
   @doc """
-  Enables the profiler on a given `socket`.
+  Enables the profiler on a given connected `socket`.
 
   Normally you do not need to invoke this function. In LiveView 0.16+ it is
   invoked automatically when using `on_mount PhoenixProfiler`.
+
+  Raises if the socket is not connected.
+
+  ## Example
+
+      def mount(params, session, socket) do
+        socket =
+          if connected?(socket) do
+            PhoenixProfiler.enable_live_profiler(socket)
+          else
+            socket
+          end
+
+        # code...
+
+        {:ok, socket}
+      end
+
   """
-  def enable_live_profiler(%LiveView.Socket{} = socket) do
-    unless LiveView.connected?(socket) do
-      raise """
-      attempted to enable live profiling on a disconnected socket
-
-      In your LiveView mount callback, do the following:
-
-          socket =
-            if connected?(socket) do
-              PhoenixProfiler.enable_live_profiler(socket)
-            else
-              socket
-            end
-
-      """
-    end
-
-    profile_key = {socket.view, make_ref()}
-    Utils.put_private(socket, :phxprof_enabled, profile_key)
-  end
+  defdelegate enable_live_profiler(socket), to: PhoenixProfiler.Utils
 
   @doc """
-  Disables the live profiler on a given `socket`.
+  Disables live profiling on a given `socket`.
+
+  ## Examples
+
+      def handle_event("some-event", _, socket) do
+        {:noreply, PhoenixProfiler.disable_live_profiler(socket)}
+      end
+
   """
-  def disable_live_profiler(%LiveView.Socket{} = socket) do
-    Utils.put_private(socket, :phxprof_enabled, false)
-  end
+  defdelegate disable_live_profiler(socket), to: PhoenixProfiler.Utils
 end

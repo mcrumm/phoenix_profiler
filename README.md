@@ -1,6 +1,6 @@
-# PhoenixWeb.Profiler
+# PhoenixProfiler
 
-<!-- MDOC !-->
+<!-- MDOC -->
 Provides a **development tool** that gives detailed information about the execution of any request.
 
 **Never** enable it on production servers as it exposes sensitive data about your web application.
@@ -24,8 +24,8 @@ To start using the profiler, you will need the following steps:
 1. Add the `phoenix_web_profiler` dependency
 2. Enable the profiler on your Endpoint
 3. Configure LiveView
-4. Add the `PhoenixWeb.Profiler` Plug
-5. `use PhoenixWeb.LiveProfiler` on your LiveViews
+4. Add the `PhoenixProfiler` Plug
+5. Mount the profiler on your LiveViews
 6. Import the `dump/1` macro
 7. Configure the toolbar (optional)
 
@@ -64,42 +64,46 @@ config :my_app, MyAppWeb.Endpoint,
   live_view: [signing_salt: "SECRET_SALT"]
 ```
 
-### 4. Add the PhoenixWeb.Profiler Plug
+### 4. Add the profiler Plug
 
-Add the Profiler plug on the bottom of the `if code_reloading? do` block
-on your Endpoint, typically found at `lib/my_app_web/endpoint.ex`:
+Add the `PhoenixProfiler` plug on the bottom of the
+`if code_reloading? do` block on your Endpoint,
+typically found at `lib/my_app_web/endpoint.ex`:
 
 ```elixir
 # endpoint.ex
 if code_reloading? do
   # plugs...
-  plug PhoenixWeb.Profiler
+  plug PhoenixProfiler
 end
 ```
 
-All configuration is done on the Plug. The following options are available:
+Additional configuration is done on the Plug. The following options are available:
 
 * `:toolbar_attrs` - HTML attributes to be given to the element
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
-### 6. Use PhoenixWeb.LiveProfiler on your LiveViews
+### 5. Mount the profiler on your LiveViews
 
 Note this section is required only if you are using LiveView, otherwise you may skip it.
 
-Add the LiveProfiler hook to the `live_view` function on your
+Add the profiler hook to the `live_view` function on your
 web module, typically found at `lib/my_app_web.ex`:
 
 ```elixir
   def live_view do
     quote do
       # use...
-      use PhoenixWeb.LiveProfiler
+      on_mount PhoenixProfiler
 
       # view helpers...
     end
   end
 ```
+
+Note the `on_mount` macro requires LiveView 0.16+. For earlier versions,
+see `PhoenixProfiler.enable_live_profiler/1`.
 
 ### 7. Add the dump/1 macro
 
@@ -146,38 +150,7 @@ It's also possible to configure the toolbar by exporting ENV vars as you wish:
 * `PHOENIX_WEB_PROFILER_REDUCED_MOTION` - To disable the show/hide animation.
   Expects to be defined with any value. Defaults to empty (unset).
 
-## LiveView 0.14.x-0.15.x
-
-Note for LiveView 0.14.x-0.15.x, if you would like to use LiveProfiler
-to the extent that it is supported, you must mount the profiler manually
-from within your [`mount/3`](`c:Phoenix.LiveView.mount/3`) callback.
-
-When you use LiveProfiler, it will inject a `mount_profiler/1` function
-into your LiveViews You must invoke it in your `mount/3` function to
-enable profiling:
-
-```elixir
-defmodule HelloLive do
-  use Phoenix.LiveView
-  use PhoenixWeb.LiveProfiler
-
-  @impl Phoenix.LiveView
-  def mount(params, session, socket) do
-    {:ok, mount_profiler(socket)}
-  end
-end
-```
-
-Note this is a convenience because we would like to see the largest
-possible adoption of the debug toolbar. Backwards-compatibility will
-not be maintained forever, and many features many not be available on
-older LiveView versions, so for the best possible operation,
-please stay up-to-date with LiveView releases.
-
-When you update your LiveView dependency, `mount_profiler/1` will begin to
-emit a warning recommending its own removal.
-
-<!-- MDOC !-->
+<!-- MDOC -->
 
 ## Contributing
 

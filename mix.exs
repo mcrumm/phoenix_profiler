@@ -51,7 +51,7 @@ defmodule PhoenixWeb.Profiler.MixProject do
 
   defp docs do
     [
-      main: "PhoenixWeb.Profiler",
+      main: "PhoenixProfiler",
       source_ref: "v#{@version}",
       source_url: "https://github.com/mcrumm/phoenix_web_profiler"
     ]

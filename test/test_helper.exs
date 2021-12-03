@@ -91,7 +91,7 @@ end
 defmodule PhoenixWeb.ProfilerTest.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_web_profiler
 
-  plug PhoenixWeb.Profiler
+  plug PhoenixProfiler
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Session,

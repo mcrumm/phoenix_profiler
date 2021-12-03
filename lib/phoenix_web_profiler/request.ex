@@ -2,7 +2,7 @@ defmodule PhoenixWeb.Profiler.Request do
   # Operations over Plug.Conn
   @moduledoc false
   import Plug.Conn
-  alias PhoenixWeb.Profiler
+  alias PhoenixProfiler.Utils
   alias PhoenixWeb.Profiler.Dumped
   alias PhoenixWeb.Profiler.Routes
 
@@ -30,7 +30,7 @@ defmodule PhoenixWeb.Profiler.Request do
   Puts a new debug token on a given `conn`.
   """
   def apply_debug_token(%Plug.Conn{} = conn) do
-    token = Profiler.random_unique_id()
+    token = Utils.random_unique_id()
 
     conn
     |> put_private(@token_key, token)

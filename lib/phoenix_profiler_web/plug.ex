@@ -1,10 +1,5 @@
-defmodule PhoenixWeb.Profiler do
-  @external_resource "README.md"
-  @moduledoc @external_resource
-             |> File.read!()
-             |> String.split("<!-- MDOC !-->")
-             |> Enum.fetch!(1)
-
+defmodule PhoenixProfilerWeb.Plug do
+  @moduledoc false
   import Plug.Conn
   alias PhoenixWeb.Profiler.{Dumped, Request, View}
   require Logger
@@ -50,11 +45,8 @@ defmodule PhoenixWeb.Profiler do
     nil
   end
 
-  @behaviour Plug
-
   ## Plug API
 
-  @impl Plug
   def init(opts) do
     toolbar_attrs =
       case opts[:toolbar_attrs] do
@@ -68,14 +60,12 @@ defmodule PhoenixWeb.Profiler do
   end
 
   # TODO: remove this clause when we add config for profiler except_patterns
-  @impl Plug
   def call(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
     # this clause is to ignore the phoenix live reload iframe in case someone installs
     # the toolbar plug above the LiveReloader plug in their Endpoint.
     conn
   end
 
-  @impl Plug
   def call(conn, config) do
     endpoint = conn.private.phoenix_endpoint
     endpoint_config = endpoint.config(:phoenix_web_profiler)
@@ -195,19 +185,5 @@ defmodule PhoenixWeb.Profiler do
     value
     |> to_string()
     |> Plug.HTML.html_escape_to_iodata()
-  end
-
-  # Unique ID generation
-  # Copyright (c) 2013 Plataformatec.
-  # https://github.com/elixir-plug/plug/blob/fb6b952cf93336dc79ec8d033e09a424d522ce56/lib/plug/request_id.ex
-  @doc false
-  def random_unique_id do
-    binary = <<
-      System.system_time(:nanosecond)::64,
-      :erlang.phash2({node(), self()}, 16_777_216)::24,
-      :erlang.unique_integer()::32
-    >>
-
-    Base.url_encode64(binary)
   end
 end
