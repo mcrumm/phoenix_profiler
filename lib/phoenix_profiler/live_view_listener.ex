@@ -41,19 +41,15 @@ defmodule PhoenixProfiler.LiveViewListener do
     Process.flag(:trap_exit, true)
     ref = Process.monitor(parent)
 
+    events =
+      for stage <- [:mount, :handle_params, :handle_event],
+          action <- [:start, :stop, :exception] do
+        [:phoenix, :live_view, stage, action]
+      end
+
     :telemetry.attach_many(
       {__MODULE__, self()},
-      [
-        [:phoenix, :live_view, :mount, :start],
-        [:phoenix, :live_view, :mount, :stop],
-        [:phoenix, :live_view, :mount, :exception],
-        [:phoenix, :live_view, :handle_params, :start],
-        [:phoenix, :live_view, :handle_params, :stop],
-        [:phoenix, :live_view, :handle_params, :exception],
-        [:phoenix, :live_view, :handle_event, :start],
-        [:phoenix, :live_view, :handle_event, :stop],
-        [:phoenix, :live_view, :handle_event, :exception]
-      ],
+      events,
       &__MODULE__.telemetry_callback/4,
       %{listener: self(), parent: parent, transport: transport}
     )
@@ -66,15 +62,10 @@ defmodule PhoenixProfiler.LiveViewListener do
     {:stop, :shutdown, state}
   end
 
-  def handle_info({:telemetry, event, measurements, metadata}, state) do
-    case event do
-      [:phoenix, :live_view, stage, action] ->
-        state = check_navigation(state, metadata.socket)
-        handle_lifecycle(stage, action, measurements, metadata, state)
-
-      _ ->
-        {:noreply, state}
-    end
+  def handle_info({:telemetry, [:phoenix, :live_view | _] = event, measurements, metadata}, state) do
+    [_, _, stage, action] = event
+    state = check_navigation(state, metadata.socket)
+    handle_lifecycle(stage, action, measurements, metadata, state)
   end
 
   defp handle_lifecycle(_stage, :exception, _measurements, metadata, state) do
@@ -100,7 +91,9 @@ defmodule PhoenixProfiler.LiveViewListener do
         %{parent: parent, transport: transport} = context
       )
       when is_pid(pid) and is_pid(parent) and pid != parent do
-    send(context.listener, {:telemetry, event, measurements, metadata})
+    if metadata.socket.private[:phxprof_enabled] do
+      send(context.listener, {:telemetry, event, measurements, metadata})
+    end
   end
 
   def telemetry_callback(_, _, _, _), do: :ok

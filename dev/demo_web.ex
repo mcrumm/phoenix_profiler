@@ -27,7 +27,10 @@ defmodule DemoWeb do
       use Phoenix.LiveView,
         layout: {DemoWeb.LayoutView, "live.html"}
 
-      use PhoenixWeb.LiveProfiler
+      # TODO: remove it when we require LiveView 0.16+
+      if Version.match?(to_string(Application.spec(:phoenix_live_view, :vsn)), ">= 0.16.0") do
+        on_mount PhoenixProfiler
+      end
 
       unquote(view_helpers())
     end
