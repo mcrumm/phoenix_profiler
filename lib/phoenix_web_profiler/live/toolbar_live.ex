@@ -2,16 +2,13 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxweb-toolbar-view"]}
-  alias PhoenixProfiler.{LiveViewListener, Requests, Utils}
+  alias PhoenixProfiler.{LiveViewListener, Requests}
   alias PhoenixWeb.Profiler.Routes
-
-  @cast_for_dumped_wait 100
 
   @impl Phoenix.LiveView
   def mount(_, %{"node" => node, "token" => token}, socket) do
     socket =
       socket
-      |> Utils.put_private(:dumped_ref, nil)
       |> assign_defaults()
       |> assign(:system, system())
       |> assign(:token, token)
@@ -38,8 +35,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   defp assign_defaults(socket) do
     assign(socket,
-      dumped: [],
-      dumped_count: 0,
       exits: [],
       exits_count: 0,
       memory: nil
@@ -66,12 +61,11 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
   end
 
   defp assign_toolbar(socket, profile) do
-    %{dumped: dumped, metrics: metrics, route: route} = profile
+    %{metrics: metrics, route: route} = profile
 
     socket
     |> apply_request(profile)
     |> update_view(route)
-    |> update_dumped(dumped)
     |> assign(:durations, %{
       total: duration(metrics.total_duration),
       endpoint: duration(metrics.endpoint_duration)
@@ -145,29 +139,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
     }
   end
 
-  defp update_dumped(socket, dumped) when is_list(dumped) do
-    socket
-    |> update(:dumped, &(dumped ++ (&1 || [])))
-    |> update(:dumped_count, &(&1 + length(dumped)))
-  end
-
-  @impl Phoenix.LiveView
-  def handle_cast({:dumped, ref, flushed}, %{private: %{dumped_ref: ref}} = socket)
-      when is_reference(ref) do
-    Process.send_after(self(), :cast_for_dumped, @cast_for_dumped_wait)
-
-    {:noreply,
-     socket
-     |> update_dumped(flushed)
-     |> Utils.put_private(:dumped_ref, nil)}
-  end
-
-  # stale dumped ref
-  def handle_cast({:dumped, ref, _flushed}, %{private: %{dumped_ref: _}} = socket)
-      when is_reference(ref) do
-    {:noreply, socket}
-  end
-
   @impl Phoenix.LiveView
   def handle_info({:exception, kind, reason, stacktrace}, socket) do
     apply_exception(socket, kind, reason, stacktrace)
@@ -175,14 +146,6 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
 
   def handle_info({:navigation, view}, socket) do
     {:noreply, update_view(socket, view)}
-  end
-
-  def handle_info(:cast_for_dumped, %{private: %{lv_pid: pid}} = socket) when is_pid(pid) do
-    {:noreply, cast_for_dumped(socket, pid)}
-  end
-
-  def handle_info(:cast_for_dumped, socket) do
-    {:noreply, socket}
   end
 
   def handle_info(other, socket) do
@@ -201,17 +164,5 @@ defmodule PhoenixWeb.Profiler.ToolbarLive do
      socket
      |> update(:exits, &[exception | &1])
      |> update(:exits_count, &(&1 + 1))}
-  end
-
-  defp cast_for_dumped(%Phoenix.LiveView.Socket{} = socket, pid)
-       when is_pid(pid) do
-    dumped_ref = make_ref()
-    GenServer.cast(pid, {PhoenixWeb.LiveProfiler, {:dump, dumped_ref}, to: self()})
-
-    Utils.put_private(socket, :dumped_ref, dumped_ref)
-  end
-
-  defp format_module_function(module, {function, arity}) do
-    "#{module}.#{function}/#{arity}"
   end
 end

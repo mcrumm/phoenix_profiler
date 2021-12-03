@@ -4,7 +4,6 @@ defmodule DemoWeb do
       use Phoenix.Controller, namespace: DemoWeb
 
       import Plug.Conn
-      # import PhoenixWeb.Profiler, only: [dump: 1]
       alias DemoWeb.Router.Helpers, as: Routes
     end
   end
@@ -54,9 +53,6 @@ defmodule DemoWeb do
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
-
-      # Import dev debug functionality (dump)
-      # import PhoenixWeb.Profiler, only: [dump: 1]
 
       alias DemoWeb.Router.Helpers, as: Routes
     end

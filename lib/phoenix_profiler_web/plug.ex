@@ -1,51 +1,8 @@
 defmodule PhoenixProfilerWeb.Plug do
   @moduledoc false
   import Plug.Conn
-  alias PhoenixWeb.Profiler.{Dumped, Request, View}
+  alias PhoenixWeb.Profiler.{Request, View}
   require Logger
-
-  @doc """
-  Dump the contents of a given `var` to the profiler.
-
-  ## Examples
-
-      dump(42)
-      dump("Hello world")
-      dump(@some_assign)
-
-  """
-  defmacro dump(var) do
-    maybe_dump(var, __CALLER__)
-  end
-
-  # TODO: enable compile-time purging via configuration
-  defp maybe_dump(var, caller) do
-    %{file: file, line: line, module: module, function: function} = caller
-    caller = [file: file, line: line, module: module, function: function]
-
-    quoted_metadata =
-      quote do
-        unquote(caller)
-      end
-
-    quote do
-      PhoenixWeb.Profiler.__dump_var__(
-        unquote(var),
-        unquote(quoted_metadata)
-      )
-    end
-  end
-
-  def __dump_var__(value, file: file, line: line, module: module, function: function) do
-    Dumped.update(&[{value, file, line, module, function} | &1])
-
-    # we could return a %Dumped{} that implements (L|H)eex protocols.
-    # whatever we decide to return, we need to ensure it will render empty
-    # because it will be invoked from within templates.
-    nil
-  end
-
-  ## Plug API
 
   def init(opts) do
     toolbar_attrs =

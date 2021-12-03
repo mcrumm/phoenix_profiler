@@ -13,8 +13,6 @@ Provides a **development tool** that gives detailed information about the execut
 
 * Inspect LiveView crashes
 
-* Dump assigns to the profiler
-
 * Mailer preview shortcut (TODO)
 
 ## Installation
@@ -26,8 +24,7 @@ To start using the profiler, you will need the following steps:
 3. Configure LiveView
 4. Add the `PhoenixProfiler` Plug
 5. Mount the profiler on your LiveViews
-6. Import the `dump/1` macro
-7. Configure the toolbar (optional)
+6. Configure the toolbar (optional)
 
 ### 1. Add the phoenix_web_profiler dependency
 
@@ -105,45 +102,9 @@ web module, typically found at `lib/my_app_web.ex`:
 Note the `on_mount` macro requires LiveView 0.16+. For earlier versions,
 see `PhoenixProfiler.enable_live_profiler/1`.
 
-### 7. Add the dump/1 macro
-
-Add the `dump/1` macro to the `view_helpers` function on
-your web module, typically found at: `lib/my_app_web.ex`:
-
-```elixir
-# lib/my_app_web.ex
-def view_helpers do
-  quote do
-    # use...
-    # import...
-
-    # Import dev debug functionality (dump)
-    import PhoenixWeb.Profiler, only: [dump: 1]
-
-    # import...
-    # alias...
-  end
-end
-```
-
-If you wish to debug from Phoenix Controllers, do not forget to
-import dump to the `controller` function on the same module:
-
-```elixir
-# lib/my_app_web.ex
-def controller do
- quote do
-    # use...
-    # import...
-    import PhoenixWeb.Profiler, only: [dump: 1]
-    # alias...
-  end
-end
-```
-
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 
-### 8. Configure the toolbar (optional)
+### 6. Configure the toolbar (optional)
 
 It's also possible to configure the toolbar by exporting ENV vars as you wish:
 

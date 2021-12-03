@@ -29,7 +29,6 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
         },
         status: 200
       },
-      dumped: [],
       metrics: metrics
     } = Requests.get(token)
 
@@ -63,7 +62,6 @@ defmodule PhoenixWeb.Profiler.RequestsTest do
         },
         status: 200
       },
-      dumped: [],
       metrics: metrics
     } = Requests.get(token)
 

@@ -25,7 +25,6 @@ defmodule DemoWeb.AppLive.Index do
     {:noreply,
      update(socket, :count, fn i ->
        i = i + 1
-       #  dump(i)
        i
      end)}
   end
@@ -34,7 +33,6 @@ defmodule DemoWeb.AppLive.Index do
     {:noreply,
      update(socket, :count, fn i ->
        i = i - 1
-       #  dump(i)
        i
      end)}
   end

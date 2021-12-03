@@ -3,7 +3,6 @@ defmodule PhoenixWeb.Profiler.Request do
   @moduledoc false
   import Plug.Conn
   alias PhoenixProfiler.Utils
-  alias PhoenixWeb.Profiler.Dumped
   alias PhoenixWeb.Profiler.Routes
 
   @token_key :pwdt
@@ -54,7 +53,6 @@ defmodule PhoenixWeb.Profiler.Request do
 
     profile = %{
       conn: Map.delete(conn, :resp_body),
-      dumped: Dumped.flush(),
       metrics: metrics,
       route: route
     }
