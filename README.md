@@ -32,7 +32,7 @@ To start using the profiler, you will need the following steps:
 Add phoenix_profiler to your `mix.exs`:
 
 ```elixir
-{:phoenix_profiler, "~> 0.1.0", git: "git@github.com:mcrumm/phoenix_profiler.git"}
+{:phoenix_profiler, "~> 0.1.0", github: "mcrumm/phoenix_profiler"}
 ```
 
 ### 2. Enable the profiler on your Endpoint
