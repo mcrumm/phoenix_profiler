@@ -15,6 +15,7 @@
         <nav>
           <ul>
             <li><%= link "Home", to: Routes.page_path(DemoWeb.Endpoint, :index) %></li>
+            <li><%= link "LiveDashboard", to: Routes.live_dashboard_path(@conn, :page, :_profiler) %></li>
           </ul>
         </nav>
       </section>

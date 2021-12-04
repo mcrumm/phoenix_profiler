@@ -64,4 +64,19 @@ defmodule PhoenixProfiler do
 
   """
   defdelegate disable_live_profiler(socket), to: PhoenixProfiler.Utils
+
+  @doc """
+  Returns a page definition for LiveDashboard.
+
+  To use the profiler dashboard, add it to the
+    `:additional_pages` of your live_dashboard:
+
+        live_dashboard "/dashboard",
+          additional_pages: [
+            _profiler: PhoenixProfiler.dashboard()
+            # additional pages...
+          ]
+
+  """
+  defdelegate dashboard, to: PhoenixProfilerWeb.Dashboard
 end

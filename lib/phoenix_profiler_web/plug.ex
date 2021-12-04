@@ -32,6 +32,7 @@ defmodule PhoenixProfilerWeb.Plug do
 
       conn
       |> Request.apply_debug_token()
+      |> Request.apply_profiler(endpoint_config)
       |> telemetry(:start, %{system_time: System.system_time()})
       |> before_send_profile(start_time, endpoint, config)
     else

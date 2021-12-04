@@ -4,6 +4,7 @@ defmodule DemoWeb.Router do
   import Plug.Conn
   import Phoenix.Controller
   import Phoenix.LiveView.Router
+  import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -24,5 +25,10 @@ defmodule DemoWeb.Router do
     live "/app/foo", AppLive.Index, :foo
 
     forward "/plug-router", PlugRouter
+
+    live_dashboard "/dashboard",
+      additional_pages: [
+        _profiler: PhoenixProfiler.dashboard()
+      ]
   end
 end
