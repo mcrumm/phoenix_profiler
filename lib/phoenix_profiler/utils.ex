@@ -35,12 +35,14 @@ defmodule PhoenixProfiler.Utils do
     put_private(socket, :phxprof_enabled, false)
   end
 
+  # Put private kv in LV socket 
+  # Copyright (c) 2018 Chris McCord
+  # https://github.com/phoenixframework/phoenix_live_view/blob/1fa826bea54ad6eade1d7cdb81597438817e2802/lib/phoenix_live_view/lifecycle.ex#L104-L106
   @doc """
   Assigns a new private key and value in the socket.
   """
-  def put_private(%LiveView.Socket{} = socket, key, value) when is_atom(key) do
-    private = Map.put(socket.private, key, value)
-    %{socket | private: private}
+  def put_private(%LiveView.Socket{private: private} = socket, key, value) when is_atom(key) do
+    %{socket | private: Map.put(private, key, value)}
   end
 
   # Unique ID generation

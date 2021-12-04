@@ -14,7 +14,7 @@ defmodule PhoenixProfiler.LiveViewListener do
 
       {:navigation, %{live_action: atom(), root_pid: pid(), root_view: atom()}}
 
-      {:exception, atom(), any(), list()}
+      {:exception, kind :: Exception.kind(), reason :: any(), stacktrace :: Exception.stacktrace()}
 
   """
   def listen(%LiveView.Socket{transport_pid: transport}) do
@@ -87,13 +87,17 @@ defmodule PhoenixProfiler.LiveViewListener do
   def telemetry_callback(
         [:phoenix, :live_view | _] = event,
         measurements,
-        %{socket: %{transport_pid: transport, root_pid: pid}} = metadata,
+        %{
+          socket: %{
+            transport_pid: transport,
+            root_pid: pid,
+            private: %{phxprof_enabled: {_, ref}}
+          }
+        } = metadata,
         %{parent: parent, transport: transport} = context
       )
-      when is_pid(pid) and is_pid(parent) and pid != parent do
-    if metadata.socket.private[:phxprof_enabled] do
-      send(context.listener, {:telemetry, event, measurements, metadata})
-    end
+      when is_pid(pid) and is_pid(parent) and pid != parent and is_reference(ref) do
+    send(context.listener, {:telemetry, event, measurements, metadata})
   end
 
   def telemetry_callback(_, _, _, _), do: :ok
