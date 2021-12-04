@@ -109,15 +109,15 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
             sortable: nil
           }
         ],
-        row_fetcher: fn _params, _node ->
+        row_fetcher: fn %{sort_dir: sort_dir}, _node ->
           rows =
             case Map.get(conn, field) do
               %Plug.Conn.Unfetched{} ->
                 []
 
               params when is_map(params) or is_list(params) ->
-                for {key, value} <- params,
-                    do: %{key: pp(key), value: pp(value)}
+                params = for {key, value} <- params, do: %{key: pp(key), value: pp(value)}
+                Enum.sort(params, sort_dir)
             end
 
           {rows, length(rows)}
