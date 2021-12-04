@@ -38,9 +38,8 @@ defmodule PhoenixProfiler.Utils do
   @doc """
   Assigns a new private key and value in the socket.
   """
-  def put_private(%LiveView.Socket{} = socket, key, value) when is_atom(key) do
-    private = Map.put(socket.private, key, value)
-    %{socket | private: private}
+  def put_private(%LiveView.Socket{private: private} = socket, key, value) when is_atom(key) do
+    %{socket | private: Map.put(private, key, value)}
   end
 
   # Unique ID generation
