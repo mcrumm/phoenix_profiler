@@ -28,7 +28,7 @@ defmodule DemoWeb.Router do
 
     live_dashboard "/dashboard",
       additional_pages: [
-        _profiler: {PhoenixWeb.Profiler.DashboardPage, []}
+        _profiler: PhoenixProfiler.dashboard()
       ]
   end
 end

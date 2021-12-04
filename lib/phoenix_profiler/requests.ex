@@ -34,7 +34,7 @@ defmodule PhoenixProfiler.Requests do
   end
 
   def get(token) do
-    get(:persistent_term.get(__MODULE__), token)
+    get(table(), token)
   end
 
   def get(table, token) do
@@ -47,12 +47,32 @@ defmodule PhoenixProfiler.Requests do
     end
   end
 
+  def list do
+    list(table())
+  end
+
+  def list(table) do
+    :ets.tab2list(table)
+  end
+
+  def list_advanced(_search, _sort_by, _sort_dir, _limit) do
+    list()
+  end
+
   def remote_get(node, token) do
     :rpc.call(node, __MODULE__, :get, [token])
   end
 
-  def telemetry_callback([:phxprof, :plug, :start], _measurements, _meta, _table) do
-    # no-op
+  def remote_list_advanced(node, search, sort_by, sort_dir, limit) do
+    :rpc.call(node, __MODULE__, :list_advanced, [search, sort_by, sort_dir, limit])
+  end
+
+  defp table do
+    :persistent_term.get(__MODULE__)
+  end
+
+  def telemetry_callback([:phxprof, :plug, :start], measurements, _meta, _table) do
+    Process.put(:phxprof_profiler_time, measurements.system_time)
   end
 
   def telemetry_callback([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _table) do

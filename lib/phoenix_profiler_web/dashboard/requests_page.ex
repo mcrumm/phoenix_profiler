@@ -1,34 +1,25 @@
 if Code.ensure_loaded?(Phoenix.LiveDashboard) do
-  defmodule PhoenixWeb.Profiler.DashboardPage do
-    @moduledoc """
-    Dashboard integration for the web profiler.
-
-        live_dashboard "/dashboard",
-          additional_pages: [
-            _profiler: PhoenixWeb.Profiler.DashboardPage
-            # additional pages...
-          ]
-
-    """
+  defmodule PhoenixProfilerWeb.RequestsPage do
+    # LiveDashboard integration for PhoenixProfiler.
+    @moduledoc false
     use Phoenix.LiveDashboard.PageBuilder
-
-    alias PhoenixWeb.Profiler.Requests
+    alias PhoenixProfiler.Requests
 
     @impl true
     def init(_) do
-      {:ok, %{}, [{:application, :phoenix_web_profiler}]}
+      {:ok, %{}, [{:application, :phoenix_profiler}]}
     end
 
     @impl true
     def menu_link(_session, _capabilities) do
-      {:ok, "Phoenix Profiler"}
+      {:ok, "PhoenixProfiler"}
     end
 
     @impl true
     def handle_params(params, _uri, socket) do
       socket =
         if token = params["token"] do
-          profile = Requests.fetch_token!(token)
+          profile = Requests.remote_get(socket.assigns.page.node, token)
           assign(socket, :profile, profile)
         else
           socket
@@ -39,12 +30,10 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
     @impl true
     def render_page(assigns) do
-      name = inspect(DemoWeb.Endpoint)
-
       nav_bar(
         items: [
-          {name,
-           name: name,
+          {:profiler,
+           name: "Requests",
            method: :redirect,
            render: fn ->
              if assigns[:profile] do
@@ -66,30 +55,27 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
                    ],
                    request_headers: [
                      name: "Request Headers",
-                     render: fn -> render_params_table(conn, :req_headers) end
+                     render: fn -> render_params_table(conn, :req_headers, "Request Headers") end
                    ],
                    request_cookies: [
                      name: "Request Cookies",
-                     render: fn -> render_params_table(conn, :req_cookies) end
+                     render: fn -> render_params_table(conn, :req_cookies, "Request Cookies") end
                    ],
                    response_headers: [
                      name: "Response Headers",
-                     render: fn -> render_params_table(conn, :resp_headers) end
+                     render: fn ->
+                       render_params_table(conn, :resp_headers, "Response Headers")
+                     end
                    ],
                    response_cookies: [
                      name: "Response Cookies",
-                     render: fn -> render_params_table(conn, :resp_cookies) end
+                     render: fn ->
+                       render_params_table(conn, :resp_cookies, "Response Cookies")
+                     end
                    ],
                    private: [
                      name: "Private",
                      render: fn -> render_params_table(conn, :private) end
-                   ],
-                   request: [
-                     name: "Request",
-                     render: fn ->
-                       {PhoenixWeb.Profiler.DashboardPage.RequestComponent,
-                        %{profile: assigns.profile}}
-                     end
                    ]
                  ],
                  extra_params: [:endpoint, :token]
@@ -97,17 +83,15 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
              else
                table(
                  columns: columns(),
-                 id: :phxweb_profiler_profilers_table,
+                 id: :phxprof_requests_table,
                  row_attrs: &row_attrs/1,
                  row_fetcher: &fetch_profiles/2,
-                 rows_name: "profiles",
-                 title: "Phoenix Profiler"
+                 rows_name: "requests",
+                 title: "Requests"
                )
              end
            end}
         ],
-        nav_param: :endpoint,
-        extra_params: [:nav],
         style: :bar
       )
     end
@@ -148,11 +132,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
     @impl true
     def handle_event("show_profile", %{"token" => token}, socket) do
-      token_path =
-        live_dashboard_path(socket, socket.assigns.page, %{
-          endpoint: inspect(DemoWeb.Endpoint),
-          token: token
-        })
+      token_path = live_dashboard_path(socket, socket.assigns.page, %{token: token})
 
       {:noreply, push_redirect(socket, to: token_path)}
     end
@@ -177,7 +157,8 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     defp fetch_profiles(node, search, sort_by, sort_dir, limit) do
-      :rpc.call(node, Requests, :profiles, [search, sort_by, sort_dir, limit])
+      profiles = Requests.remote_list_advanced(node, search, sort_by, sort_dir, limit)
+      {profiles, length(profiles)}
     end
 
     defp columns do

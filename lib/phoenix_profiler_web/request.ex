@@ -49,7 +49,7 @@ defmodule PhoenixProfilerWeb.Request do
       memory: memory
     }
 
-    at = Process.get(:phxweb_profiler_time)
+    at = Process.get(:phxprof_profiler_time)
 
     route = Routes.route_info(conn)
 

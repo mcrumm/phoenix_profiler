@@ -24,7 +24,7 @@ To start using the profiler, you will need the following steps:
 3. Configure LiveView
 4. Add the `PhoenixProfiler` Plug
 5. Mount the profiler on your LiveViews
-6. Add the `PhoenixWeb.Profiler.DashboardPage` on your LiveDashboard (optional)
+6. Add the profiler page on your LiveDashboard (optional)
 7. Configure the toolbar (optional)
 
 ### 1. Add the phoenix_web_profiler dependency
@@ -105,21 +105,22 @@ see `PhoenixProfiler.enable_live_profiler/1`.
 
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 
-### 6. Add the PhoenixWeb.Profiler.DashboardPage
+### 6. Add the profiler dashboard page
 
 Note this section is required for the LiveDashboard integration. If you are
 not using LiveDashboard, you may technically skip this step, although it is
 highly recommended that you
 [install LiveDashboard](https://hexdocs.pm/phoenix_live_dashboard/Phoenix.LiveDashboard.html#module-installation)
-to enjoy all the features of the Web Profiler.
+to enjoy all the features of the profiler.
 
-Add `PhoenixWeb.Profiler.DashboardPage` to the list of `:additional_pages` on
+Add the dashboard definition to the list of `:additional_pages` on
 the `live_dashboard` macro in your router:
 
 ```elixir
+# router.ex
 live_dashboard "/dashboard",
   additional_pages: [
-    _profiler: PhoenixWeb.Profiler.DashboardPage
+    _profiler: PhoenixProfiler.dashboard()
     # additional pages...
   ]
 ```
