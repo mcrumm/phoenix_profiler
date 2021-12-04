@@ -27,7 +27,7 @@ To start using the profiler, you will need the following steps:
 6. Add the profiler page on your LiveDashboard (optional)
 7. Configure the toolbar (optional)
 
-### 1. Add the phoenix_web_profiler dependency
+### 1. Add the phoenix_profiler dependency
 
 Add phoenix_profiler to your `mix.exs`:
 
