@@ -32,7 +32,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     def render_page(assigns) do
       nav_bar(
         items: [
-          {:profiler,
+          {:requests,
            name: "Requests",
            method: :redirect,
            render: fn ->
