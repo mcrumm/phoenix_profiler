@@ -35,9 +35,6 @@ defmodule PhoenixProfiler.Utils do
     put_private(socket, :phxprof_enabled, false)
   end
 
-  # Put private kv in LV socket 
-  # Copyright (c) 2018 Chris McCord
-  # https://github.com/phoenixframework/phoenix_live_view/blob/1fa826bea54ad6eade1d7cdb81597438817e2802/lib/phoenix_live_view/lifecycle.ex#L104-L106
   @doc """
   Assigns a new private key and value in the socket.
   """
