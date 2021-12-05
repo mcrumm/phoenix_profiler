@@ -17,15 +17,25 @@ defmodule PhoenixProfiler.LiveViewListener do
       {:exception, kind :: Exception.kind(), reason :: any(), stacktrace :: Exception.stacktrace()}
 
   """
-  def listen(%LiveView.Socket{transport_pid: transport}) do
-    listen(transport, [])
+  def listen(%LiveView.Socket{} = socket) do
+    listen(socket, [])
   end
 
-  def listen(%LiveView.Socket{transport_pid: transport}, opts) do
-    listen(transport, opts)
+  def listen(%LiveView.Socket{} = socket, opts) do
+    unless LiveView.connected?(socket) do
+      raise ArgumentError, "listen/2 may only be called when the socket is connected."
+    end
+
+    # TODO: replace it with `socket.transport_pid` when we support only LiveView 0.16+
+    transport_pid =
+      Map.get_lazy(socket, :transport_pid, fn ->
+        LiveView.transport_pid(socket)
+      end)
+
+    listen(node(), transport_pid, opts)
   end
 
-  def listen(node \\ node(), transport, opts) when is_pid(transport) do
+  def listen(node, transport, opts) when is_pid(transport) do
     DynamicSupervisor.start_child(
       {PhoenixProfiler.DynamicSupervisor, node},
       {__MODULE__, {self(), transport, opts}}

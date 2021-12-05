@@ -33,6 +33,14 @@ defmodule PhoenixProfiler.LiveViewListenerTest do
   end
 
   describe "listen/2" do
+    test "raises when the socket is not connected" do
+      assert_raise ArgumentError,
+                   "listen/2 may only be called when the socket is connected.",
+                   fn ->
+                     LiveViewListener.listen(%Phoenix.LiveView.Socket{})
+                   end
+    end
+
     test "subscribes the caller to LiveView exceptions" do
       {:ok, view, _html} = live_profile_isolated(build_conn(), PageLive)
 
