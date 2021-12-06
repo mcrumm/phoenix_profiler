@@ -3,6 +3,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     # LiveDashboard integration for PhoenixProfiler.
     @moduledoc false
     use Phoenix.LiveDashboard.PageBuilder
+    alias PhoenixProfiler.Utils
     alias PhoenixProfiler.Requests
 
     @impl true
@@ -109,7 +110,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
             sortable: nil
           }
         ],
-        row_fetcher: fn %{sort_dir: sort_dir}, _node ->
+        row_fetcher: fn %{sort_by: sort_by, sort_dir: sort_dir}, _node ->
           rows =
             case Map.get(conn, field) do
               %Plug.Conn.Unfetched{} ->
@@ -117,7 +118,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
               params when is_map(params) or is_list(params) ->
                 params = for {key, value} <- params, do: %{key: pp(key), value: pp(value)}
-                Enum.sort(params, sort_dir)
+                Utils.sort_by(params, fn params -> params[sort_by] end, sort_dir)
             end
 
           {rows, length(rows)}

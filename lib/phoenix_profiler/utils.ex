@@ -55,4 +55,13 @@ defmodule PhoenixProfiler.Utils do
 
     Base.url_encode64(binary)
   end
+
+  @doc false
+  def sort_by(enumerable, sort_by_fun, :asc) do
+    Enum.sort_by(enumerable, sort_by_fun, &<=/2)
+  end
+
+  def sort_by(enumerable, sort_by_fun, :desc) do
+    Enum.sort_by(enumerable, sort_by_fun, &>=/2)
+  end
 end
