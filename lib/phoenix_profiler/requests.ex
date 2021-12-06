@@ -2,6 +2,7 @@ defmodule PhoenixProfiler.Requests do
   # GenServer that is the owner of the ETS table for requests
   @moduledoc false
   use GenServer
+  alias PhoenixProfiler.Utils
   alias PhoenixProfilerWeb.Request
 
   def start_link(arg) do
@@ -55,8 +56,8 @@ defmodule PhoenixProfiler.Requests do
     :ets.tab2list(table)
   end
 
-  def list_advanced(_search, _sort_by, _sort_dir, _limit) do
-    list()
+  def list_advanced(_search, sort_by, sort_dir, _limit) do
+    Utils.sort_by(list(), fn {_, profile} -> profile[sort_by] end, sort_dir)
   end
 
   def remote_get(node, token) do
