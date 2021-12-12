@@ -54,18 +54,17 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
         router: "n/a",
         plug: "n/a",
         action: "n/a",
-        icon_value: nil,
+        router_helper: nil,
         class: "disconnected"
       }
     })
   end
 
   defp assign_toolbar(socket, profile) do
-    %{metrics: metrics, route: route} = profile
+    %{metrics: metrics} = profile
 
     socket
     |> apply_request(profile)
-    |> update_view(route)
     |> assign(:durations, %{
       total: duration(metrics.total_duration),
       endpoint: duration(metrics.endpoint_duration)
@@ -74,25 +73,28 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   end
 
   defp apply_request(socket, profile) do
-    %{conn: %Plug.Conn{} = conn, route: route} = profile
+    %{conn: %Plug.Conn{} = conn} = profile
+    router = conn.private[:phoenix_router]
+    {helper, plug, action} = Routes.guess_router_helper(conn)
+    socket = %{socket | private: Map.put(socket.private, :phoenix_router, router)}
 
     assign(socket, :request, %{
       status_code: conn.status,
       status_phrase: Plug.Conn.Status.reason_phrase(conn.status),
       endpoint: inspect(Phoenix.Controller.endpoint_module(conn)),
-      router: inspect(conn.private[:phoenix_router]),
-      plug: route[:plug],
-      action: route[:plug_opts],
-      icon_value: nil,
+      router: inspect(router),
+      plug: inspect(plug),
+      action: inspect(action),
+      router_helper: helper,
       class: request_class(conn.status)
     })
   end
 
   defp update_view(socket, route) do
     update(socket, :request, fn req ->
-      router = get_in(socket.private, [:profilerinfo, :phoenix_router])
-      {helper, plug, action} = Routes.guess_helper(router, route)
-      %{req | plug: inspect(plug), action: inspect(action), icon_value: helper}
+      router = socket.private[:phoenix_router]
+      {helper, plug, action} = Routes.guess_router_helper(router, route)
+      %{req | plug: inspect(plug), action: inspect(action), router_helper: helper}
     end)
   end
 

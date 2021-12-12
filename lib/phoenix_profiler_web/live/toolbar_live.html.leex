@@ -7,9 +7,9 @@
       </svg>
       <% _ -> %><%= @request.status_code %><% end %>
       </span>
-      <%= if @request.icon_value do %>
+      <%= if @request.router_helper do %>
       <span class="phxprof-toolbar-label"> @</span>
-      <span class="phxprof-toolbar-value"><%= @request.icon_value %></span>
+      <span class="phxprof-toolbar-value"><%= @request.router_helper %></span>
       <% end %>
     </div>
     <div class="phxprof-toolbar-info">
