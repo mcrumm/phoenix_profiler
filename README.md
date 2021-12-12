@@ -51,8 +51,8 @@ config :my_app, MyAppWeb.Endpoint,
 
 > If LiveView is already installed in your app, you may skip this section.
 
-The Phoenix Web Debug Toolbar is built on top of LiveView. If you plan to use LiveView in your application in the future, or if you wish to use the LiveProfiler, we recommend you follow [the official installation instructions](https://hexdocs.pm/phoenix_live_view/installation.html).
-This guide only covers the minimum steps necessary for the Profiler itself to run.
+The Phoenix Web Debug Toolbar is built on top of LiveView. If you plan to use LiveView in your application in the future we recommend you follow [the official installation instructions](https://hexdocs.pm/phoenix_live_view/installation.html).
+This guide only covers the minimum steps necessary for the toolbar itself to run.
 
 Update your endpoint's configuration to include a signing salt. You can generate a signing salt by running `mix phx.gen.secret 32` (note Phoenix v1.5+ apps already have this configuration):
 
