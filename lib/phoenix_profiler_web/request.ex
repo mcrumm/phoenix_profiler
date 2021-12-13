@@ -3,7 +3,6 @@ defmodule PhoenixProfilerWeb.Request do
   @moduledoc false
   import Plug.Conn
   alias PhoenixProfiler.Utils
-  alias PhoenixProfilerWeb.Routes
 
   @token_key :pwdt
   @token_header_key "x-debug-token"
