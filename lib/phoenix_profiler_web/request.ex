@@ -68,7 +68,7 @@ defmodule PhoenixProfilerWeb.Request do
   """
   def profile_request(%Plug.Conn{private: %{@token_key => token}} = conn) do
     # Measurements
-    {:memory, bytes} = Process.info(self(), :memory)
+    {:memory, bytes} = Process.info(conn.owner, :memory)
     memory = div(bytes, 1_024)
 
     metrics = %{
