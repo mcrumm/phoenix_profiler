@@ -25,7 +25,20 @@ defmodule PhoenixProfilerWeb.Routes do
       when is_list(routes) do
     matches =
       for %{metadata: %{phoenix_live_view: {^lv, ^action, _opts, _extra}}} = route <- routes,
-          do: {route.helper, route.plug, route.plug_opts}
+          do: {route.helper, lv, route.plug_opts}
+
+    case matches do
+      [helper] -> helper
+      [] -> {:route_not_found, nil, nil}
+    end
+  end
+
+  def guess_router_helper(routes, %{route: path, phoenix_live_view: {lv, action, _opts, _extra}})
+      when is_list(routes) do
+    matches =
+      for %{path: ^path, metadata: %{phoenix_live_view: {^lv, ^action, _opts, _extra}}} = route <-
+            routes,
+          do: {route.helper, lv, route.plug_opts}
 
     case matches do
       [helper] -> helper
