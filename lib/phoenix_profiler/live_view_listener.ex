@@ -98,7 +98,7 @@ defmodule PhoenixProfiler.LiveViewListener do
     state
   end
 
-  defp handle_event_duration(state, event, measurements) do
+  defp handle_event_duration(state, _event, _measurements) do
     state
   end
 
