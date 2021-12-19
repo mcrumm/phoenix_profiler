@@ -79,7 +79,7 @@ defmodule PhoenixProfiler.LiveViewListener do
       state
       |> check_navigation(metadata.socket)
       |> handle_lifecycle(stage, action, measurements, metadata)
-      |> handle_event_duration([stage, action], measurements)
+      |> handle_event_duration(stage, action, measurements)
 
     {:noreply, state}
   end
@@ -93,12 +93,12 @@ defmodule PhoenixProfiler.LiveViewListener do
     state
   end
 
-  defp handle_event_duration(state, [:handle_event, :stop], %{duration: duration}) do
+  defp handle_event_duration(state, :handle_event, :stop, %{duration: duration}) do
     notify_event_duration(state.parent, duration)
     state
   end
 
-  defp handle_event_duration(state, _event, _measurements) do
+  defp handle_event_duration(state, _stage, _action, _measurements) do
     state
   end
 
