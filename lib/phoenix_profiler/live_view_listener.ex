@@ -74,17 +74,32 @@ defmodule PhoenixProfiler.LiveViewListener do
 
   def handle_info({:telemetry, [:phoenix, :live_view | _] = event, measurements, metadata}, state) do
     [_, _, stage, action] = event
-    state = check_navigation(state, metadata.socket)
-    handle_lifecycle(stage, action, measurements, metadata, state)
+
+    state =
+      state
+      |> check_navigation(metadata.socket)
+      |> handle_lifecycle(stage, action, measurements, metadata)
+      |> handle_event_duration([stage, action], measurements)
+
+    {:noreply, state}
   end
 
-  defp handle_lifecycle(_stage, :exception, _measurements, metadata, state) do
+  defp handle_lifecycle(state, _stage, :exception, _measurements, metadata) do
     notify_exception(state.parent, metadata)
-    {:noreply, state}
+    state
   end
 
-  defp handle_lifecycle(_stage, _action, _measurements, _metadata, state) do
-    {:noreply, state}
+  defp handle_lifecycle(state, _stage, _action, _measurements, _metadata) do
+    state
+  end
+
+  defp handle_event_duration(state, [:handle_event, :stop], %{duration: duration}) do
+    notify_event_duration(state.parent, duration)
+    state
+  end
+
+  defp handle_event_duration(state, event, measurements) do
+    state
   end
 
   @impl true
@@ -133,5 +148,9 @@ defmodule PhoenixProfiler.LiveViewListener do
       |> Map.put_new(:root_view, socket.private[:root_view])
 
     send(pid, {:navigation, view})
+  end
+
+  defp notify_event_duration(pid, duration) do
+    send(pid, {:event_duration, duration})
   end
 end

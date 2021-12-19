@@ -2,6 +2,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
+  require Logger
   alias PhoenixProfiler.{LiveViewListener, Requests}
   alias PhoenixProfilerWeb.Routes
 
@@ -150,8 +151,17 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
     {:noreply, update_view(socket, view)}
   end
 
+  def handle_info({:event_duration, duration}, socket) do
+    socket =
+      update(socket, :durations, fn dur ->
+        %{dur | total: duration(duration)}
+      end)
+
+    {:noreply, socket}
+  end
+
   def handle_info(other, socket) do
-    IO.inspect(other, label: "ToolbarLive received an unknown message")
+    Logger.debug("ToolbarLive received an unknown message: #{inspect(other)}")
     {:noreply, socket}
   end
 
