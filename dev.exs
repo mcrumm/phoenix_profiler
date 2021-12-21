@@ -29,7 +29,9 @@ Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"lib/phoenix_profiler/.*(ex)$",
-      ~r"dev/templates/.*(eex)$"
+      ~r"dev/templates/.*(eex)$",
+      ~r"dev/templates/page/*.heex$",
+      ~r"dev.exs$"
     ]
   ],
   phoenix_profiler: true

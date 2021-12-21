@@ -19,7 +19,7 @@ defmodule PhoenixProfiler.MixProject do
     ]
   end
 
-  defp elixirc_paths(:dev), do: ["lib", "dev"]
+  defp elixirc_paths(:dev), do: ["lib", "dev", "dev.exs"]
   defp elixirc_paths(_), do: ["lib"]
 
   def application do
