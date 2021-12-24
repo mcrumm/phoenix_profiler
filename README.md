@@ -39,14 +39,30 @@ Add phoenix_profiler to your `mix.exs`:
 
 ### 2. Define a profiler module
 
-You define a profiler when you `use PhoenixProfiler` in your module:
+You define a profiler when you `use PhoenixProfiler` in your module.
+
+Create a module for your profiler (usually in `lib/my_app_web/profiler.ex`):
 
 ```elixir
-# lib/my_app_web/profiler.ex
 defmodule MyAppWeb.Profiler do
   use PhoenixProfiler, otp_app: :my_app
 end
 ```
+
+...then you must add it to your main application's supervision
+tree (usually in `lib/my_app/application.ex`):
+
+```elixir
+    children = [
+      MyAppWeb.Profiler,
+      # MyApp.Repo
+      # MyAppWeb.Endpoint,
+      # etc...
+    ]
+```
+
+Note that the profiler must be running for data to be collected,
+so it must come before any endpoints in your supervision tree.
 
 ### 3. Enable the profiler on your Endpoint
 
