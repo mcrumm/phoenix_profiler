@@ -9,6 +9,10 @@ defmodule PhoenixProfilerUnitTest do
     use PhoenixProfiler, otp_app: :phoenix_profiler
   end
 
+  defmodule OtherProfiler do
+    use PhoenixProfiler, otp_app: :phoenix_profiler
+  end
+
   defmodule EndpointMock do
     def config(:phoenix_profiler), do: [server: MyProfiler]
     def url, do: "http://endpoint:4000"
@@ -34,6 +38,16 @@ defmodule PhoenixProfilerUnitTest do
 
   defp connect(%Socket{} = socket) do
     %{socket | transport_pid: self()}
+  end
+
+  test "all_running/0" do
+    start_supervised!(MyProfiler)
+
+    assert MyProfiler in PhoenixProfiler.all_running()
+
+    start_supervised!(OtherProfiler)
+
+    assert [MyProfiler, OtherProfiler] -- PhoenixProfiler.all_running() == []
   end
 
   describe "enable/1 with Plug.Conn" do
