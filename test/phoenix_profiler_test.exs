@@ -32,9 +32,4 @@ defmodule PhoenixProfilerUnitTest do
     socket = PhoenixProfiler.disable_live_profiler(socket)
     assert socket.private.phxprof_enabled == false
   end
-
-  test "dashboard/0 returns a page definition" do
-    assert PhoenixProfiler.dashboard() ==
-             {PhoenixProfilerWeb.RequestsPage, []}
-  end
 end

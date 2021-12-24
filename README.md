@@ -157,7 +157,7 @@ in your router (usually in `lib/my_app_web/router.ex`):
 ```elixir
 live_dashboard "/dashboard",
   additional_pages: [
-    _profiler: PhoenixProfiler.dashboard()
+    _profiler: {PhoenixProfiler.Dashboard, []}
     # additional pages...
   ]
 ```

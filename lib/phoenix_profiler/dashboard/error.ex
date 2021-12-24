@@ -1,4 +1,4 @@
-defmodule PhoenixProfilerWeb.Dashboard.Error do
+defmodule PhoenixProfiler.Dashboard.Error do
   # TODO: Remove it when we support LiveDashboard v0.5+
   # A custom component to render an error on the dashboard.
   @moduledoc false

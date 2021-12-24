@@ -1,7 +1,19 @@
 if Code.ensure_loaded?(Phoenix.LiveDashboard) do
-  defmodule PhoenixProfilerWeb.RequestsPage do
-    # LiveDashboard integration for PhoenixProfiler.
-    @moduledoc false
+  defmodule PhoenixProfiler.Dashboard do
+    @moduledoc """
+    [`LiveDashboard`](`Phoenix.LiveDashboard`) integration for PhoenixProfiler.
+
+    To use the profiler dashboard, add it to the
+    `:additional_pages` of your
+    [`live_dashboard`](`Phoenix.LiveDashboard.Router.live_dashboard/2`):
+
+        live_dashboard "/dashboard",
+          additional_pages: [
+            _profiler: {#{inspect(__MODULE__)}, []}
+            # additional pages...
+          ]
+
+    """
     use Phoenix.LiveDashboard.PageBuilder
     alias PhoenixProfiler.Utils
     alias PhoenixProfiler.Profiler
@@ -165,7 +177,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
             "This token is not available for this profiler on this node."
         end
 
-      {PhoenixProfilerWeb.Dashboard.Error, %{error_message: error_message}}
+      {PhoenixProfiler.Dashboard.Error, %{error_message: error_message}}
     end
 
     defp render_profile_nav(assigns) do
