@@ -7,7 +7,9 @@ Provides a **development tool** that gives detailed information about the execut
 
 ## Built-in Features
 
-* HTTP Response metadata - status code, endpoint, router, controller/action, live_view/live_action, etc.
+* Request/Response - status code, params, headers, cookies, etc.
+
+* Routing - endpoint, router, controller/live view, action, etc.
 
 * Basic diagnostics - response time, memory
 
@@ -25,7 +27,7 @@ To start using the profiler, you will need the following steps:
 2. Define a profiler module
 3. Enable the profiler on your Endpoint
 4. Configure LiveView
-5. Add the `PhoenixProfiler` Plug
+5. Add the `PhoenixProfiler` plug
 6. Mount the profiler on your LiveViews
 7. Add the profiler page on your LiveDashboard (optional)
 
@@ -66,8 +68,8 @@ so it must come before any endpoints in your supervision tree.
 
 ### 3. Enable the profiler on your Endpoint
 
-The Phoenix Web Profiler is disabled by default. In order to enable it,
-update your endpoint's `:dev` configuration to include the
+PhoenixProfiler is disabled by default. In order to enable it,
+you must update your endpoint's `:dev` configuration to include the
 `:phoenix_profiler` options:
 
 ```elixir
@@ -76,7 +78,11 @@ config :my_app, MyAppWeb.Endpoint,
   phoenix_profiler: [profiler: MyAppWeb.Profiler]
 ```
 
-Additional web configuration is done on the Endpoint. The following options are available:
+All web configuration is done inside the `:phoenix_profiler` key on the endpoint.
+
+The following options are available:
+
+* `:profiler` - The name of the profiler. This option is required.
 
 * `:profiler_link_base` - The base path for generating links
   on the toolbar. Defaults to `"/dashboard/_profiler"`.
@@ -100,11 +106,10 @@ config :my_app, MyAppWeb.Endpoint,
   live_view: [signing_salt: "SECRET_SALT"]
 ```
 
-### 5. Add the PhoenixProfiler Plug
+### 5. Add the PhoenixProfiler plug
 
-Add the `PhoenixProfiler` plug on the bottom of the
-`if code_reloading? do` block on your Endpoint,
-typically found at `lib/my_app_web/endpoint.ex`:
+Add the `PhoenixProfiler` plug within the `code_reloading?`
+block on your Endpoint (usually in `lib/my_app_web/endpoint.ex`):
 
 ```elixir
   if code_reloading? do
@@ -118,7 +123,7 @@ typically found at `lib/my_app_web/endpoint.ex`:
 Note this section is required only if you are using LiveView, otherwise you may skip it.
 
 Add the profiler hook to the `live_view` function on your
-web module, typically found at `lib/my_app_web.ex`:
+web module (usually in `lib/my_app_web.ex`):
 
 ```elixir
   def live_view do
@@ -132,7 +137,7 @@ web module, typically found at `lib/my_app_web.ex`:
   end
 ```
 
-Note the `on_mount` macro requires LiveView 0.16+. For earlier versions,
+Note the [`on_mount`](`Phoenix.LiveView.on_mount/1`) macro requires LiveView 0.16+. For earlier versions,
 see `PhoenixProfiler.enable_live_profiler/1`.
 
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
@@ -146,10 +151,10 @@ highly recommended that you
 to enjoy all the features of PhoenixProfiler.
 
 Add the dashboard definition to the list of `:additional_pages` on
-the [`live_dashboard`](`Phoenix.LiveDashboard.Router.live_dashboard/2`) macro in your router:
+the [`live_dashboard`](`Phoenix.LiveDashboard.Router.live_dashboard/2`) macro
+in your router (usually in `lib/my_app_web/router.ex`):
 
 ```elixir
-# router.ex
 live_dashboard "/dashboard",
   additional_pages: [
     _profiler: PhoenixProfiler.dashboard()
