@@ -70,6 +70,11 @@ defmodule DemoWeb.PageController do
   def hello(conn, _params) do
     render(conn, "hello.html", name: "friend")
   end
+
+  def disabled(conn, _params) do
+    conn = PhoenixProfiler.disable(conn)
+    render(conn, "disabled.html")
+  end
 end
 
 defmodule DemoWeb.PageView do
@@ -84,12 +89,16 @@ defmodule DemoWeb.PageView do
     ~H"""
     <h1>Phoenix Web Profiler Dev</h1>
     <p>Welcome, devs!</p>
-    <h2>Links</h2>
+    <h2>Profiles</h2>
     <ul>
-      <li><%= link "Profile IndexController, :hello", to: Routes.page_path(DemoWeb.Endpoint, :hello) %></li>
-      <li><%= link "Profile IndexController, :hello with param", to: Routes.page_path(DemoWeb.Endpoint, :hello, name: "dev") %></li>
-      <li><%= link "Profile ErrorView: assign not available", to: Routes.errors_path(DemoWeb.Endpoint, :assign_not_available) %></li>
+      <li><%= link "Profile PageController, :hello", to: Routes.page_path(DemoWeb.Endpoint, :hello) %></li>
+      <li><%= link "Profile PageController, :hello with param", to: Routes.page_path(DemoWeb.Endpoint, :hello, name: "dev") %></li>
+      <li><%= link "Profile ErrorsController: assign not available", to: Routes.errors_path(DemoWeb.Endpoint, :assign_not_available) %></li>
       <li><%= link "Profile AppLive.Index, :index", to: Routes.app_index_path(DemoWeb.Endpoint, :index) %></li>
+    </ul>
+    <h2>Controls</h2>
+    <ul>
+      <li><%= link "Disable: PageController, :disabled should not be profiled", to: Routes.page_path(DemoWeb.Endpoint, :disabled) %></li>
     </ul>
     """
   end
@@ -97,6 +106,12 @@ defmodule DemoWeb.PageView do
   def render("hello.html", assigns) do
     ~H"""
     <hello>Hello, <%= @name %>!</hello>
+    """
+  end
+
+  def render("disabled.html", assigns) do
+    ~H"""
+    <p>This request <em>is not profiled</em>.</p>
     """
   end
 end
@@ -202,6 +217,7 @@ defmodule DemoWeb.Router do
     get "/", PageController, :index
     get "/hello", PageController, :hello
     get "/hello/:name", PageController, :hello
+    get "/disabled", PageController, :disabled
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
     live "/app", AppLive.Index, :index
     live "/app/foo", AppLive.Index, :foo

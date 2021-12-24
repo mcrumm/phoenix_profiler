@@ -45,6 +45,7 @@ defmodule PhoenixProfilerTest.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+    get "/disabled", PageController, :disabled
 
     forward "/plug-router", PlugRouter
   end
@@ -79,6 +80,13 @@ defmodule PhoenixProfilerTest.PageController do
     conn
     |> put_resp_content_type("text/html")
     |> send_resp(200, "<html><body><p>Hello, world</p></body></html>")
+  end
+
+  def disabled(conn, _params) do
+    conn
+    |> PhoenixProfiler.disable()
+    |> put_resp_content_type("text/html")
+    |> send_resp(200, "<html><body><p>The profiler should be disabled.</p></body></html>")
   end
 end
 

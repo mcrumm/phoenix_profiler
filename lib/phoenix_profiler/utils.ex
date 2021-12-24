@@ -169,10 +169,8 @@ defmodule PhoenixProfiler.Utils do
   end
 
   @doc false
-  def on_send_resp(conn) do
-    %Profile{} = profile = conn.private.phoenix_profiler
+  def on_send_resp(conn, %Profile{} = profile) do
     duration = System.monotonic_time() - profile.start_time
-
     telemetry_execute(conn, :stop, %{duration: duration})
   end
 
