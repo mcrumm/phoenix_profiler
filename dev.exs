@@ -32,7 +32,7 @@ Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
       ~r"dev/templates/.*(eex)$"
     ]
   ],
-  phoenix_profiler: [profiler: DemoWeb.Profiler]
+  phoenix_profiler: [server: DemoWeb.Profiler]
 )
 
 defmodule DemoWeb.ErrorView do

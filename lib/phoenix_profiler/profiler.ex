@@ -1,8 +1,8 @@
 defmodule PhoenixProfiler.Profiler do
   # GenServer that is the owner of the ETS table for requests
   @moduledoc false
+  alias PhoenixProfiler.Profile
   alias PhoenixProfiler.Utils
-  alias PhoenixProfilerWeb.Request
 
   defstruct [:tab]
 
@@ -30,7 +30,6 @@ defmodule PhoenixProfiler.Profiler do
     :telemetry.attach_many(
       {PhoenixProfiler, module, self()},
       [
-        [:phxprof, :plug, :start],
         [:phoenix, :endpoint, :stop],
         [:phxprof, :plug, :stop]
       ],
@@ -41,7 +40,12 @@ defmodule PhoenixProfiler.Profiler do
     {:ok, %{profiler: module, requests: tab}}
   end
 
-  def profiler(%Plug.Conn{} = conn), do: conn.private[:phxprof_profiler]
+  def profiler(%Plug.Conn{} = conn) do
+    case conn.private[:phoenix_profiler] do
+      %Profile{server: server} when is_atom(server) -> server
+      nil -> nil
+    end
+  end
 
   def get(profiler, token) do
     case :ets.lookup(table(profiler), token) do
@@ -61,6 +65,10 @@ defmodule PhoenixProfiler.Profiler do
     Utils.sort_by(list(profiler), fn {_, profile} -> profile[sort_by] end, sort_dir)
   end
 
+  def remote_get(%Profile{} = profile) do
+    remote_get(profile.node, profile.server, profile.token)
+  end
+
   def remote_get(node, profiler, token) do
     :rpc.call(node, __MODULE__, :get, [profiler, token])
   end
@@ -74,26 +82,48 @@ defmodule PhoenixProfiler.Profiler do
     tab
   end
 
-  def telemetry_callback([:phxprof, :plug, :start], measurements, _meta, _context) do
-    Process.put(:phxprof_profiler_time, measurements.system_time)
-  end
-
   def telemetry_callback([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _context) do
     Process.put(:phxprof_endpoint_duration, duration)
   end
 
   def telemetry_callback(
         [:phxprof, :plug, :stop],
-        %{duration: duration},
-        %{conn: %{private: %{phxprof_profiler: profiler}} = conn},
+        measurements,
+        %{conn: %{private: %{phoenix_profiler: %Profile{server: profiler}}} = conn},
         {profiler, table}
       ) do
-    {token, profile} = Request.profile_request(conn)
+    profile = conn.private.phoenix_profiler
 
-    profile = put_in(profile, [:metrics, :total_duration], duration)
+    case profile.info do
+      :enable ->
+        collect_and_insert_profile(conn, profile, measurements, table)
+        :ok
 
-    :ets.insert(table, {token, profile})
+      :disable ->
+        :ok
+
+      nil ->
+        :ok
+    end
   end
 
   def telemetry_callback([:phxprof, :plug, :stop], _, _, _), do: :ok
+
+  defp collect_and_insert_profile(%Plug.Conn{} = conn, %Profile{} = profile, measurements, table) do
+    # Measurements
+    {:memory, bytes} = Process.info(conn.owner, :memory)
+    memory = div(bytes, 1_024)
+
+    data = %{
+      at: profile.system_time,
+      conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
+      metrics: %{
+        endpoint_duration: Process.get(:phxprof_endpoint_duration),
+        memory: memory,
+        total_duration: measurements.duration
+      }
+    }
+
+    :ets.insert(table, {profile.token, data})
+  end
 end

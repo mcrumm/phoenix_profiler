@@ -7,17 +7,17 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   alias PhoenixProfilerWeb.Routes
 
   @impl Phoenix.LiveView
-  def mount(_, %{"node" => node, "profiler" => profiler, "token" => token}, socket) do
+  def mount(_, %{"_" => %PhoenixProfiler.Profile{} = profile}, socket) do
     socket =
       socket
       |> assign_defaults()
       |> assign(:system, system())
-      |> assign(:token, token)
+      |> assign(:token, profile.token)
 
     socket =
-      case Profiler.remote_get(node, profiler, token) do
+      case Profiler.remote_get(profile) do
         nil -> assign_error_toolbar(socket)
-        profile -> assign_toolbar(socket, profile)
+        remote_profile -> assign_toolbar(socket, remote_profile)
       end
 
     if connected?(socket) do

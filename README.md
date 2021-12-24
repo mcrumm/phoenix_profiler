@@ -75,14 +75,17 @@ you must update your endpoint's `:dev` configuration to include the
 ```elixir
 # config/dev.exs
 config :my_app, MyAppWeb.Endpoint,
-  phoenix_profiler: [profiler: MyAppWeb.Profiler]
+  phoenix_profiler: [server: MyAppWeb.Profiler]
 ```
 
 All web configuration is done inside the `:phoenix_profiler` key on the endpoint.
 
 The following options are available:
 
-* `:profiler` - The name of the profiler. This option is required.
+* `:server` - The name of the profiler server. This option is required.
+
+* `:enable` - When set to `false`, disables profiling by default. You can
+  always enable profiling on a request via `enable/1`. Defaults to `true`.
 
 * `:profiler_link_base` - The base path for generating links
   on the toolbar. Defaults to `"/dashboard/_profiler"`.
@@ -138,7 +141,7 @@ web module (usually in `lib/my_app_web.ex`):
 ```
 
 Note the [`on_mount`](`Phoenix.LiveView.on_mount/1`) macro requires LiveView 0.16+. For earlier versions,
-see `PhoenixProfiler.enable_live_profiler/1`.
+see `PhoenixProfiler.enable/1`.
 
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 

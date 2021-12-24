@@ -74,7 +74,7 @@ defmodule PhoenixProfiler.LiveViewListenerTest do
 
   defp disable_profiler(lv) do
     run(lv, fn socket ->
-      {:reply, :ok, PhoenixProfiler.disable_live_profiler(socket)}
+      {:reply, :ok, PhoenixProfiler.disable(socket)}
     end)
   end
 

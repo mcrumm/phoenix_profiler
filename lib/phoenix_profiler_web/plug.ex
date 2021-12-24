@@ -1,8 +1,12 @@
 defmodule PhoenixProfilerWeb.Plug do
   @moduledoc false
   import Plug.Conn
-  alias PhoenixProfilerWeb.{Request, ToolbarView}
+  alias PhoenixProfiler.Profile
+  alias PhoenixProfilerWeb.ToolbarView
   require Logger
+
+  @token_header_key "x-debug-token"
+  @profiler_header_key "x-debug-token-link"
 
   def init(opts) do
     opts
@@ -20,30 +24,29 @@ defmodule PhoenixProfilerWeb.Plug do
     config = endpoint.config(:phoenix_profiler)
 
     if config do
-      start_time = System.monotonic_time()
-
       conn
-      |> Request.apply_profiler(config)
-      |> telemetry(:start, %{system_time: System.system_time()})
-      |> before_send_profile(start_time, endpoint, config)
+      |> PhoenixProfiler.Utils.enable_profiler(endpoint, config, System.system_time())
+      |> apply_profiler_headers()
+      |> before_send_profile(endpoint, config)
     else
       conn
     end
   end
 
-  defp before_send_profile(conn, start_time, endpoint, config) do
-    register_before_send(conn, fn conn ->
-      duration = System.monotonic_time() - start_time
+  defp apply_profiler_headers(conn) do
+    %Profile{token: token, url: url} = conn.private.phoenix_profiler
 
-      conn
-      |> telemetry(:stop, %{duration: duration})
-      |> maybe_inject_debug_toolbar(endpoint, config)
-    end)
+    conn
+    |> put_resp_header(@token_header_key, token)
+    |> put_resp_header(@profiler_header_key, url)
   end
 
-  defp telemetry(conn, action, measurements) when action in [:start, :stop] do
-    :telemetry.execute([:phxprof, :plug, action], measurements, %{conn: conn})
-    conn
+  defp before_send_profile(conn, endpoint, config) do
+    register_before_send(conn, fn conn ->
+      conn
+      |> PhoenixProfiler.Utils.on_send_resp()
+      |> maybe_inject_debug_toolbar(endpoint, config)
+    end)
   end
 
   defp maybe_inject_debug_toolbar(%{resp_body: nil} = conn, _, _), do: conn
@@ -65,7 +68,7 @@ defmodule PhoenixProfilerWeb.Plug do
     if has_body?(resp_body) and Code.ensure_loaded?(endpoint) do
       [page | rest] = String.split(resp_body, "</body>")
 
-      body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
+      body = [page, debug_toolbar_assets_tag(conn, config), "</body>" | rest]
       put_in(conn.resp_body, body)
     else
       conn
@@ -81,10 +84,10 @@ defmodule PhoenixProfilerWeb.Plug do
 
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
-  defp debug_toolbar_assets_tag(conn, _endpoint, config) do
+  defp debug_toolbar_assets_tag(conn, config) do
     try do
       if Code.ensure_loaded?(PhoenixProfilerWeb.ToolbarLive) do
-        token = Request.debug_token!(conn)
+        profile = conn.private.phoenix_profiler
         motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
         toolbar_attrs =
@@ -96,7 +99,7 @@ defmodule PhoenixProfilerWeb.Plug do
         attrs =
           Keyword.merge(
             toolbar_attrs,
-            id: Request.toolbar_id(conn),
+            id: "pwdt#{profile.token}",
             class: String.trim("phxprof-toolbar #{motion_class}"),
             role: "region",
             name: "Phoenix Web Debug Toolbar"
@@ -105,8 +108,8 @@ defmodule PhoenixProfilerWeb.Plug do
         ToolbarView
         |> Phoenix.View.render("index.html", %{
           conn: conn,
-          session: %{"token" => token, "profiler" => config[:profiler], "node" => node()},
-          token: token,
+          session: %{"_" => profile},
+          profile: profile,
           toolbar_attrs: attrs(attrs)
         })
         |> Phoenix.HTML.Safe.to_iodata()

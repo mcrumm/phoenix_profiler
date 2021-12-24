@@ -72,11 +72,9 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
           socket = assign(socket, :profilers, profilers)
           profiler = nav_profiler(params, profilers)
 
-          with :ok <- check_socket_connection(socket) do
-            {:ok, assign(socket, profiler: profiler, error: nil)}
-          else
-            {:error, reason} ->
-              {:ok, assign(socket, profiler: nil, error: reason)}
+          case Utils.check_socket_connection(socket) do
+            :ok -> {:ok, assign(socket, profiler: profiler, error: nil)}
+            {:error, reason} -> {:ok, assign(socket, profiler: nil, error: reason)}
           end
 
         {:error, reason} ->
@@ -88,14 +86,6 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
       nav = params["nav"]
       nav = if nav && nav != "", do: nav
       nav && Enum.find(profilers, fn name -> inspect(name) == nav end)
-    end
-
-    defp check_socket_connection(socket) do
-      if connected?(socket) do
-        :ok
-      else
-        {:error, :waiting_for_connection}
-      end
     end
 
     @impl true

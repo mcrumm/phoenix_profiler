@@ -4,6 +4,7 @@ defmodule PhoenixProfiler.LiveViewListener do
   @moduledoc false
   use GenServer, restart: :temporary
   alias Phoenix.LiveView
+  alias PhoenixProfiler.Profile
 
   @doc """
   Subscribes the caller to updates about a given transport.
@@ -101,12 +102,12 @@ defmodule PhoenixProfiler.LiveViewListener do
           socket: %{
             transport_pid: transport,
             root_pid: pid,
-            private: %{phxprof_enabled: {_, ref}}
+            private: %{phoenix_profiler: %Profile{info: :enable}}
           }
         } = metadata,
         %{parent: parent, transport: transport} = context
       )
-      when is_pid(pid) and is_pid(parent) and pid != parent and is_reference(ref) do
+      when is_pid(pid) and is_pid(parent) and pid != parent do
     send(context.listener, {:telemetry, event, measurements, metadata})
   end
 

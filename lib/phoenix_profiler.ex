@@ -34,42 +34,63 @@ defmodule PhoenixProfiler do
   defdelegate on_mount(arg, params, session, socket), to: PhoenixProfilerWeb.Hooks
 
   @doc """
-  Enables the profiler on a given connected `socket`.
+  Enables the profiler on a given `conn` or connected `socket`.
 
-  Normally you do not need to invoke this function. In LiveView 0.16+ it is
-  invoked automatically when using `on_mount PhoenixProfiler`.
+  Normally you do not need to invoke this function manually. It is invoked
+  automatically by the PhoenixProfiler plug in the Endpoint when a
+  profiler is enabled. In LiveView v0.16+ it is invoked automatically when
+  you define `on_mount PhoenixProfiler` on your LiveView.
 
-  Raises if the socket is not connected.
+  This function will raise if the endpoint is not configured with a profiler,
+  or if the configured profiler is not running. For LiveView specifically,
+  this function also raises if the given socket is not connected.
 
   ## Example
+
+  Within a Phoenix Controller (for example, on a show callback):
+
+      def show(conn, params) do
+        conn = PhoenixProfiler.enable(conn)
+        # code...
+      end
+
+  Within a LiveView (for example, on the mount callback):
 
       def mount(params, session, socket) do
         socket =
           if connected?(socket) do
-            PhoenixProfiler.enable_live_profiler(socket)
+            PhoenixProfiler.enable(socket)
           else
             socket
           end
 
         # code...
-
-        {:ok, socket}
       end
 
   """
-  defdelegate enable_live_profiler(socket), to: PhoenixProfiler.Utils
+  defdelegate enable(conn_or_socket), to: PhoenixProfiler.Utils, as: :enable_profiler
 
   @doc """
-  Disables live profiling on a given `socket`.
+  Disables profiling on a given `conn` or `socket`.
 
   ## Examples
 
+  Within a Phoenix Controller (for example, on an update callback):
+
+      def update(conn, params) do
+        conn = PhoenixProfiler.disable(conn)
+        # code...
+      end
+
+  Within in a LiveView (for example, on a handle_event callback):
+
       def handle_event("some-event", _, socket) do
-        {:noreply, PhoenixProfiler.disable_live_profiler(socket)}
+        socket = PhoenixProfiler.disable(socket)
+        # code...
       end
 
   """
-  defdelegate disable_live_profiler(socket), to: PhoenixProfiler.Utils
+  defdelegate disable(conn_or_socket), to: PhoenixProfiler.Utils, as: :disable_profiler
 
   @doc """
   Returns all running PhoenixProfiler names.

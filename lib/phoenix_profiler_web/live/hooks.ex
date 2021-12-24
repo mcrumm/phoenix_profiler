@@ -11,7 +11,7 @@ defmodule PhoenixProfilerWeb.Hooks do
 
   def on_mount(_arg, _params, _session, socket) do
     if LiveView.connected?(socket) do
-      {:cont, Utils.enable_live_profiler(socket)}
+      {:cont, Utils.enable_profiler(socket)}
     else
       {:cont, socket}
     end
