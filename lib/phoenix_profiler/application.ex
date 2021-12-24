@@ -5,8 +5,7 @@ defmodule PhoenixProfiler.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {DynamicSupervisor, strategy: :one_for_one, name: PhoenixProfiler.DynamicSupervisor},
-      PhoenixProfiler.Requests
+      {DynamicSupervisor, strategy: :one_for_one, name: PhoenixProfiler.DynamicSupervisor}
     ]
 
     opts = [strategy: :one_for_one, name: PhoenixProfiler.Supervisor]

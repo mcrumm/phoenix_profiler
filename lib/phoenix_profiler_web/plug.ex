@@ -5,15 +5,7 @@ defmodule PhoenixProfilerWeb.Plug do
   require Logger
 
   def init(opts) do
-    toolbar_attrs =
-      case opts[:toolbar_attrs] do
-        attrs when is_list(attrs) -> attrs
-        _ -> []
-      end
-
-    %{
-      toolbar_attrs: toolbar_attrs
-    }
+    opts
   end
 
   # TODO: remove this clause when we add config for profiler except_patterns
@@ -23,16 +15,15 @@ defmodule PhoenixProfilerWeb.Plug do
     conn
   end
 
-  def call(conn, config) do
+  def call(conn, _) do
     endpoint = conn.private.phoenix_endpoint
-    endpoint_config = endpoint.config(:phoenix_profiler)
+    config = endpoint.config(:phoenix_profiler)
 
-    if endpoint_config do
+    if config do
       start_time = System.monotonic_time()
 
       conn
-      |> Request.apply_debug_token()
-      |> Request.apply_profiler(endpoint_config)
+      |> Request.apply_profiler(config)
       |> telemetry(:start, %{system_time: System.system_time()})
       |> before_send_profile(start_time, endpoint, config)
     else
@@ -96,9 +87,15 @@ defmodule PhoenixProfilerWeb.Plug do
         token = Request.debug_token!(conn)
         motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
+        toolbar_attrs =
+          case config[:toolbar_attrs] do
+            attrs when is_list(attrs) -> attrs
+            _ -> []
+          end
+
         attrs =
           Keyword.merge(
-            config.toolbar_attrs,
+            toolbar_attrs,
             id: Request.toolbar_id(conn),
             class: String.trim("phxprof-toolbar #{motion_class}"),
             role: "region",
@@ -108,7 +105,7 @@ defmodule PhoenixProfilerWeb.Plug do
         ToolbarView
         |> Phoenix.View.render("index.html", %{
           conn: conn,
-          session: %{"token" => token, "node" => node()},
+          session: %{"token" => token, "profiler" => config[:profiler], "node" => node()},
           token: token,
           toolbar_attrs: attrs(attrs)
         })

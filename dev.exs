@@ -32,7 +32,7 @@ Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
       ~r"dev/templates/.*(eex)$"
     ]
   ],
-  phoenix_profiler: true
+  phoenix_profiler: [profiler: DemoWeb.Profiler]
 )
 
 defmodule DemoWeb.ErrorView do
@@ -215,6 +215,14 @@ defmodule DemoWeb.Router do
   end
 end
 
+defmodule DemoWeb.Profiler do
+  use PhoenixProfiler, otp_app: :phoenix_profiler
+end
+
+defmodule DemoWeb.OtherProfiler do
+  use PhoenixProfiler, otp_app: :phoenix_profiler
+end
+
 defmodule DemoWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
 
@@ -259,6 +267,8 @@ Application.put_env(:phoenix, :serve_endpoints, true)
 
 Task.start(fn ->
   children = [
+    DemoWeb.OtherProfiler,
+    DemoWeb.Profiler,
     {Phoenix.PubSub, [name: Demo.PubSub, adapter: Phoenix.PubSub.PG2]},
     DemoWeb.Endpoint
   ]

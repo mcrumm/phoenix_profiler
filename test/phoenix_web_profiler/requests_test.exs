@@ -30,7 +30,7 @@ defmodule PhoenixProfilerWeb.RequestsTest do
         status: 200
       },
       metrics: metrics
-    } = Requests.get(token)
+    } = Requests.get(PhoenixProfilerTest.Profiler, token)
 
     assert metrics.total_duration > 0
     assert metrics.endpoint_duration > 0
@@ -40,7 +40,8 @@ defmodule PhoenixProfilerWeb.RequestsTest do
   test "records debug profile through forwarded plug", %{conn: conn} do
     conn = get(conn, "/plug-router")
     assert [token] = Plug.Conn.get_resp_header(conn, "x-debug-token")
-    assert Requests.get(token)
+    assert profiler = Requests.profiler(conn)
+    assert Requests.get(profiler, token)
   end
 
   test "records debug profile for api requests", %{conn: conn} do
@@ -63,7 +64,7 @@ defmodule PhoenixProfilerWeb.RequestsTest do
         status: 200
       },
       metrics: metrics
-    } = Requests.get(token)
+    } = Requests.get(PhoenixProfilerTest.Profiler, token)
 
     assert metrics.endpoint_duration > 0
     assert metrics.memory > 0

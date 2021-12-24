@@ -44,24 +44,35 @@ defmodule PhoenixProfilerWeb.Request do
   @doc """
   Puts a profiler header on the response, if configured.
   """
-  def apply_profiler(%Plug.Conn{} = conn, opts) do
-    maybe_put_profiler_header(conn, opts)
-  end
+  def apply_profiler(%Plug.Conn{} = conn, config) do
+    cond do
+      config == [] ->
+        conn
 
-  defp maybe_put_profiler_header(conn, opts) do
-    if profiler_url = profiler_url(conn, opts) do
-      put_resp_header(conn, @profiler_header_key, profiler_url)
-    else
-      conn
+      is_list(config) ->
+        conn
+        |> apply_debug_token()
+        |> put_private(:phxprof_profiler, config[:profiler])
+        |> put_profiler_header(config)
+
+      true ->
+        conn
     end
   end
 
-  defp profiler_url(conn, true) do
-    conn.private.phoenix_endpoint.url() <>
-      "/dashboard/_profiler?nav=requests&token=" <> debug_token!(conn)
+  defp put_profiler_header(conn, config) do
+    endpoint = conn.private.phoenix_endpoint
+    token = debug_token!(conn)
+    profiler_url = profiler_url(endpoint, config, token)
+    put_resp_header(conn, @profiler_header_key, profiler_url)
   end
 
-  defp profiler_url(_conn, _opts), do: nil
+  defp profiler_url(endpoint, config, token) do
+    profiler = config[:profiler]
+    profiler_link_base = config[:profiler_link_base] || "/dashboard/_profiler"
+    params = %{nav: inspect(profiler), panel: :request, token: token}
+    endpoint.url() <> profiler_link_base <> "?" <> URI.encode_query(params)
+  end
 
   @doc """
   Profiles a given `conn`.

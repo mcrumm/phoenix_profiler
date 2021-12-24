@@ -5,6 +5,12 @@ defmodule PhoenixProfiler do
              |> String.split("<!-- MDOC -->")
              |> Enum.fetch!(1)
 
+  defmacro __using__(opts) do
+    quote do
+      use PhoenixProfiler.Requests, unquote(opts)
+    end
+  end
+
   @behaviour Plug
 
   @impl Plug
@@ -79,4 +85,14 @@ defmodule PhoenixProfiler do
 
   """
   defdelegate dashboard, to: PhoenixProfilerWeb.Dashboard
+
+  @doc """
+  Returns all running PhoenixProfiler names.
+  It is important to notice that no order is guaranteed.
+  """
+  def all_running do
+    for {{PhoenixProfiler, name}, %PhoenixProfiler.Profiler{}} <- :persistent_term.get(),
+        GenServer.whereis(name),
+        do: name
+  end
 end

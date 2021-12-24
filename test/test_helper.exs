@@ -5,7 +5,7 @@ Application.put_env(:phoenix_profiler, PhoenixProfilerTest.Endpoint,
   render_errors: [view: PhoenixProfilerTest.ErrorView],
   check_origin: false,
   pubsub_server: PhoenixProfilerTest.PubSub,
-  phoenix_profiler: true
+  phoenix_profiler: [profiler: PhoenixProfilerTest.Profiler]
 )
 
 Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
@@ -17,6 +17,10 @@ Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
   pubsub_server: PhoenixProfilerTest.PubSub,
   phoenix_profiler: false
 )
+
+defmodule PhoenixProfilerTest.Profiler do
+  use PhoenixProfiler, otp_app: :phoenix_profiler
+end
 
 defmodule PhoenixProfilerTest.ErrorView do
   use Phoenix.View, root: "test/templates"
@@ -108,6 +112,7 @@ end
 
 Supervisor.start_link(
   [
+    PhoenixProfilerTest.Profiler,
     {Phoenix.PubSub, name: PhoenixProfilerTest.PubSub, adapter: Phoenix.PubSub.PG2},
     PhoenixProfilerTest.Endpoint,
     PhoenixProfilerTest.EndpointDisabled

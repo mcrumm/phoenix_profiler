@@ -16,6 +16,7 @@ defmodule PhoenixProfiler.DashboardTest do
     assert [token] = Plug.Conn.get_resp_header(conn, Request.token_header_key())
     assert [url] = Plug.Conn.get_resp_header(conn, Request.profiler_header_key())
 
-    assert url == "http://localhost:4000/dashboard/_profiler?nav=requests&token=#{token}"
+    assert url ==
+             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
   end
 end

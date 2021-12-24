@@ -6,7 +6,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   alias PhoenixProfilerWeb.Routes
 
   @impl Phoenix.LiveView
-  def mount(_, %{"node" => node, "token" => token}, socket) do
+  def mount(_, %{"node" => node, "profiler" => profiler, "token" => token}, socket) do
     socket =
       socket
       |> assign_defaults()
@@ -14,7 +14,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
       |> assign(:token, token)
 
     socket =
-      case Requests.remote_get(node, token) do
+      case Requests.remote_get(node, profiler, token) do
         nil -> assign_error_toolbar(socket)
         profile -> assign_toolbar(socket, profile)
       end
