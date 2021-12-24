@@ -1,14 +1,10 @@
 defmodule PhoenixProfiler.Profiler do
-  @moduledoc false
-  defstruct [:tab]
-end
-
-defmodule PhoenixProfiler.Requests do
   # GenServer that is the owner of the ETS table for requests
   @moduledoc false
-  alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Utils
   alias PhoenixProfilerWeb.Request
+
+  defstruct [:tab]
 
   defmacro __using__(opts) do
     quote do
@@ -17,7 +13,7 @@ defmodule PhoenixProfiler.Requests do
       def child_spec(_) do
         %{
           id: __MODULE__,
-          start: {PhoenixProfiler.Requests, :start_link, [__MODULE__]}
+          start: {PhoenixProfiler.Profiler, :start_link, [__MODULE__]}
         }
       end
     end
@@ -29,7 +25,7 @@ defmodule PhoenixProfiler.Requests do
 
   def init(module) do
     tab = :ets.new(module, [:set, :public, {:write_concurrency, true}])
-    :persistent_term.put({PhoenixProfiler, module}, %PhoenixProfiler.Profiler{tab: tab})
+    :persistent_term.put({PhoenixProfiler, module}, %__MODULE__{tab: tab})
 
     :telemetry.attach_many(
       {PhoenixProfiler, module, self()},
@@ -74,7 +70,7 @@ defmodule PhoenixProfiler.Requests do
   end
 
   defp table(profiler) do
-    %Profiler{tab: tab} = :persistent_term.get({PhoenixProfiler, profiler})
+    %__MODULE__{tab: tab} = :persistent_term.get({PhoenixProfiler, profiler})
     tab
   end
 

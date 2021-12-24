@@ -4,7 +4,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     @moduledoc false
     use Phoenix.LiveDashboard.PageBuilder
     alias PhoenixProfiler.Utils
-    alias PhoenixProfiler.Requests
+    alias PhoenixProfiler.Profiler
 
     @disabled_link "https://hexdocs.pm/phoenix_profiler"
     @page_title "Phoenix profilers"
@@ -90,7 +90,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     def handle_params(params, _uri, socket) do
       socket =
         if token = params["token"] do
-          case Requests.remote_get(socket.assigns.page.node, socket.assigns.profiler, token) do
+          case Profiler.remote_get(socket.assigns.page.node, socket.assigns.profiler, token) do
             nil -> assign(socket, error: :token_not_found)
             profile -> assign(socket, profile: profile)
           end
@@ -312,7 +312,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     defp fetch_profiles(node, profiler, search, sort_by, sort_dir, limit) do
-      profiles = Requests.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
+      profiles = Profiler.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
       {profiles, length(profiles)}
     end
 

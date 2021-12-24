@@ -7,7 +7,7 @@ defmodule PhoenixProfiler do
 
   defmacro __using__(opts) do
     quote do
-      use PhoenixProfiler.Requests, unquote(opts)
+      use PhoenixProfiler.Profiler, unquote(opts)
     end
   end
 

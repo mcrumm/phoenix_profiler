@@ -2,7 +2,8 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
-  alias PhoenixProfiler.{LiveViewListener, Requests}
+  alias PhoenixProfiler.LiveViewListener
+  alias PhoenixProfiler.Profiler
   alias PhoenixProfilerWeb.Routes
 
   @impl Phoenix.LiveView
@@ -14,7 +15,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
       |> assign(:token, token)
 
     socket =
-      case Requests.remote_get(node, profiler, token) do
+      case Profiler.remote_get(node, profiler, token) do
         nil -> assign_error_toolbar(socket)
         profile -> assign_toolbar(socket, profile)
       end
