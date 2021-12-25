@@ -6,24 +6,51 @@ defmodule PhoenixProfiler.Profiler do
 
   defstruct [:tab]
 
+  @doc """
+  Resets the profiler, deleting all stored requests.
+  """
+  @callback reset :: :ok
+
+  @default_sweep_interval :timer.minutes(1)
+
   defmacro __using__(opts) do
     quote do
       @otp_app unquote(opts)[:otp_app]
 
-      def child_spec(_) do
+      def child_spec(opts) do
         %{
           id: __MODULE__,
-          start: {PhoenixProfiler.Profiler, :start_link, [__MODULE__]}
+          start: {PhoenixProfiler.Profiler, :start_link, [{__MODULE__, opts}]}
         }
+      end
+
+      def reset do
+        PhoenixProfiler.Profiler.reset(__MODULE__)
+      end
+
+      def config do
+        case Application.get_env(@otp_app, __MODULE__) do
+          config when is_list(config) -> config
+          _ -> []
+        end
       end
     end
   end
 
-  def start_link(module) do
-    GenServer.start_link(__MODULE__, module, name: module)
+  def start_link({module, opts}) do
+    GenServer.start_link(__MODULE__, {module, opts}, name: module)
   end
 
-  def init(module) do
+  def reset(module) do
+    if tab = table(module) do
+      :ets.delete_all_objects(tab)
+      :ok
+    end
+  end
+
+  def init({module, opts}) do
+    options = Keyword.merge(module.config(), opts)
+
     tab = :ets.new(module, [:set, :public, {:write_concurrency, true}])
     :persistent_term.put({PhoenixProfiler, module}, %__MODULE__{tab: tab})
 
@@ -37,7 +64,21 @@ defmodule PhoenixProfiler.Profiler do
       {module, tab}
     )
 
-    {:ok, %{profiler: module, requests: tab}}
+    request_sweep_interval = options[:request_sweep_interval] || @default_sweep_interval
+    schedule_sweep(module, request_sweep_interval)
+
+    {:ok,
+     %{
+       server: module,
+       requests: tab,
+       request_sweep_interval: request_sweep_interval
+     }}
+  end
+
+  def handle_info(:sweep, state) do
+    schedule_sweep(state.server, state.request_sweep_interval)
+    :ets.delete_all_objects(state.requests)
+    {:noreply, state}
   end
 
   def profiler(%Plug.Conn{} = conn) do
@@ -52,8 +93,8 @@ defmodule PhoenixProfiler.Profiler do
       [] ->
         nil
 
-      [{_token, value}] ->
-        value
+      [{_token, profile}] ->
+        profile
     end
   end
 
@@ -78,8 +119,10 @@ defmodule PhoenixProfiler.Profiler do
   end
 
   defp table(profiler) do
-    %__MODULE__{tab: tab} = :persistent_term.get({PhoenixProfiler, profiler})
-    tab
+    case :persistent_term.get({PhoenixProfiler, profiler}) do
+      %__MODULE__{tab: tab} -> tab
+      _ -> nil
+    end
   end
 
   def telemetry_callback([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _context) do
@@ -125,5 +168,9 @@ defmodule PhoenixProfiler.Profiler do
     }
 
     :ets.insert(table, {profile.token, data})
+  end
+
+  defp schedule_sweep(module, time) do
+    Process.send_after(module, :sweep, time)
   end
 end
