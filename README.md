@@ -24,7 +24,7 @@ Provides a **development tool** that gives detailed information about the execut
 To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_profiler` dependency
-2. Define a profiler module
+2. Define a profiler on your supervision tree
 3. Enable the profiler on your Endpoint
 4. Configure LiveView
 5. Add the `PhoenixProfiler` plug
@@ -39,24 +39,14 @@ Add phoenix_profiler to your `mix.exs`:
 {:phoenix_profiler, "~> 0.1.0", github: "mcrumm/phoenix_profiler"}
 ```
 
-### 2. Define a profiler module
+### 2. Define a profiler on your supervision tree
 
-You define a profiler when you `use PhoenixProfiler` in your module.
-
-Create a module for your profiler (usually in `lib/my_app_web/profiler.ex`):
-
-```elixir
-defmodule MyAppWeb.Profiler do
-  use PhoenixProfiler, otp_app: :my_app
-end
-```
-
-...then you must add it to your main application's supervision
+You define a profiler on your main application's supervision
 tree (usually in `lib/my_app/application.ex`):
 
 ```elixir
     children = [
-      MyAppWeb.Profiler,
+      {PhoenixProfiler, name: MyAppWeb.Profiler},
       # MyApp.Repo
       # MyAppWeb.Endpoint,
       # etc...
@@ -65,6 +55,13 @@ tree (usually in `lib/my_app/application.ex`):
 
 Note that the profiler must be running for data to be collected,
 so it must come before any endpoints in your supervision tree.
+
+The following options are available:
+
+* `:name` - The name of the profiler server. This option is required.
+
+* `:request_sweep_interval` - How often to sweep the ETS table where
+  the profiles are stored. Default is `1m` in milliseconds.
 
 ### 3. Enable the profiler on your Endpoint
 

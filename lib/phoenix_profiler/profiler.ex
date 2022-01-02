@@ -13,63 +13,37 @@ defmodule PhoenixProfiler.Profiler do
 
   @default_sweep_interval :timer.minutes(1)
 
-  defmacro __using__(opts) do
-    quote do
-      @otp_app unquote(opts)[:otp_app]
-
-      def child_spec(opts) do
-        %{
-          id: __MODULE__,
-          start: {PhoenixProfiler.Profiler, :start_link, [{__MODULE__, opts}]}
-        }
-      end
-
-      def reset do
-        PhoenixProfiler.Profiler.reset(__MODULE__)
-      end
-
-      def config do
-        case Application.get_env(@otp_app, __MODULE__) do
-          config when is_list(config) -> config
-          _ -> []
-        end
-      end
-    end
+  def start_link({name, opts}) do
+    GenServer.start_link(__MODULE__, {name, opts}, name: name)
   end
 
-  def start_link({module, opts}) do
-    GenServer.start_link(__MODULE__, {module, opts}, name: module)
-  end
-
-  def reset(module) do
-    if tab = table(module) do
+  def reset(name) do
+    if tab = table(name) do
       :ets.delete_all_objects(tab)
       :ok
     end
   end
 
-  def init({module, opts}) do
-    options = Keyword.merge(module.config(), opts)
-
-    tab = :ets.new(module, [:set, :public, {:write_concurrency, true}])
-    :persistent_term.put({PhoenixProfiler, module}, %__MODULE__{tab: tab})
+  def init({server, options}) do
+    tab = :ets.new(server, [:set, :public, {:write_concurrency, true}])
+    :persistent_term.put({PhoenixProfiler, server}, %__MODULE__{tab: tab})
 
     :telemetry.attach_many(
-      {PhoenixProfiler, module, self()},
+      {PhoenixProfiler, server, self()},
       [
         [:phoenix, :endpoint, :stop],
         [:phxprof, :plug, :stop]
       ],
       &__MODULE__.telemetry_callback/4,
-      {module, tab}
+      {server, tab}
     )
 
     request_sweep_interval = options[:request_sweep_interval] || @default_sweep_interval
-    schedule_sweep(module, request_sweep_interval)
+    schedule_sweep(server, request_sweep_interval)
 
     {:ok,
      %{
-       server: module,
+       server: server,
        requests: tab,
        request_sweep_interval: request_sweep_interval
      }}
@@ -170,7 +144,7 @@ defmodule PhoenixProfiler.Profiler do
     :ets.insert(table, {profile.token, data})
   end
 
-  defp schedule_sweep(module, time) do
-    Process.send_after(module, :sweep, time)
+  defp schedule_sweep(server, time) do
+    Process.send_after(server, :sweep, time)
   end
 end

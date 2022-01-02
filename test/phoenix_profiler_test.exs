@@ -5,14 +5,6 @@ defmodule PhoenixProfilerUnitTest do
 
   doctest PhoenixProfiler
 
-  defmodule MyProfiler do
-    use PhoenixProfiler, otp_app: :phoenix_profiler
-  end
-
-  defmodule OtherProfiler do
-    use PhoenixProfiler, otp_app: :phoenix_profiler
-  end
-
   defmodule EndpointMock do
     def config(:phoenix_profiler), do: [server: MyProfiler]
     def url, do: "http://endpoint:4000"
@@ -41,13 +33,13 @@ defmodule PhoenixProfilerUnitTest do
   end
 
   test "all_running/0" do
-    start_supervised!(MyProfiler)
+    start_supervised!({PhoenixProfiler, name: AllRunning_1})
 
-    assert MyProfiler in PhoenixProfiler.all_running()
+    assert AllRunning_1 in PhoenixProfiler.all_running()
 
-    start_supervised!(OtherProfiler)
+    start_supervised!({PhoenixProfiler, name: AllRunning_2})
 
-    assert [MyProfiler, OtherProfiler] -- PhoenixProfiler.all_running() == []
+    assert [AllRunning_1, AllRunning_2] -- PhoenixProfiler.all_running() == []
   end
 
   describe "enable/1 with Plug.Conn" do
@@ -72,7 +64,7 @@ defmodule PhoenixProfilerUnitTest do
     end
 
     test "puts a profile on the conn" do
-      start_supervised!(MyProfiler)
+      start_supervised!({PhoenixProfiler, name: MyProfiler})
 
       conn =
         build_conn()
@@ -112,7 +104,7 @@ defmodule PhoenixProfilerUnitTest do
     end
 
     test "puts a profile on the socket" do
-      start_supervised!(MyProfiler)
+      start_supervised!({PhoenixProfiler, name: MyProfiler})
       socket = build_socket() |> connect() |> PhoenixProfiler.enable()
       assert %Profile{server: MyProfiler, info: :enable} = socket.private.phoenix_profiler
     end
@@ -127,7 +119,7 @@ defmodule PhoenixProfilerUnitTest do
   end
 
   test "disable/1 with Plug.Conn" do
-    start_supervised!(MyProfiler)
+    start_supervised!({PhoenixProfiler, name: MyProfiler})
 
     conn =
       build_conn()
@@ -140,7 +132,7 @@ defmodule PhoenixProfilerUnitTest do
   end
 
   test "disable/1 with LiveView.Socket" do
-    start_supervised!(MyProfiler)
+    start_supervised!({PhoenixProfiler, name: MyProfiler})
     socket = build_socket() |> connect() |> PhoenixProfiler.enable()
     assert socket.private.phoenix_profiler.info == :enable
     socket = PhoenixProfiler.disable(socket)

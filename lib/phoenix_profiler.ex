@@ -5,10 +5,17 @@ defmodule PhoenixProfiler do
              |> String.split("<!-- MDOC -->")
              |> Enum.fetch!(1)
 
-  defmacro __using__(opts) do
-    quote do
-      use PhoenixProfiler.Profiler, unquote(opts)
-    end
+  @doc """
+  Returns the child specification to start the profiler
+  under a supervision tree.
+  """
+  def child_spec(opts) do
+    name = opts[:name] || raise ArgumentError, ":name is required to start the profiler"
+
+    %{
+      id: name,
+      start: {PhoenixProfiler.Profiler, :start_link, [{name, opts}]}
+    }
   end
 
   @behaviour Plug
@@ -91,6 +98,11 @@ defmodule PhoenixProfiler do
 
   """
   defdelegate disable(conn_or_socket), to: PhoenixProfiler.Utils, as: :disable_profiler
+
+  @doc """
+  Resets the storage of the given `profiler`.
+  """
+  defdelegate reset(profiler), to: PhoenixProfiler.Profiler
 
   @doc """
   Returns all running PhoenixProfiler names.
