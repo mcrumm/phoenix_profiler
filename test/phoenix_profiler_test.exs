@@ -29,7 +29,15 @@ defmodule PhoenixProfilerUnitTest do
   end
 
   defp connect(%Socket{} = socket) do
-    %{socket | transport_pid: self()}
+    # TODO: replace with struct update when we require LiveView v0.15+.
+    socket = Map.put(socket, :transport_pid, self())
+
+    # TODO: remove when we require LiveView v0.15+.
+    if Map.has_key?(socket, :connected?) do
+      Map.put(socket, :connected?, true)
+    else
+      socket
+    end
   end
 
   test "all_running/0" do
