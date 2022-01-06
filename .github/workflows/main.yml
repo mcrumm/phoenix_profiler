@@ -53,7 +53,7 @@ jobs:
           path: deps
           key: ${{ runner.os }}-mix-${{matrix.phoenix}}-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}-v2
 
-      - run: mix deps.unlock phoenix phoenix_html phoenix_live_dashboard phoenix_live_view phoenix_view
+      - run: mix deps.unlock phoenix phoenix_html phoenix_live_dashboard phoenix_live_view phoenix_view telemetry
         if: ${{ matrix.phoenix }}
 
       - run: mix deps.get
