@@ -20,7 +20,7 @@ jobs:
               elixir: '1.11'
               otp: 23
           - pair:
-              elixir: '1.12'
+              elixir: '1.13'
               otp: 24
             lint: lint
     steps:
