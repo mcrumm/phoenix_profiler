@@ -92,7 +92,10 @@ defmodule PhoenixProfiler.MixProject do
     [
       maintainers: ["Michael Allen Crumm Jr."],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/mcrumm/phoenix_profiler"},
+      links: %{
+        "GitHub" => "https://github.com/mcrumm/phoenix_profiler",
+        "Sponsor" => "https://github.com/sponsors/mcrumm"
+      },
       files: ~w(lib priv CHANGELOG.md LICENSE mix.exs README.md)
     ]
   end
