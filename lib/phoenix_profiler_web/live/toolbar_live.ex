@@ -11,8 +11,8 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
     socket =
       socket
       |> assign_defaults()
+      |> assign(:profile, profile)
       |> assign(:system, system())
-      |> assign(:token, profile.token)
 
     socket =
       case Profiler.remote_get(profile) do
