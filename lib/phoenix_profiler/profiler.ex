@@ -11,7 +11,7 @@ defmodule PhoenixProfiler.Profiler do
   """
   @callback reset :: :ok
 
-  @default_sweep_interval :timer.minutes(1)
+  @default_sweep_interval :timer.hours(24)
 
   def start_link({name, opts}) do
     GenServer.start_link(__MODULE__, {name, opts}, name: name)
