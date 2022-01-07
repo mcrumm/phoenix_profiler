@@ -19,15 +19,15 @@ defmodule PhoenixProfiler.ToolbarView do
     assigns = Map.put(assigns, :toolbar_js, @toolbar_js)
 
     ~L"""
+    <!-- START Phoenix Web Debug Toolbar -->
     <div<%= Phoenix.HTML.raw(@toolbar_attrs) %>>
-      <!-- START Phoenix Web Debug Toolbar -->
-    <div class="phxprof-minitoolbar"><button class="show-button" type="button" id="phxprof-toolbar-show-<%= @profile.token %>>" title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxprof-toolbar-main-<%= @profile.token %>"></button></div>
-    <div id="phxprof-toolbar-clearer-<%= @profile.token %>" class="phxprof-toolbar-clearer" style="display: block;"></div>
-    <%= live_render(@conn, ToolbarLive, session: @session) %>
-      <!-- END Phoenix Web Debug Toolbar -->
+      <div class="phxprof-minitoolbar"><button class="show-button" type="button" id="phxprof-toolbar-show-<%= @profile.token %>>" title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxprof-toolbar-main-<%= @profile.token %>"></button></div>
+      <div id="phxprof-toolbar-clearer-<%= @profile.token %>" class="phxprof-toolbar-clearer" style="display: block;"></div>
+      <%= live_render(@conn, ToolbarLive, session: @session) %>
     </div>
     <script><%= Phoenix.HTML.raw(@toolbar_js) %></script>
     <style type="text/css"><%= Phoenix.HTML.raw(@toolbar_css) %></style>
+    <!-- END Phoenix Web Debug Toolbar -->
     """
   end
 end
