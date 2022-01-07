@@ -4,7 +4,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
   alias PhoenixProfiler.LiveViewListener
   alias PhoenixProfiler.Profiler
-  alias PhoenixProfilerWeb.Routes
+  alias PhoenixProfiler.Routes
 
   @impl Phoenix.LiveView
   def mount(_, %{"_" => %PhoenixProfiler.Profile{} = profile}, socket) do
