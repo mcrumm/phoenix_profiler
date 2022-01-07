@@ -1,4 +1,4 @@
-defmodule PhoenixProfilerWeb.ToolbarLive do
+defmodule PhoenixProfiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}

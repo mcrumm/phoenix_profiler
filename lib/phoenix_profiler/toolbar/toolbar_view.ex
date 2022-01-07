@@ -1,9 +1,9 @@
-defmodule PhoenixProfilerWeb.ToolbarView do
+defmodule PhoenixProfiler.ToolbarView do
   # ToolbarView acts as a Phoenix.View rendering the embedded
   # web debug toolbar into an HTML response.
   @moduledoc false
   import Phoenix.LiveView.Helpers
-  alias PhoenixProfilerWeb.ToolbarLive
+  alias PhoenixProfiler.ToolbarLive
 
   toolbar_css_path = Application.app_dir(:phoenix_profiler, "priv/static/toolbar.css")
   @external_resource toolbar_css_path

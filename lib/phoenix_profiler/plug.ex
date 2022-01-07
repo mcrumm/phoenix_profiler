@@ -1,8 +1,8 @@
-defmodule PhoenixProfilerWeb.Plug do
+defmodule PhoenixProfiler.Plug do
   @moduledoc false
   import Plug.Conn
   alias PhoenixProfiler.Profile
-  alias PhoenixProfilerWeb.ToolbarView
+  alias PhoenixProfiler.ToolbarView
   require Logger
 
   @token_header_key "x-debug-token"
@@ -90,7 +90,7 @@ defmodule PhoenixProfilerWeb.Plug do
 
   defp debug_toolbar_assets_tag(conn, profile, config) do
     try do
-      if Code.ensure_loaded?(PhoenixProfilerWeb.ToolbarLive) do
+      if Code.ensure_loaded?(PhoenixProfiler.ToolbarLive) do
         motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
 
         toolbar_attrs =

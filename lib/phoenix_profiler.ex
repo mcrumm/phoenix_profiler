@@ -21,14 +21,16 @@ defmodule PhoenixProfiler do
   @behaviour Plug
 
   @impl Plug
-  defdelegate init(opts), to: PhoenixProfilerWeb.Plug
+  defdelegate init(opts), to: PhoenixProfiler.Plug
 
   @impl Plug
-  defdelegate call(conn, opts), to: PhoenixProfilerWeb.Plug
+  defdelegate call(conn, opts), to: PhoenixProfiler.Plug
 
-  # TODO: Remove when we support only LiveView 0.17+
+  # TODO: Remove when we require LiveView v0.17+.
   @doc false
-  defdelegate mount(params, session, socket), to: PhoenixProfilerWeb.Hooks
+  def mount(params, session, socket) do
+    on_mount(:default, params, session, socket)
+  end
 
   @doc """
   The callback for the mount stage of the LiveView lifecycle.
@@ -38,7 +40,13 @@ defmodule PhoenixProfiler do
       on_mount PhoenixProfiler
 
   """
-  defdelegate on_mount(arg, params, session, socket), to: PhoenixProfilerWeb.Hooks
+  def on_mount(_arg, _params, _session, socket) do
+    if Phoenix.LiveView.connected?(socket) do
+      {:cont, enable(socket)}
+    else
+      {:cont, socket}
+    end
+  end
 
   @doc """
   Enables the profiler on a given `conn` or connected `socket`.
