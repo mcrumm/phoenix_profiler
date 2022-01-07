@@ -168,6 +168,22 @@ defmodule PhoenixProfiler.Utils do
     Base.url_encode64(binary)
   end
 
+  @doc """
+  Returns a map of system version metadata.
+  """
+  def system do
+    for app <- [:otp, :elixir, :phoenix, :phoenix_live_view, :phoenix_profiler], into: %{} do
+      {app, version(app)}
+    end
+  end
+
+  defp version(:elixir), do: System.version()
+  defp version(:otp), do: System.otp_release()
+
+  defp version(app) when is_atom(app) do
+    Application.spec(app)[:vsn]
+  end
+
   @doc false
   def on_send_resp(conn, %Profile{} = profile) do
     duration = System.monotonic_time() - profile.start_time

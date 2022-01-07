@@ -6,6 +6,7 @@ defmodule PhoenixProfiler.Profile do
     :node,
     :server,
     :start_time,
+    :system,
     :system_time,
     :token,
     :url
@@ -13,12 +14,21 @@ defmodule PhoenixProfiler.Profile do
 
   @type info :: nil | :enable | :disable
 
+  @type system :: %{
+          :otp => String.t(),
+          :elixir => String.t(),
+          :phoenix => String.t(),
+          :phoenix_profiler => String.t(),
+          required(atom()) => nil | String.t()
+        }
+
   @type t :: %__MODULE__{
           :info => info(),
           :token => String.t(),
           :server => module(),
           :node => node(),
           :start_time => integer(),
+          :system => system(),
           :system_time => integer(),
           :url => String.t()
         }
@@ -35,6 +45,7 @@ defmodule PhoenixProfiler.Profile do
       node: node,
       server: server,
       start_time: System.monotonic_time(),
+      system: PhoenixProfiler.Profiler.system(server),
       system_time: system_time,
       token: token,
       url: build_url(server, token, base_url)

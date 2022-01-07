@@ -92,7 +92,7 @@
   <div class="phxprof-toolbar-panel phxprof-toolbar-panel-config phxprof-toolbar-panel-right" aria-label="Config">
     <div class="phxprof-toolbar-icon">
       <div class="phxprof-toolbar-label"></div>
-      <div class="phxprof-toolbar-value"><%= @system.phoenix_version %></div>
+      <div class="phxprof-toolbar-value"><%= @profile.system.phoenix %></div>
     </div>
 
     <div class="phxprof-toolbar-info" style="right: 36px;">
@@ -106,22 +106,22 @@
 
       <div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
-          <b>LiveView Version</b><span><a href="https://hexdocs.pm/phoenix_live_view/<%= @system.live_view_version %>/"><%= @system.live_view_version %></a></span>
+          <b>LiveView Version</b><span><a href="https://hexdocs.pm/phoenix_live_view/<%= @profile.system.phoenix_live_view %>/"><%= @profile.system.phoenix_live_view %></a></span>
         </div>
         <div class="phxprof-toolbar-info-item">
           <b>Elixir Version</b>
-          <span><a href="https://hexdocs.pm/elixir/<%= @system.elixir_version %>/"><%= @system.elixir_version %></a></span>
+          <span><a href="https://hexdocs.pm/elixir/<%= @profile.system.elixir %>/"><%= @profile.system.elixir %></a></span>
         </div>
         <div class="phxprof-toolbar-info-item">
           <b>OTP Release</b>
-          <span><a href="https://erlang.org/erldoc"><%= @system.otp_release %></a></span>
+          <span><a href="https://erlang.org/erldoc"><%= @profile.system.otp %></a></span>
         </div>
       </div>
 
       <div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
           <b>Resources</b>
-          <span><a href="https://hexdocs.pm/phoenix/<%= @system.phoenix_version %>">Read Phoenix <%= @system.phoenix_version %> Docs</a></span>
+          <span><a href="https://hexdocs.pm/phoenix/<%= @profile.system.phoenix %>">Read Phoenix <%= @profile.system.phoenix %> Docs</a></span>
         </div>
         <div class="phxprof-toolbar-info-item">
           <b>Help</b>
@@ -131,7 +131,7 @@
       <div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
           <b>Toolbar Version</b>
-          <span><a href="https://hexdocs.pm/phoenix_profiler/<%= @system.toolbar_version %>"><%= @system.toolbar_version %></a></span>
+          <span><a href="https://hexdocs.pm/phoenix_profiler/<%= @profile.system.phoenix_profiler %>"><%= @profile.system.phoenix_profiler %></a></span>
         </div>
         <div class="phxprof-toolbar-info-item attribution">
           <b>Made with <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg> by</b>

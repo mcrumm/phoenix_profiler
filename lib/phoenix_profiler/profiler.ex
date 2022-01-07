@@ -4,7 +4,7 @@ defmodule PhoenixProfiler.Profiler do
   alias PhoenixProfiler.Profile
   alias PhoenixProfiler.Utils
 
-  defstruct [:tab]
+  defstruct [:tab, :system]
 
   @doc """
   Resets the profiler, deleting all stored requests.
@@ -24,9 +24,21 @@ defmodule PhoenixProfiler.Profiler do
     end
   end
 
+  @doc """
+  Returns system-level data collected by the profiler at start.
+  """
+  def system(name) do
+    case :persistent_term.get({PhoenixProfiler, name}) do
+      %__MODULE__{system: system} -> system
+      _ -> nil
+    end
+  end
+
   def init({server, options}) do
+    system = Utils.system()
+
     tab = :ets.new(server, [:set, :public, {:write_concurrency, true}])
-    :persistent_term.put({PhoenixProfiler, server}, %__MODULE__{tab: tab})
+    :persistent_term.put({PhoenixProfiler, server}, %__MODULE__{system: system, tab: tab})
 
     :telemetry.attach_many(
       {PhoenixProfiler, server, self()},

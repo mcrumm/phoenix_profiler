@@ -12,7 +12,6 @@ defmodule PhoenixProfiler.ToolbarLive do
       socket
       |> assign_defaults()
       |> assign(:profile, profile)
-      |> assign(:system, system())
 
     socket =
       case Profiler.remote_get(profile) do
@@ -132,16 +131,6 @@ defmodule PhoenixProfiler.ToolbarLive do
       code when code >= 500 and code < 600 -> :red
       _ -> nil
     end
-  end
-
-  defp system do
-    %{
-      elixir_version: System.version(),
-      phoenix_version: Application.spec(:phoenix)[:vsn],
-      live_view_version: Application.spec(:phoenix_live_view)[:vsn],
-      otp_release: System.otp_release(),
-      toolbar_version: Application.spec(:phoenix_profiler)[:vsn]
-    }
   end
 
   @impl Phoenix.LiveView
