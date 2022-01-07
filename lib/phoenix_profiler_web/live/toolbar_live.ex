@@ -76,7 +76,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   defp apply_request(socket, profile) do
     %{conn: %Plug.Conn{} = conn} = profile
     router = conn.private[:phoenix_router]
-    {helper, plug, action} = Routes.guess_router_helper(conn)
+    {helper, plug, action} = Routes.info(socket.assigns.profile.node, conn)
     socket = %{socket | private: Map.put(socket.private, :phoenix_router, router)}
 
     assign(socket, :request, %{
@@ -94,7 +94,9 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   defp update_view(socket, route) do
     update(socket, :request, fn req ->
       router = socket.private[:phoenix_router]
-      {helper, plug, action} = Routes.guess_router_helper(router, route)
+
+      {helper, plug, action} = Routes.info(socket.assigns.profile.node, router, route)
+
       %{req | plug: inspect(plug), action: inspect(action), router_helper: helper}
     end)
   end
