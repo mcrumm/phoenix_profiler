@@ -61,7 +61,7 @@ The following options are available:
 * `:name` - The name of the profiler server. This option is required.
 
 * `:request_sweep_interval` - How often to sweep the ETS table where
-  the profiles are stored. Default is `1m` in milliseconds.
+  the profiles are stored. Default is `24h` in milliseconds.
 
 ### 3. Enable the profiler on your Endpoint
 
