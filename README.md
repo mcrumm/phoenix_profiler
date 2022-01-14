@@ -27,7 +27,7 @@ To start using the profiler, you will need the following steps:
 2. Define a profiler on your supervision tree
 3. Enable the profiler on your Endpoint
 4. Configure LiveView
-5. Add the `PhoenixProfiler` plug
+5. Use `PhoenixProfiler.Endpoint`
 6. Mount the profiler on your LiveViews
 7. Add the profiler page on your LiveDashboard (optional)
 
@@ -106,15 +106,17 @@ config :my_app, MyAppWeb.Endpoint,
   live_view: [signing_salt: "SECRET_SALT"]
 ```
 
-### 5. Add the PhoenixProfiler plug
+### 5. Use PhoenixProfiler.Endpoint
 
-Add the `PhoenixProfiler` plug within the `code_reloading?`
-block on your Endpoint (usually in `lib/my_app_web/endpoint.ex`):
+Add `use PhoenixProfiler.Endpoint` to your Endpoint
+(usually in `lib/my_app_web/endpoint.ex`):
 
 ```elixir
-  if code_reloading? do
+  defmodule MyAppWeb.Endpoint do
+    use Phoenix.Endpoint, otp_app: :my_app
+    use PhoenixProfiler.Endpoint
+
     # plugs...
-    plug PhoenixProfiler
   end
 ```
 
