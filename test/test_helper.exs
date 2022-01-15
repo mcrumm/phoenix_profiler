@@ -5,7 +5,7 @@ Application.put_env(:phoenix_profiler, PhoenixProfilerTest.Endpoint,
   render_errors: [view: PhoenixProfilerTest.ErrorView],
   check_origin: false,
   pubsub_server: PhoenixProfilerTest.PubSub,
-  phoenix_profiler: true
+  phoenix_profiler: [server: PhoenixProfilerTest.Profiler]
 )
 
 Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
@@ -41,6 +41,7 @@ defmodule PhoenixProfilerTest.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+    get "/disabled", PageController, :disabled
 
     forward "/plug-router", PlugRouter
   end
@@ -76,6 +77,13 @@ defmodule PhoenixProfilerTest.PageController do
     |> put_resp_content_type("text/html")
     |> send_resp(200, "<html><body><p>Hello, world</p></body></html>")
   end
+
+  def disabled(conn, _params) do
+    conn
+    |> PhoenixProfiler.disable()
+    |> put_resp_content_type("text/html")
+    |> send_resp(200, "<html><body><p>The profiler should be disabled.</p></body></html>")
+  end
 end
 
 defmodule PhoenixProfilerTest.APIController do
@@ -108,6 +116,7 @@ end
 
 Supervisor.start_link(
   [
+    {PhoenixProfiler, name: PhoenixProfilerTest.Profiler},
     {Phoenix.PubSub, name: PhoenixProfilerTest.PubSub, adapter: Phoenix.PubSub.PG2},
     PhoenixProfilerTest.Endpoint,
     PhoenixProfilerTest.EndpointDisabled

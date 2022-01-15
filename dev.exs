@@ -29,12 +29,207 @@ Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"lib/phoenix_profiler/.*(ex)$",
-      ~r"dev/demo_web/(live|views)/.*(ex)$",
-      ~r"dev/demo_web/templates/.*(eex)$"
+      ~r"dev/templates/.*(eex)$"
     ]
   ],
-  phoenix_profiler: true
+  phoenix_profiler: [server: DemoWeb.Profiler]
 )
+
+defmodule DemoWeb.ErrorView do
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
+
+  def template_not_found(template, _assigns) do
+    Phoenix.Controller.status_message_from_template(template)
+  end
+end
+
+defmodule DemoWeb.LayoutView do
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
+  use Phoenix.HTML
+
+  import Phoenix.Controller,
+    only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
+
+  import Phoenix.LiveView.Helpers
+  import Phoenix.View
+  alias DemoWeb.Router.Helpers, as: Routes
+end
+
+defmodule DemoWeb.PageController do
+  use Phoenix.Controller, namespace: DemoWeb
+  import Plug.Conn
+
+  def index(conn, _params) do
+    render(conn, "index.html")
+  end
+
+  def hello(conn, %{"name" => name}) do
+    render(conn, "hello.html", name: name)
+  end
+
+  def hello(conn, _params) do
+    render(conn, "hello.html", name: "friend")
+  end
+
+  def disabled(conn, _params) do
+    conn = PhoenixProfiler.disable(conn)
+    render(conn, "disabled.html")
+  end
+end
+
+defmodule DemoWeb.PageView do
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
+  use Phoenix.Component
+  use Phoenix.HTML
+  import Phoenix.LiveView.Helpers
+  import Phoenix.View
+  alias DemoWeb.Router.Helpers, as: Routes
+
+  def render("index.html", assigns) do
+    ~H"""
+    <h1>Phoenix Web Profiler Dev</h1>
+    <p>Welcome, devs!</p>
+    <h2>Profiles</h2>
+    <ul>
+      <li><%= link "Profile PageController, :hello", to: Routes.page_path(DemoWeb.Endpoint, :hello) %></li>
+      <li><%= link "Profile PageController, :hello with param", to: Routes.page_path(DemoWeb.Endpoint, :hello, name: "dev") %></li>
+      <li><%= link "Profile ErrorsController: assign not available", to: Routes.errors_path(DemoWeb.Endpoint, :assign_not_available) %></li>
+      <li><%= link "Profile AppLive.Index, :index", to: Routes.app_index_path(DemoWeb.Endpoint, :index) %></li>
+    </ul>
+    <h2>Controls</h2>
+    <ul>
+      <li><%= link "Disable: PageController, :disabled should not be profiled", to: Routes.page_path(DemoWeb.Endpoint, :disabled) %></li>
+    </ul>
+    """
+  end
+
+  def render("hello.html", assigns) do
+    ~H"""
+    <hello>Hello, <%= @name %>!</hello>
+    """
+  end
+
+  def render("disabled.html", assigns) do
+    ~H"""
+    <p>This request <em>is not profiled</em>.</p>
+    """
+  end
+end
+
+defmodule DemoWeb.ErrorsController do
+  use Phoenix.Controller, namespace: DemoWeb
+  import Plug.Conn
+
+  def assign_not_available(conn, _) do
+    render(conn, "assign_not_available.html", %{})
+  end
+end
+
+defmodule DemoWeb.ErrorsView do
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
+  use Phoenix.HTML
+
+  def render("assign_not_available.html", assigns) do
+    ~E"""
+    <p><%= @not_available %></p>
+    """
+  end
+end
+
+defmodule DemoWeb.AppLive.Index do
+  use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
+  alias DemoWeb.Router.Helpers, as: Routes
+
+  on_mount PhoenixProfiler
+
+  def mount(_, _, socket) do
+    {:ok, assign(socket, :count, 0)}
+  end
+
+  def render(assigns) do
+    ~L"""
+    <section class="live">
+      <h2>AppLive Page</h2>
+      <p>Action=<%= @live_action %></p>
+      <p>Count=<%= @count %></p>
+      <button phx-click="plus">+</button><button phx-click="minus">-</button>
+      <p>Links:</p>
+      <ul>
+        <li><%= live_redirect "Navigate to :index", to: Routes.app_index_path(@socket, :index) %></li>
+        <li><%= live_redirect "Navigate to :foo", to: Routes.app_index_path(@socket, :foo) %></li>
+      </ul>
+    </section>
+    """
+  end
+
+  def handle_event("plus", _, socket) do
+    {:noreply,
+     update(socket, :count, fn i ->
+       i = i + 1
+       i
+     end)}
+  end
+
+  def handle_event("minus", _, socket) do
+    {:noreply,
+     update(socket, :count, fn i ->
+       i = i - 1
+       i
+     end)}
+  end
+end
+
+defmodule DemoWeb.PlugRouter do
+  use Plug.Router
+  import Phoenix.Controller
+
+  plug :match
+  plug :dispatch
+
+  get "/" do
+    html(conn, "<html><body>PlugRouter::Home</body></html>")
+  end
+
+  match _ do
+    html(conn, "<html><body>PlugRouter::Not Found</body></html>")
+  end
+end
+
+defmodule DemoWeb.Router do
+  use Phoenix.Router
+
+  import Plug.Conn
+  import Phoenix.Controller
+  import Phoenix.LiveView.Router
+  import Phoenix.LiveDashboard.Router
+
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, {DemoWeb.LayoutView, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
+  scope "/", DemoWeb do
+    pipe_through :browser
+    get "/", PageController, :index
+    get "/hello", PageController, :hello
+    get "/hello/:name", PageController, :hello
+    get "/disabled", PageController, :disabled
+    get "/errors/assign-not-available", ErrorsController, :assign_not_available
+    live "/app", AppLive.Index, :index
+    live "/app/foo", AppLive.Index, :foo
+
+    forward "/plug-router", PlugRouter
+
+    live_dashboard "/dashboard",
+      additional_pages: [
+        _profiler: {PhoenixProfiler.Dashboard, []}
+      ]
+  end
+end
 
 defmodule DemoWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
@@ -80,6 +275,8 @@ Application.put_env(:phoenix, :serve_endpoints, true)
 
 Task.start(fn ->
   children = [
+    {PhoenixProfiler, name: DemoWeb.OtherProfiler},
+    {PhoenixProfiler, name: DemoWeb.Profiler},
     {Phoenix.PubSub, [name: Demo.PubSub, adapter: Phoenix.PubSub.PG2]},
     DemoWeb.Endpoint
   ]

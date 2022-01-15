@@ -5,17 +5,32 @@ defmodule PhoenixProfiler do
              |> String.split("<!-- MDOC -->")
              |> Enum.fetch!(1)
 
+  @doc """
+  Returns the child specification to start the profiler
+  under a supervision tree.
+  """
+  def child_spec(opts) do
+    name = opts[:name] || raise ArgumentError, ":name is required to start the profiler"
+
+    %{
+      id: name,
+      start: {PhoenixProfiler.Profiler, :start_link, [{name, opts}]}
+    }
+  end
+
   @behaviour Plug
 
   @impl Plug
-  defdelegate init(opts), to: PhoenixProfilerWeb.Plug
+  defdelegate init(opts), to: PhoenixProfiler.Plug
 
   @impl Plug
-  defdelegate call(conn, opts), to: PhoenixProfilerWeb.Plug
+  defdelegate call(conn, opts), to: PhoenixProfiler.Plug
 
-  # TODO: Remove when we support only LiveView 0.17+
+  # TODO: Remove when we require LiveView v0.17+.
   @doc false
-  defdelegate mount(params, session, socket), to: PhoenixProfilerWeb.Hooks
+  def mount(params, session, socket) do
+    on_mount(:default, params, session, socket)
+  end
 
   @doc """
   The callback for the mount stage of the LiveView lifecycle.
@@ -25,58 +40,85 @@ defmodule PhoenixProfiler do
       on_mount PhoenixProfiler
 
   """
-  defdelegate on_mount(arg, params, session, socket), to: PhoenixProfilerWeb.Hooks
+  def on_mount(_arg, _params, _session, socket) do
+    if Phoenix.LiveView.connected?(socket) do
+      {:cont, enable(socket)}
+    else
+      {:cont, socket}
+    end
+  end
 
   @doc """
-  Enables the profiler on a given connected `socket`.
+  Enables the profiler on a given `conn` or connected `socket`.
 
-  Normally you do not need to invoke this function. In LiveView 0.16+ it is
-  invoked automatically when using `on_mount PhoenixProfiler`.
+  Normally you do not need to invoke this function manually. It is invoked
+  automatically by the PhoenixProfiler plug in the Endpoint when a
+  profiler is enabled. In LiveView v0.16+ it is invoked automatically when
+  you define `on_mount PhoenixProfiler` on your LiveView.
 
-  Raises if the socket is not connected.
+  This function will raise if the endpoint is not configured with a profiler,
+  or if the configured profiler is not running. For LiveView specifically,
+  this function also raises if the given socket is not connected.
 
   ## Example
+
+  Within a Phoenix Controller (for example, on a show callback):
+
+      def show(conn, params) do
+        conn = PhoenixProfiler.enable(conn)
+        # code...
+      end
+
+  Within a LiveView (for example, on the mount callback):
 
       def mount(params, session, socket) do
         socket =
           if connected?(socket) do
-            PhoenixProfiler.enable_live_profiler(socket)
+            PhoenixProfiler.enable(socket)
           else
             socket
           end
 
         # code...
-
-        {:ok, socket}
       end
 
   """
-  defdelegate enable_live_profiler(socket), to: PhoenixProfiler.Utils
+  defdelegate enable(conn_or_socket), to: PhoenixProfiler.Utils, as: :enable_profiler
 
   @doc """
-  Disables live profiling on a given `socket`.
+  Disables profiling on a given `conn` or `socket`.
 
   ## Examples
 
+  Within a Phoenix Controller (for example, on an update callback):
+
+      def update(conn, params) do
+        conn = PhoenixProfiler.disable(conn)
+        # code...
+      end
+
+  Within in a LiveView (for example, on a handle_event callback):
+
       def handle_event("some-event", _, socket) do
-        {:noreply, PhoenixProfiler.disable_live_profiler(socket)}
+        socket = PhoenixProfiler.disable(socket)
+        # code...
       end
 
   """
-  defdelegate disable_live_profiler(socket), to: PhoenixProfiler.Utils
+  defdelegate disable(conn_or_socket), to: PhoenixProfiler.Utils, as: :disable_profiler
 
   @doc """
-  Returns a page definition for LiveDashboard.
-
-  To use the profiler dashboard, add it to the
-    `:additional_pages` of your live_dashboard:
-
-        live_dashboard "/dashboard",
-          additional_pages: [
-            _profiler: PhoenixProfiler.dashboard()
-            # additional pages...
-          ]
-
+  Resets the storage of the given `profiler`.
   """
-  defdelegate dashboard, to: PhoenixProfilerWeb.Dashboard
+  defdelegate reset(profiler), to: PhoenixProfiler.Profiler
+
+  @doc """
+  Returns all running PhoenixProfiler names.
+  It is important to notice that no order is guaranteed.
+  """
+  def all_running do
+    for {{PhoenixProfiler, name}, %PhoenixProfiler.Profiler{}} <- :persistent_term.get(),
+        GenServer.whereis(name),
+        do: name
+  end
 end

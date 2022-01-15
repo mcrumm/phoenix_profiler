@@ -1,23 +1,23 @@
-defmodule PhoenixProfilerWeb.ToolbarLive do
+defmodule PhoenixProfiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
   require Logger
-  alias PhoenixProfiler.{LiveViewListener, Requests}
-  alias PhoenixProfilerWeb.Routes
+  alias PhoenixProfiler.LiveViewListener
+  alias PhoenixProfiler.Profiler
+  alias PhoenixProfiler.Routes
 
   @impl Phoenix.LiveView
-  def mount(_, %{"node" => node, "token" => token}, socket) do
+  def mount(_, %{"_" => %PhoenixProfiler.Profile{} = profile}, socket) do
     socket =
       socket
       |> assign_defaults()
-      |> assign(:system, system())
-      |> assign(:token, token)
+      |> assign(:profile, profile)
 
     socket =
-      case Requests.remote_get(node, token) do
+      case Profiler.remote_get(profile) do
         nil -> assign_error_toolbar(socket)
-        profile -> assign_toolbar(socket, profile)
+        remote_profile -> assign_toolbar(socket, remote_profile)
       end
 
     if connected?(socket) do
@@ -76,7 +76,7 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   defp apply_request(socket, profile) do
     %{conn: %Plug.Conn{} = conn} = profile
     router = conn.private[:phoenix_router]
-    {helper, plug, action} = Routes.guess_router_helper(conn)
+    {helper, plug, action} = Routes.info(socket.assigns.profile.node, conn)
     socket = %{socket | private: Map.put(socket.private, :phoenix_router, router)}
 
     assign(socket, :request, %{
@@ -94,7 +94,9 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
   defp update_view(socket, route) do
     update(socket, :request, fn req ->
       router = socket.private[:phoenix_router]
-      {helper, plug, action} = Routes.guess_router_helper(router, route)
+
+      {helper, plug, action} = Routes.info(socket.assigns.profile.node, router, route)
+
       %{req | plug: inspect(plug), action: inspect(action), router_helper: helper}
     end)
   end
@@ -130,16 +132,6 @@ defmodule PhoenixProfilerWeb.ToolbarLive do
       code when code >= 500 and code < 600 -> :red
       _ -> nil
     end
-  end
-
-  defp system do
-    %{
-      elixir_version: System.version(),
-      phoenix_version: Application.spec(:phoenix)[:vsn],
-      live_view_version: Application.spec(:phoenix_live_view)[:vsn],
-      otp_release: System.otp_release(),
-      toolbar_version: Application.spec(:phoenix_profiler)[:vsn]
-    }
   end
 
   @impl Phoenix.LiveView

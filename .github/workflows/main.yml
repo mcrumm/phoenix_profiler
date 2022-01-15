@@ -20,7 +20,19 @@ jobs:
               elixir: '1.11'
               otp: 23
           - pair:
-              elixir: '1.12'
+              elixir: '1.13'
+              otp: 24
+            phoenix: '1.5.3'
+          - pair:
+              elixir: '1.13'
+              otp: 24
+            phoenix: '1.5.13'
+          - pair:
+              elixir: '1.13'
+              otp: 24
+            phoenix: '1.6.6'
+          - pair:
+              elixir: '1.13'
               otp: 24
             lint: lint
     steps:
@@ -31,10 +43,18 @@ jobs:
           otp-version: ${{matrix.pair.otp}}
           elixir-version: ${{matrix.pair.elixir}}
 
+      - name: Set the phoenix version environment variable
+        run: |
+          echo "PHOENIX_PROFILER_PHOENIX_VERSION=${{ matrix.phoenix }}" >> $GITHUB_ENV
+        if: ${{ matrix.phoenix }}
+
       - uses: actions/cache@v2
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}-v1
+          key: ${{ runner.os }}-mix-${{matrix.phoenix}}-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}-v2
+
+      - run: mix deps.unlock --all
+        if: ${{ matrix.phoenix }}
 
       - run: mix deps.get
 
@@ -49,7 +69,7 @@ jobs:
       - run: mix compile --warnings-as-errors
         if: ${{ matrix.lint }}
 
-      - run: mix test --exclude tmp_dir
+      - run: mix test
         if: ${{ ! matrix.lint }}
 
       - run: mix test --warnings-as-errors

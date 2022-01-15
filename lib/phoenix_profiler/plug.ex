@@ -1,19 +1,15 @@
-defmodule PhoenixProfilerWeb.Plug do
+defmodule PhoenixProfiler.Plug do
   @moduledoc false
   import Plug.Conn
-  alias PhoenixProfilerWeb.{Request, ToolbarView}
+  alias PhoenixProfiler.Profile
+  alias PhoenixProfiler.ToolbarView
   require Logger
 
-  def init(opts) do
-    toolbar_attrs =
-      case opts[:toolbar_attrs] do
-        attrs when is_list(attrs) -> attrs
-        _ -> []
-      end
+  @token_header_key "x-debug-token"
+  @profiler_header_key "x-debug-token-link"
 
-    %{
-      toolbar_attrs: toolbar_attrs
-    }
+  def init(opts) do
+    opts
   end
 
   # TODO: remove this clause when we add config for profiler except_patterns
@@ -23,43 +19,45 @@ defmodule PhoenixProfilerWeb.Plug do
     conn
   end
 
-  def call(conn, config) do
+  def call(conn, _) do
     endpoint = conn.private.phoenix_endpoint
-    endpoint_config = endpoint.config(:phoenix_profiler)
+    config = endpoint.config(:phoenix_profiler)
 
-    if endpoint_config do
-      start_time = System.monotonic_time()
-
+    if config do
       conn
-      |> Request.apply_debug_token()
-      |> Request.apply_profiler(endpoint_config)
-      |> telemetry(:start, %{system_time: System.system_time()})
-      |> before_send_profile(start_time, endpoint, config)
+      |> PhoenixProfiler.Utils.enable_profiler(endpoint, config, System.system_time())
+      |> before_send_profile(endpoint, config)
     else
       conn
     end
   end
 
-  defp before_send_profile(conn, start_time, endpoint, config) do
-    register_before_send(conn, fn conn ->
-      duration = System.monotonic_time() - start_time
+  defp apply_profile_headers(conn, %Profile{} = profile) do
+    conn
+    |> put_resp_header(@token_header_key, profile.token)
+    |> put_resp_header(@profiler_header_key, profile.url)
+  end
 
-      conn
-      |> telemetry(:stop, %{duration: duration})
-      |> maybe_inject_debug_toolbar(endpoint, config)
+  defp before_send_profile(conn, endpoint, config) do
+    register_before_send(conn, fn conn ->
+      case Map.get(conn.private, :phoenix_profiler) do
+        %Profile{info: :enable} = profile ->
+          conn
+          |> apply_profile_headers(profile)
+          |> PhoenixProfiler.Utils.on_send_resp(profile)
+          |> maybe_inject_debug_toolbar(profile, endpoint, config)
+
+        _ ->
+          conn
+      end
     end)
   end
 
-  defp telemetry(conn, action, measurements) when action in [:start, :stop] do
-    :telemetry.execute([:phxprof, :plug, action], measurements, %{conn: conn})
-    conn
-  end
+  defp maybe_inject_debug_toolbar(%{resp_body: nil} = conn, _, _, _), do: conn
 
-  defp maybe_inject_debug_toolbar(%{resp_body: nil} = conn, _, _), do: conn
-
-  defp maybe_inject_debug_toolbar(conn, endpoint, config) do
+  defp maybe_inject_debug_toolbar(conn, profile, endpoint, config) do
     if html?(conn) do
-      inject_debug_toolbar(conn, endpoint, config)
+      inject_debug_toolbar(conn, profile, endpoint, config)
     else
       conn
     end
@@ -68,13 +66,13 @@ defmodule PhoenixProfilerWeb.Plug do
   # HTML Injection
   # Copyright (c) 2018 Chris McCord
   # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
-  defp inject_debug_toolbar(conn, endpoint, config) do
+  defp inject_debug_toolbar(conn, profile, endpoint, config) do
     resp_body = IO.iodata_to_binary(conn.resp_body)
 
     if has_body?(resp_body) and Code.ensure_loaded?(endpoint) do
       [page | rest] = String.split(resp_body, "</body>")
 
-      body = [page, debug_toolbar_assets_tag(conn, endpoint, config), "</body>" | rest]
+      body = [page, debug_toolbar_assets_tag(conn, profile, config), "</body>" | rest]
       put_in(conn.resp_body, body)
     else
       conn
@@ -90,16 +88,21 @@ defmodule PhoenixProfilerWeb.Plug do
 
   defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
 
-  defp debug_toolbar_assets_tag(conn, _endpoint, config) do
+  defp debug_toolbar_assets_tag(conn, profile, config) do
     try do
-      if Code.ensure_loaded?(PhoenixProfilerWeb.ToolbarLive) do
-        token = Request.debug_token!(conn)
+      if Code.ensure_loaded?(PhoenixProfiler.ToolbarLive) do
         motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
+
+        toolbar_attrs =
+          case config[:toolbar_attrs] do
+            attrs when is_list(attrs) -> attrs
+            _ -> []
+          end
 
         attrs =
           Keyword.merge(
-            config.toolbar_attrs,
-            id: Request.toolbar_id(conn),
+            toolbar_attrs,
+            id: "pwdt#{profile.token}",
             class: String.trim("phxprof-toolbar #{motion_class}"),
             role: "region",
             name: "Phoenix Web Debug Toolbar"
@@ -108,8 +111,8 @@ defmodule PhoenixProfilerWeb.Plug do
         ToolbarView
         |> Phoenix.View.render("index.html", %{
           conn: conn,
-          session: %{"token" => token, "node" => node()},
-          token: token,
+          session: %{"_" => profile},
+          profile: profile,
           toolbar_attrs: attrs(attrs)
         })
         |> Phoenix.HTML.Safe.to_iodata()

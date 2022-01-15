@@ -4,6 +4,7 @@ defmodule PhoenixProfiler.LiveViewListener do
   @moduledoc false
   use GenServer, restart: :temporary
   alias Phoenix.LiveView
+  alias PhoenixProfiler.Profile
 
   @doc """
   Subscribes the caller to updates about a given transport.
@@ -26,13 +27,7 @@ defmodule PhoenixProfiler.LiveViewListener do
       raise ArgumentError, "listen/2 may only be called when the socket is connected."
     end
 
-    # TODO: replace it with `socket.transport_pid` when we support only LiveView 0.16+
-    transport_pid =
-      Map.get_lazy(socket, :transport_pid, fn ->
-        LiveView.transport_pid(socket)
-      end)
-
-    listen(node(), transport_pid, opts)
+    listen(node(), transport_pid(socket), opts)
   end
 
   def listen(node, transport, opts) when is_pid(transport) do
@@ -112,20 +107,44 @@ defmodule PhoenixProfiler.LiveViewListener do
   def telemetry_callback(
         [:phoenix, :live_view | _] = event,
         measurements,
-        %{
-          socket: %{
-            transport_pid: transport,
-            root_pid: pid,
-            private: %{phxprof_enabled: {_, ref}}
-          }
-        } = metadata,
-        %{parent: parent, transport: transport} = context
+        %{socket: %{root_pid: pid}} = metadata,
+        %{parent: parent} = context
       )
-      when is_pid(pid) and is_pid(parent) and pid != parent and is_reference(ref) do
-    send(context.listener, {:telemetry, event, measurements, metadata})
+      when is_pid(pid) and is_pid(parent) and pid != parent do
+    %{socket: socket} = metadata
+    %{transport: transport_pid} = context
+
+    with :ok <- check_profiler_enabled(socket),
+         :ok <- check_matching_transport(socket, transport_pid) do
+      send(context.listener, {:telemetry, event, measurements, metadata})
+    end
   end
 
   def telemetry_callback(_, _, _, _), do: :ok
+
+  # TODO: replace with `socket.transport_pid` when we require LiveView v0.16+.
+  defp transport_pid(%LiveView.Socket{} = socket) do
+    Map.get_lazy(socket, :transport_pid, fn ->
+      LiveView.transport_pid(socket)
+    end)
+  end
+
+  defp check_profiler_enabled(%LiveView.Socket{private: %{phoenix_profiler: %Profile{} = profile}}) do
+    case profile.info do
+      :enable -> :ok
+      _ -> {:error, :profiler_not_enabled}
+    end
+  end
+
+  defp check_profiler_enabled(%LiveView.Socket{}), do: {:error, :profiler_not_enabled}
+
+  defp check_matching_transport(%LiveView.Socket{} = socket, transport_pid) do
+    if transport_pid == transport_pid(socket) do
+      :ok
+    else
+      {:error, :transport_pid_does_not_match}
+    end
+  end
 
   defp check_navigation(state, %{root_pid: pid} = socket) do
     if LiveView.connected?(socket) and state.root_pid != pid do

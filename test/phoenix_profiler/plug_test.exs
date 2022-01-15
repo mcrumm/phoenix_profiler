@@ -1,25 +1,18 @@
-defmodule PhoenixProfilerTest do
+defmodule PhoenixProfiler.PlugTest do
   use ExUnit.Case, async: true
-
   import Plug.Test
   import Plug.Conn
 
-  alias PhoenixProfilerWeb.Request
-
-  doctest PhoenixProfiler
-
-  test "keys" do
-    assert Request.token_key() == :pwdt
-    assert Request.token_header_key() == "x-debug-token"
-  end
+  @token_header_key "x-debug-token"
+  @profiler_header_key "x-debug-token-link"
 
   defp conn(path) do
     :get
     |> conn(path)
-    |> Plug.Conn.put_private(:phoenix_endpoint, PhoenixProfilerTest.Endpoint)
+    |> put_private(:phoenix_endpoint, PhoenixProfilerTest.Endpoint)
   end
 
-  test "injects debug token header if configured" do
+  test "injects debug token headers if configured" do
     opts = PhoenixProfiler.init([])
 
     conn =
@@ -27,9 +20,11 @@ defmodule PhoenixProfilerTest do
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
-    token = Request.debug_token!(conn)
+    assert [token] = Plug.Conn.get_resp_header(conn, @token_header_key)
+    assert [url] = Plug.Conn.get_resp_header(conn, @profiler_header_key)
 
-    assert get_resp_header(conn, Request.token_header_key()) == [token]
+    assert url ==
+             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
   end
 
   test "skips debug token when disabled at the Endpoint" do
@@ -41,7 +36,8 @@ defmodule PhoenixProfilerTest do
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
-    assert get_resp_header(conn, Request.token_header_key()) == []
+    assert get_resp_header(conn, @token_header_key) == []
+    assert get_resp_header(conn, @profiler_header_key) == []
   end
 
   test "injects debug toolbar for html requests if configured and contains the <body> tag" do
@@ -53,10 +49,10 @@ defmodule PhoenixProfilerTest do
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixProfiler</h1></body></html>")
 
-    token = Request.debug_token!(conn)
+    profile = conn.private.phoenix_profiler
 
     assert to_string(conn.resp_body) =~
-             ~s[<html><body><h1>PhoenixProfiler</h1><div id="pwdt#{token}" class="phxprof-toolbar" role="region" name="Phoenix Web Debug Toolbar">]
+             ~s[<html><body><h1>PhoenixProfiler</h1><!-- START Phoenix Web Debug Toolbar -->\n<div id="pwdt#{profile.token}" class="phxprof-toolbar" role="region" name="Phoenix Web Debug Toolbar">]
   end
 
   test "skips debug toolbar injection when disabled at the Endpoint" do
@@ -69,7 +65,7 @@ defmodule PhoenixProfilerTest do
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixProfiler</h1></body></html>")
 
-    assert get_resp_header(conn, Request.token_header_key()) == []
+    assert get_resp_header(conn, @token_header_key) == []
 
     assert to_string(conn.resp_body) == "<html><body><h1>PhoenixProfiler</h1></body></html>"
   end
@@ -95,9 +91,9 @@ defmodule PhoenixProfilerTest do
       |> PhoenixProfiler.call(opts)
       |> send_resp(200, "")
 
-    token = Request.debug_token!(conn)
+    profile = conn.private.phoenix_profiler
 
     refute to_string(conn.resp_body) =~
-             ~s(<div id="pwdt#{token}")
+             ~s(<div id="pwdt#{profile.token}")
   end
 end

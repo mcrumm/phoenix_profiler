@@ -67,14 +67,28 @@ defmodule PhoenixProfiler.LiveViewListenerTest do
   defp live_profile_isolated(%Plug.Conn{} = conn, mod) when is_atom(mod) do
     with {:ok, view, html} <- live_isolated(conn, mod),
          {:ok, socket} <- run(view, &{:reply, {:ok, &1}, &1}),
+         {:ok, transport_pid} <-
+           run(view, &{:reply, {:ok, Phoenix.LiveView.transport_pid(&1)}, &1}),
+         socket <- ensure_socket_connected(socket, transport_pid),
          {:ok, _} <- LiveViewListener.listen(socket) do
       {:ok, view, html}
     end
   end
 
+  # TODO: remove when we require LiveView v0.15+.
+  defp ensure_socket_connected(%Phoenix.LiveView.Socket{} = socket, transport_pid) do
+    if Map.has_key?(socket, :connected?) do
+      socket
+      |> Map.put(:connected?, true)
+      |> Map.put(:transport_pid, transport_pid)
+    else
+      socket
+    end
+  end
+
   defp disable_profiler(lv) do
     run(lv, fn socket ->
-      {:reply, :ok, PhoenixProfiler.disable_live_profiler(socket)}
+      {:reply, :ok, PhoenixProfiler.disable(socket)}
     end)
   end
 

@@ -7,25 +7,29 @@ Provides a **development tool** that gives detailed information about the execut
 
 ## Built-in Features
 
-* HTTP Response metadata - status code, endpoint, router, controller/action, live_view/live_action, etc.
+* Request/Response - status code, params, headers, cookies, etc.
+
+* Routing - endpoint, router, controller/live view, action, etc.
 
 * Basic diagnostics - response time, memory
 
 * Inspect LiveView crashes
 
-* Mailer preview shortcut (TODO)
+* Inspect Ecto queries (Coming Soon)
+
+* Swoosh mailer integration (Coming Soon)
 
 ## Installation
 
 To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_profiler` dependency
-2. Enable the profiler on your Endpoint
-3. Configure LiveView
-4. Add the `PhoenixProfiler` Plug
-5. Mount the profiler on your LiveViews
-6. Add the profiler page on your LiveDashboard (optional)
-7. Configure the toolbar (optional)
+2. Define a profiler on your supervision tree
+3. Enable the profiler on your Endpoint
+4. Configure LiveView
+5. Add the `PhoenixProfiler` plug
+6. Mount the profiler on your LiveViews
+7. Add the profiler page on your LiveDashboard (optional)
 
 ### 1. Add the phoenix_profiler dependency
 
@@ -35,19 +39,59 @@ Add phoenix_profiler to your `mix.exs`:
 {:phoenix_profiler, "~> 0.1.0", github: "mcrumm/phoenix_profiler"}
 ```
 
-### 2. Enable the profiler on your Endpoint
+### 2. Define a profiler on your supervision tree
 
-The Phoenix Web Profiler is disabled by default. In order to enable it,
-update your endpoint's `:dev` configuration to include the
-`:phoenix_profiler` key:
+You define a profiler on your main application's supervision
+tree (usually in `lib/my_app/application.ex`):
+
+```elixir
+    children = [
+      {PhoenixProfiler, name: MyAppWeb.Profiler},
+      # MyApp.Repo
+      # MyAppWeb.Endpoint,
+      # etc...
+    ]
+```
+
+Note that the profiler must be running for data to be collected,
+so it must come before any endpoints in your supervision tree.
+
+The following options are available:
+
+* `:name` - The name of the profiler server. This option is required.
+
+* `:request_sweep_interval` - How often to sweep the ETS table where
+  the profiles are stored. Default is `24h` in milliseconds.
+
+### 3. Enable the profiler on your Endpoint
+
+PhoenixProfiler is disabled by default. In order to enable it,
+you must update your endpoint's `:dev` configuration to include the
+`:phoenix_profiler` options:
 
 ```elixir
 # config/dev.exs
 config :my_app, MyAppWeb.Endpoint,
-  phoenix_profiler: true
+  phoenix_profiler: [server: MyAppWeb.Profiler]
 ```
 
-### 3. Configure LiveView
+All web configuration is done inside the `:phoenix_profiler` key on the endpoint.
+
+The following options are available:
+
+* `:server` - The name of the profiler server. This option is required.
+
+* `:enable` - When set to `false`, disables profiling by default. You can
+  always enable profiling on a request via `enable/1`. Defaults to `true`.
+
+* `:profiler_link_base` - The base path for generating links
+  on the toolbar. Defaults to `"/dashboard/_profiler"`.
+
+* `:toolbar_attrs` - HTML attributes to be given to the element
+  injected for the toolbar. Expects a keyword list of atom keys and
+  string values. Defaults to `[]`.
+
+### 4. Configure LiveView
 
 > If LiveView is already installed in your app, you may skip this section.
 
@@ -62,37 +106,30 @@ config :my_app, MyAppWeb.Endpoint,
   live_view: [signing_salt: "SECRET_SALT"]
 ```
 
-### 4. Add the profiler Plug
+### 5. Add the PhoenixProfiler plug
 
-Add the `PhoenixProfiler` plug on the bottom of the
-`if code_reloading? do` block on your Endpoint,
-typically found at `lib/my_app_web/endpoint.ex`:
+Add the `PhoenixProfiler` plug within the `code_reloading?`
+block on your Endpoint (usually in `lib/my_app_web/endpoint.ex`):
 
 ```elixir
-# endpoint.ex
-if code_reloading? do
-  # plugs...
-  plug PhoenixProfiler
-end
+  if code_reloading? do
+    # plugs...
+    plug PhoenixProfiler
+  end
 ```
 
-Additional configuration is done on the Plug. The following options are available:
-
-* `:toolbar_attrs` - HTML attributes to be given to the element
-  injected for the toolbar. Expects a keyword list of atom keys and
-  string values. Defaults to `[]`.
-
-### 5. Mount the profiler on your LiveViews
+### 6. Mount the profiler on your LiveViews
 
 Note this section is required only if you are using LiveView, otherwise you may skip it.
 
 Add the profiler hook to the `live_view` function on your
-web module, typically found at `lib/my_app_web.ex`:
+web module (usually in `lib/my_app_web.ex`):
 
 ```elixir
   def live_view do
     quote do
       # use...
+
       on_mount PhoenixProfiler
 
       # view helpers...
@@ -100,37 +137,36 @@ web module, typically found at `lib/my_app_web.ex`:
   end
 ```
 
-Note the `on_mount` macro requires LiveView 0.16+. For earlier versions,
-see `PhoenixProfiler.enable_live_profiler/1`.
+Note the [`on_mount`](`Phoenix.LiveView.on_mount/1`) macro requires LiveView 0.16+. For earlier versions,
+see `PhoenixProfiler.enable/1`.
 
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 
-### 6. Add the profiler dashboard page
+### 7. Add the profiler page on your LiveDashboard (optional)
 
 Note this section is required for the LiveDashboard integration. If you are
 not using LiveDashboard, you may technically skip this step, although it is
 highly recommended that you
 [install LiveDashboard](https://hexdocs.pm/phoenix_live_dashboard/Phoenix.LiveDashboard.html#module-installation)
-to enjoy all the features of the profiler.
+to enjoy all the features of PhoenixProfiler.
 
 Add the dashboard definition to the list of `:additional_pages` on
-the `live_dashboard` macro in your router:
+the [`live_dashboard`](`Phoenix.LiveDashboard.Router.live_dashboard/2`) macro
+in your router (usually in `lib/my_app_web/router.ex`):
 
 ```elixir
-# router.ex
 live_dashboard "/dashboard",
   additional_pages: [
-    _profiler: PhoenixProfiler.dashboard()
+    _profiler: {PhoenixProfiler.Dashboard, []}
     # additional pages...
   ]
 ```
 
-### 7. Configure the toolbar (optional)
+## Reduced motion toolbar options
 
-It's also possible to configure the toolbar by exporting ENV vars as you wish:
-
-* `PHOENIX_PROFILER_REDUCED_MOTION` - To disable the show/hide animation.
-  Expects to be defined with any value. Defaults to empty (unset).
+If a `PHOENIX_PROFILER_REDUCED_MOTION` environment variable is set,
+`PhoenixProfiler` will disable all toolbar animations. The value of the
+environment variable is not evaluated.
 
 <!-- MDOC -->
 
