@@ -2,6 +2,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   # The LiveView for the Web Debug Toolbar
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
+  require Logger
   alias PhoenixProfiler.LiveViewListener
   alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Routes
@@ -67,7 +68,8 @@ defmodule PhoenixProfiler.ToolbarLive do
     |> apply_request(profile)
     |> assign(:durations, %{
       total: duration(metrics.total_duration),
-      endpoint: duration(metrics.endpoint_duration)
+      endpoint: duration(metrics.endpoint_duration),
+      latest_event: nil
     })
     |> assign(:memory, memory(metrics.memory))
   end
@@ -142,8 +144,13 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, update_view(socket, view)}
   end
 
+  def handle_info({:event_duration, duration}, socket) do
+    socket = update(socket, :durations, &%{&1 | latest_event: duration(duration)})
+    {:noreply, socket}
+  end
+
   def handle_info(other, socket) do
-    IO.inspect(other, label: "ToolbarLive received an unknown message")
+    Logger.debug("ToolbarLive received an unknown message: #{inspect(other)}")
     {:noreply, socket}
   end
 
@@ -158,5 +165,11 @@ defmodule PhoenixProfiler.ToolbarLive do
      socket
      |> update(:exits, &[exception | &1])
      |> update(:exits_count, &(&1 + 1))}
+  end
+
+  defp current_duration(durations) do
+    if event = durations.latest_event,
+      do: {event.value, event.label},
+      else: {durations.total.value, durations.total.label}
   end
 end
