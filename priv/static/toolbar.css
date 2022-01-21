@@ -46,11 +46,11 @@
   transition: none;
 }
 
-.phxprof-toolbar.hidden > .phxprof-minitoolbar {
+.phxprof-toolbar.miniaturized > .phxprof-minitoolbar {
   height: var(--size-mini-toolbar-height);
 }
 
-.phxprof-toolbar.hidden > .phxprof-toolbar-view {
+.phxprof-toolbar.miniaturized > .phxprof-toolbar-view {
   height: var(--size-0);
 }
 

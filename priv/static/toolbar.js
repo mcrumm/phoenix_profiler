@@ -19,11 +19,11 @@
     },
     show(localStorage) {
       this.setLocal(localStorage, window.location.host, SHOW, true)
-      toolbar.classList.remove("hidden")
+      toolbar.classList.remove("miniaturized")
     },
     hide(localStorage) {
       this.setLocal(localStorage, window.location.host, SHOW, false)
-      toolbar.classList.add("hidden")
+      toolbar.classList.add("miniaturized")
     },
     showOrHide(localStorage) {
       (this.getLocal(localStorage, window.location.host, SHOW, true)) ? this.show(localStorage): this.hide(localStorage)
