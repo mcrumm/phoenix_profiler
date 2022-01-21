@@ -41,11 +41,7 @@ defmodule PhoenixProfiler do
 
   """
   def on_mount(_arg, _params, _session, socket) do
-    if Phoenix.LiveView.connected?(socket) do
-      {:cont, enable(socket)}
-    else
-      {:cont, socket}
-    end
+    {:cont, PhoenixProfiler.Utils.maybe_mount_profile(socket)}
   end
 
   @doc """

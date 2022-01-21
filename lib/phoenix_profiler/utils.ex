@@ -6,6 +6,21 @@ defmodule PhoenixProfiler.Utils do
   @default_profiler_link_base "/dashboard/_profiler"
 
   @doc """
+  Mounts the profile if it has been enabled on the endpoint.
+  """
+  def maybe_mount_profile(%LiveView.Socket{} = socket) do
+    if LiveView.connected?(socket) and configured?(socket) do
+      enable_profiler(socket)
+    else
+      socket
+    end
+  end
+
+  defp configured?(conn_or_socket) do
+    endpoint(conn_or_socket).config(:phoenix_profiler, false) != false
+  end
+
+  @doc """
   Enables the profiler on a given `conn` or `socket`.
 
   Raises if the profiler is not defined or is not started.
