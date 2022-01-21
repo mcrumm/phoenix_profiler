@@ -99,6 +99,7 @@ defmodule DemoWeb.PageView do
     <h2>Controls</h2>
     <ul>
       <li><%= link "Disable: PageController, :disabled should not be profiled", to: Routes.page_path(DemoWeb.Endpoint, :disabled) %></li>
+      <li><%= link "Disable: AppLive.Index, :disabled should not be live profiled", to: Routes.app_index_path(DemoWeb.Endpoint, :disabled) %></li>
     </ul>
     """
   end
@@ -138,6 +139,7 @@ end
 
 defmodule DemoWeb.AppLive.Index do
   use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
+  use Phoenix.HTML
   alias DemoWeb.Router.Helpers, as: Routes
 
   on_mount PhoenixProfiler
@@ -146,9 +148,24 @@ defmodule DemoWeb.AppLive.Index do
     {:ok, assign(socket, :count, 0)}
   end
 
+  def handle_params(params, _, socket) do
+    apply_action(socket, socket.assigns.live_action, params)
+  end
+
+  defp apply_action(socket, :disabled, _) do
+    {:noreply, PhoenixProfiler.disable(socket)}
+  end
+
+  defp apply_action(socket, _, _) do
+    {:noreply, socket}
+  end
+
   def render(assigns) do
     ~L"""
     <section class="live">
+      <%= if @live_action == :disabled do %>
+      <p style="color:firebrick;">PhoenixProfiler has been disabled on this LiveView. The toolbar will still appear because the profiler was enabled for the static render, but it will not receive live updates.</p>
+      <% end %>
       <h2>AppLive Page</h2>
       <p>Action=<%= @live_action %></p>
       <p>Count=<%= @count %></p>
@@ -157,6 +174,7 @@ defmodule DemoWeb.AppLive.Index do
       <ul>
         <li><%= live_redirect "Navigate to :index", to: Routes.app_index_path(@socket, :index) %></li>
         <li><%= live_redirect "Navigate to :foo", to: Routes.app_index_path(@socket, :foo) %></li>
+        <li><%= link "Navigate to :disabled", to: Routes.app_index_path(@socket, :disabled) %></li>
       </ul>
     </section>
     """
@@ -221,6 +239,7 @@ defmodule DemoWeb.Router do
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
     live "/app", AppLive.Index, :index
     live "/app/foo", AppLive.Index, :foo
+    live "/app/disabled", AppLive.Index, :disabled
 
     forward "/plug-router", PlugRouter
 
