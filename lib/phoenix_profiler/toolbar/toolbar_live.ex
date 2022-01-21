@@ -36,7 +36,7 @@ defmodule PhoenixProfiler.ToolbarLive do
 
   defp assign_defaults(socket) do
     assign(socket,
-      durations: %{},
+      durations: nil,
       exits: [],
       exits_count: 0,
       memory: nil
@@ -48,7 +48,7 @@ defmodule PhoenixProfiler.ToolbarLive do
     # Usually this occurs after a node has been restarted and
     # a request is received for a stale token.
     assign(socket, %{
-      durations: %{},
+      durations: nil,
       request: %{
         status_code: ":|",
         status_phrase: "No Profiler Session (refresh)",
@@ -146,7 +146,12 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   def handle_info({:event_duration, duration}, socket) do
-    socket = update(socket, :durations, &%{&1 | latest_event: duration(duration)})
+    socket =
+      update(socket, :durations, fn durations ->
+        durations = durations || %{total: nil, endpoint: nil, latest_event: nil}
+        %{durations | latest_event: duration(duration)}
+      end)
+
     {:noreply, socket}
   end
 

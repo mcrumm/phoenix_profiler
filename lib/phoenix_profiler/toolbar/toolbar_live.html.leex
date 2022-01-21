@@ -34,8 +34,8 @@
         <span><%= @request.endpoint %></span>
       </div>
     </div>
-  </div><%= if map_size(@durations) > 0 do %>
-  <div class="phxprof-toolbar-panel phxprof-toolbar-panel-duration" aria-label="Duration, <%= @durations.total.phrase %>">
+  </div><%= if @durations do %>
+  <div class="phxprof-toolbar-panel phxprof-toolbar-panel-duration" aria-label="Durations">
     <div class="phxprof-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
@@ -44,11 +44,11 @@
       <span class="phxprof-toolbar-value"><%= value %></span>
       <span class="phxprof-toolbar-label"><%= label %></span>
     </div>
-    <div class="phxprof-toolbar-info">
+    <div class="phxprof-toolbar-info"><%= if @durations.total do %>
       <div class="phxprof-toolbar-info-item">
         <b>Total Duration</b>
         <span><%= @durations.total.value %><%= @durations.total.label %></span>
-      </div><%= if @durations.endpoint do %>
+      </div><% end %><%= if @durations.endpoint do %>
       <div class="phxprof-toolbar-info-item">
         <b>Endpoint Duration</b>
         <span><%= @durations.endpoint.value %> <%= @durations.endpoint.label %></span>
