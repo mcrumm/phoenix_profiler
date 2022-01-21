@@ -34,7 +34,7 @@
         <span><%= @request.endpoint %></span>
       </div>
     </div>
-  </div><%= if @durations do %>
+  </div><%= if map_size(@durations) > 0 do %>
   <div class="phxprof-toolbar-panel phxprof-toolbar-panel-duration" aria-label="Duration, <%= @durations.total.phrase %>">
     <div class="phxprof-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

@@ -36,6 +36,7 @@ defmodule PhoenixProfiler.ToolbarLive do
 
   defp assign_defaults(socket) do
     assign(socket,
+      durations: %{},
       exits: [],
       exits_count: 0,
       memory: nil
@@ -47,7 +48,7 @@ defmodule PhoenixProfiler.ToolbarLive do
     # Usually this occurs after a node has been restarted and
     # a request is received for a stale token.
     assign(socket, %{
-      durations: nil,
+      durations: %{},
       request: %{
         status_code: ":|",
         status_phrase: "No Profiler Session (refresh)",
