@@ -91,6 +91,9 @@ The following options are available:
   injected for the toolbar. Expects a keyword list of atom keys and
   string values. Defaults to `[]`.
 
+* `:reduce_motion` - When set to `true`, disables all toolbar animations.
+  Defaults to `false`.
+
 ### 4. Configure LiveView
 
 > If LiveView is already installed in your app, you may skip this section.
@@ -161,12 +164,6 @@ live_dashboard "/dashboard",
     # additional pages...
   ]
 ```
-
-## Reduced motion toolbar options
-
-If a `PHOENIX_PROFILER_REDUCED_MOTION` environment variable is set,
-`PhoenixProfiler` will disable all toolbar animations. The value of the
-environment variable is not evaluated.
 
 <!-- MDOC -->
 

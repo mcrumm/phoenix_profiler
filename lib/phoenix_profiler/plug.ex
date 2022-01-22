@@ -91,13 +91,13 @@ defmodule PhoenixProfiler.Plug do
   defp debug_toolbar_assets_tag(conn, profile, config) do
     try do
       if Code.ensure_loaded?(PhoenixProfiler.ToolbarLive) do
-        motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
-
         toolbar_attrs =
           case config[:toolbar_attrs] do
             attrs when is_list(attrs) -> attrs
             _ -> []
           end
+
+        motion_class = if config[:reduce_motion], do: "no-motion"
 
         attrs =
           Keyword.merge(
