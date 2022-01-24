@@ -180,7 +180,7 @@
   height: var(--size-toolbar);
   margin-right: 0;
   white-space: nowrap;
-  max-width: 15%;
+  max-width: 20%;
 }
 
 .phxprof-toolbar-panel>a,
