@@ -19,7 +19,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     alias PhoenixProfiler.Profiler
 
     @disabled_link "https://hexdocs.pm/phoenix_profiler"
-    @page_title "Phoenix profilers"
+    @page_title "Phoenix Profilers"
 
     @impl true
     def init(opts) do
