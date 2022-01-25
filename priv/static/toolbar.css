@@ -389,6 +389,7 @@ div.phxprof-toolbar .phxprof-toolbar-panel a:hover {
   padding: 0 var(--size-2);
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
 .phxprof-toolbar-panel-request .phxprof-toolbar-icon {
