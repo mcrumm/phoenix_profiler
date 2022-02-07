@@ -71,6 +71,10 @@ defmodule DemoWeb.PageController do
     render(conn, "hello.html", name: "friend")
   end
 
+  def live(conn, _params) do
+    render(conn, "live.html")
+  end
+
   def disabled(conn, _params) do
     conn = PhoenixProfiler.disable(conn)
     render(conn, "disabled.html")
@@ -81,7 +85,6 @@ defmodule DemoWeb.PageView do
   use Phoenix.View, root: "dev/templates", namespace: DemoWeb
   use Phoenix.Component
   use Phoenix.HTML
-  import Phoenix.LiveView.Helpers
   import Phoenix.View
   alias DemoWeb.Router.Helpers, as: Routes
 
@@ -89,11 +92,15 @@ defmodule DemoWeb.PageView do
     ~H"""
     <h1>Phoenix Web Profiler Dev</h1>
     <p>Welcome, devs!</p>
-    <h2>Profiles</h2>
+    <h2>Stateless Profiles</h2>
     <ul>
       <li><%= link "Profile PageController, :hello", to: Routes.page_path(DemoWeb.Endpoint, :hello) %></li>
       <li><%= link "Profile PageController, :hello with param", to: Routes.page_path(DemoWeb.Endpoint, :hello, name: "dev") %></li>
       <li><%= link "Profile ErrorsController: assign not available", to: Routes.errors_path(DemoWeb.Endpoint, :assign_not_available) %></li>
+    </ul>
+    <h2>Live Profiles</h2>
+    <ul>
+      <li><%= link "Profile PageController, :live", to: Routes.page_path(DemoWeb.Endpoint, :live) %></li>
       <li><%= link "Profile AppLive.Index, :index", to: Routes.app_index_path(DemoWeb.Endpoint, :index) %></li>
     </ul>
     <h2>Controls</h2>
@@ -115,6 +122,54 @@ defmodule DemoWeb.PageView do
     <p>This request <em>is not profiled</em>.</p>
     """
   end
+
+  def render("live.html", assigns) do
+    ~H"""
+    <div>
+      <%= live_render(@conn, EmbeddedLive.Switch, id: "hallway", session: %{"name" => "hall_lights", "state" => "on"}) %>
+      <%= live_render(@conn, EmbeddedLive.Switch, id: "kitchen", session: %{"name" => "kitchen_lights", "state" => "on"}) %>
+    </div>
+    """
+  end
+end
+
+defmodule EmbeddedLive.Switch do
+  use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
+
+  def render(assigns) do
+    ~H"""
+    <div style="display:flex;align-items:baseline;">
+      <a href="javascript:void(0);" phx-click="toggle" phx-click-value={@value}>
+        <%= @label <> " " <> (if @checked, do: "on", else: "off") %>
+      </a>
+    </div>
+    """
+  end
+
+  def handle_event("toggle", _, socket) do
+    {:noreply, update(socket, :checked, &(!&1))}
+  end
+
+  def mount(_, session, socket) do
+    socket = assign_new(socket, :name, fn -> session["name"] || "checkbox" end)
+
+    socket =
+      socket
+      |> assign_new(:id, fn ->
+        session["id"] || "chk#{String.capitalize(socket.assigns.name)}"
+      end)
+      |> assign_new(:label, fn ->
+        session["label"] || Phoenix.Naming.humanize(socket.assigns.name)
+      end)
+      |> assign(:value, "PID#{:erlang.pid_to_list(self())}")
+      |> assign_new(:checked, fn -> checked(session["state"]) end)
+
+    {:ok, socket, layout: false}
+  end
+
+  defp checked("on"), do: true
+  defp checked("off"), do: false
+  defp checked(_), do: false
 end
 
 defmodule DemoWeb.ErrorsController do
@@ -237,6 +292,7 @@ defmodule DemoWeb.Router do
     get "/hello/:name", PageController, :hello
     get "/disabled", PageController, :disabled
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
+    get "/live-render", PageController, :live
     live "/app", AppLive.Index, :index
     live "/app/foo", AppLive.Index, :foo
     live "/app/disabled", AppLive.Index, :disabled
