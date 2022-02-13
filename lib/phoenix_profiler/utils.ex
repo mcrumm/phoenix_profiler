@@ -199,6 +199,16 @@ defmodule PhoenixProfiler.Utils do
     Application.spec(app)[:vsn]
   end
 
+  @doc """
+  Returns the `transport_pid` for a given `socket`.
+  """
+  # TODO: replace with `socket.transport_pid` when we require LiveView v0.16+.
+  def transport_pid(%LiveView.Socket{} = socket) do
+    Map.get_lazy(socket, :transport_pid, fn ->
+      LiveView.transport_pid(socket)
+    end)
+  end
+
   @doc false
   def on_send_resp(conn, %Profile{} = profile) do
     duration = System.monotonic_time() - profile.start_time

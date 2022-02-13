@@ -5,6 +5,7 @@ defmodule PhoenixProfiler.LiveViewListener do
   use GenServer, restart: :temporary
   alias Phoenix.LiveView
   alias PhoenixProfiler.Profile
+  alias PhoenixProfiler.Utils
 
   @doc """
   Subscribes the caller to updates about a given transport.
@@ -27,7 +28,7 @@ defmodule PhoenixProfiler.LiveViewListener do
       raise ArgumentError, "listen/2 may only be called when the socket is connected."
     end
 
-    listen(node(), transport_pid(socket), opts)
+    listen(node(), Utils.transport_pid(socket), opts)
   end
 
   def listen(node, transport, opts) when is_pid(transport) do
@@ -122,13 +123,6 @@ defmodule PhoenixProfiler.LiveViewListener do
 
   def telemetry_callback(_, _, _, _), do: :ok
 
-  # TODO: replace with `socket.transport_pid` when we require LiveView v0.16+.
-  defp transport_pid(%LiveView.Socket{} = socket) do
-    Map.get_lazy(socket, :transport_pid, fn ->
-      LiveView.transport_pid(socket)
-    end)
-  end
-
   defp check_profiler_enabled(%LiveView.Socket{private: %{phoenix_profiler: %Profile{} = profile}}) do
     case profile.info do
       :enable -> :ok
@@ -139,7 +133,7 @@ defmodule PhoenixProfiler.LiveViewListener do
   defp check_profiler_enabled(%LiveView.Socket{}), do: {:error, :profiler_not_enabled}
 
   defp check_matching_transport(%LiveView.Socket{} = socket, transport_pid) do
-    if transport_pid == transport_pid(socket) do
+    if transport_pid == Utils.transport_pid(socket) do
       :ok
     else
       {:error, :transport_pid_does_not_match}
