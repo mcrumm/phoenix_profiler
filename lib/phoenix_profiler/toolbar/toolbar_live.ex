@@ -22,7 +22,7 @@ defmodule PhoenixProfiler.ToolbarLive do
       end
 
     if connected?(socket) do
-      Telemetry.register(profile.server, Utils.transport_pid(socket))
+      {:ok, _} = Telemetry.register(profile.server, Utils.transport_pid(socket))
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}
@@ -141,7 +141,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info({:telemetry, _, [:phoenix, :live_view, _] = event, _event_ts, data}, socket) do
+  def handle_info({:telemetry, _, [:phoenix, :live_view, _, _] = event, _event_ts, data}, socket) do
     [_, _, stage, action] = event
 
     socket =
@@ -175,10 +175,9 @@ defmodule PhoenixProfiler.ToolbarLive do
       at: Time.utc_now() |> Time.truncate(:second)
     }
 
-    {:noreply,
-     socket
-     |> update(:exits, &[exception | &1])
-     |> update(:exits_count, &(&1 + 1))}
+    socket
+    |> update(:exits, &[exception | &1])
+    |> update(:exits_count, &(&1 + 1))
   end
 
   defp apply_lifecycle(socket, _stage, _action, _data) do
@@ -186,13 +185,10 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp apply_event_duration(socket, :handle_event, :stop, %{duration: duration}) do
-    socket =
-      update(socket, :durations, fn durations ->
-        durations = durations || %{total: nil, endpoint: nil, latest_event: nil}
-        %{durations | latest_event: duration(duration)}
-      end)
-
-    {:noreply, socket}
+    update(socket, :durations, fn durations ->
+      durations = durations || %{total: nil, endpoint: nil, latest_event: nil}
+      %{durations | latest_event: duration(duration)}
+    end)
   end
 
   defp apply_event_duration(socket, _stage, _action, _measurements) do

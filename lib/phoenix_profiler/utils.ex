@@ -81,8 +81,9 @@ defmodule PhoenixProfiler.Utils do
     start_collector_if_enabled(conn, server, conn.owner)
   end
 
-  defp start_collector_if_enabled(%LiveView.Socket{} = socket, server) do
-    start_collector_if_enabled(socket, server, transport_pid(socket))
+  defp start_collector_if_enabled(%LiveView.Socket{} = socket, _server) do
+    # ToolbarLive acts as the LiveView Socket collector so this is a no-op
+    socket
   end
 
   defp start_collector_if_enabled(conn_or_socket, server, pid) do
