@@ -10,11 +10,9 @@ defmodule PhoenixProfiler do
   under a supervision tree.
   """
   def child_spec(opts) do
-    name = opts[:name] || raise ArgumentError, ":name is required to start the profiler"
-
     %{
-      id: name,
-      start: {PhoenixProfiler.Profiler, :start_link, [{name, opts}]}
+      id: opts[:name] || PhoenixProfiler,
+      start: {PhoenixProfiler.Supervisor, :start_link, [opts]}
     }
   end
 

@@ -8,7 +8,12 @@ defmodule PhoenixProfiler.Telemetry do
       [:phoenix, :live_view, stage, action]
     end
 
-  @events live_view_events
+  plug_events = [
+    [:phoenix, :endpoint, :stop],
+    [:phxprof, :plug, :stop]
+  ]
+
+  @events plug_events ++ live_view_events
 
   @doc """
   Returns a list of built-in telemetry events to collect.
@@ -18,15 +23,53 @@ defmodule PhoenixProfiler.Telemetry do
   @doc """
   Helper to register the current process as a collector.
   """
-  def collector(server, pid) do
+  def register(server, pid) when is_pid(pid) do
     server
     |> PhoenixProfiler.Supervisor.debug_name()
     |> DebugThing.Collector.collect(pid)
   end
 
   @doc """
+  Registers an existing given `collector_pid` from a given `pid`.
+  """
+  def register(collector_pid) when is_pid(collector_pid) do
+    DebugThing.Collector.register(collector_pid)
+  end
+
+  @doc """
+  Unregisters an existing given `collector_pid` from a given `pid`.
+  """
+  def unregister(collector_pid) do
+    DebugThing.Collector.unregister(collector_pid)
+  end
+
+  @doc """
   Collector filter callback.
   """
+  def collect(_, [:phoenix, :endpoint, :stop], %{duration: duration}, _meta) do
+    {:keep, %{endpoint_duration: duration}}
+  end
+
+  def collect(_, [:phxprof, :plug, :stop], measures, %{conn: conn}) do
+    profile = conn.private.phoenix_profiler
+
+    case profile.info do
+      :disable ->
+        :skip
+
+      info when info in [nil, :enable] ->
+        {:keep,
+         %{
+           at: profile.system_time,
+           conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
+           metrics: %{
+             memory: collect_memory(conn.owner),
+             total_duration: measures.duration
+           }
+         }}
+    end
+  end
+
   def collect(_, [:phoenix, :live_view | _] = event, measures, %{socket: socket} = meta) do
     cond do
       Map.has_key?(socket, :root_view) and socket.root_view == PhoenixProfiler.ToolbarLive ->
@@ -62,6 +105,12 @@ defmodule PhoenixProfiler.Telemetry do
 
   def collect(_, _, _, _), do: :keep
 
+  @kB 1_024
+  defp collect_memory(pid) when is_pid(pid) do
+    {:memory, bytes} = Process.info(pid, :memory)
+    div(bytes, @kB)
+  end
+
   @doc """
   Returns the child specification to start the profiler
   under a supervision tree.
@@ -80,4 +129,14 @@ defmodule PhoenixProfiler.Telemetry do
          [[filter: &__MODULE__.collect/4, name: name, telemetry: @events]]}
     }
   end
+
+  @doc """
+  Starts the collector sidecar for a given `pid`.
+  """
+  defdelegate start_collector(server, pid), to: DebugThing
+
+  @doc """
+  Reduces over telemetry events in a given `collector_pid`.
+  """
+  defdelegate reduce(collector_pid, initial, func), to: DebugThing.Collector
 end

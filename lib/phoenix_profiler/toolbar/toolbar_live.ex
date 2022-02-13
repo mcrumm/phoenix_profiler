@@ -22,7 +22,7 @@ defmodule PhoenixProfiler.ToolbarLive do
       end
 
     if connected?(socket) do
-      Telemetry.collector(profile.server, Utils.transport_pid(socket))
+      Telemetry.register(profile.server, Utils.transport_pid(socket))
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}

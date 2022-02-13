@@ -1,6 +1,7 @@
 defmodule PhoenixProfiler.Profiler do
   # GenServer that is the owner of the ETS table for requests
   @moduledoc false
+  use GenServer
   alias PhoenixProfiler.Profile
   alias PhoenixProfiler.Utils
 
@@ -13,12 +14,15 @@ defmodule PhoenixProfiler.Profiler do
 
   @default_sweep_interval :timer.hours(24)
 
-  def start_link({name, opts}) do
-    GenServer.start_link(__MODULE__, {name, opts}, name: name)
+  def start_link(init_arg) do
+    GenServer.start_link(__MODULE__, init_arg)
   end
 
+  @doc """
+  Deletes all objects in the profiler table.
+  """
   def reset(name) do
-    if tab = table(name) do
+    if tab = tab(name) do
       :ets.delete_all_objects(tab)
       :ok
     end
@@ -34,24 +38,10 @@ defmodule PhoenixProfiler.Profiler do
     end
   end
 
-  def init({server, options}) do
-    system = Utils.system()
-
-    tab = :ets.new(server, [:set, :public, {:write_concurrency, true}])
-    :persistent_term.put({PhoenixProfiler, server}, %__MODULE__{system: system, tab: tab})
-
-    :telemetry.attach_many(
-      {PhoenixProfiler, server, self()},
-      [
-        [:phoenix, :endpoint, :stop],
-        [:phxprof, :plug, :stop]
-      ],
-      &__MODULE__.telemetry_callback/4,
-      {server, tab}
-    )
-
+  @impl GenServer
+  def init({server, tab, options}) do
     request_sweep_interval = options[:request_sweep_interval] || @default_sweep_interval
-    schedule_sweep(server, request_sweep_interval)
+    schedule_sweep(self(), request_sweep_interval)
 
     {:ok,
      %{
@@ -61,12 +51,16 @@ defmodule PhoenixProfiler.Profiler do
      }}
   end
 
+  @impl GenServer
   def handle_info(:sweep, state) do
-    schedule_sweep(state.server, state.request_sweep_interval)
+    schedule_sweep(self(), state.request_sweep_interval)
     :ets.delete_all_objects(state.requests)
     {:noreply, state}
   end
 
+  @doc """
+  Returns the profiler for a given `conn` if it exists.
+  """
   def profiler(%Plug.Conn{} = conn) do
     case conn.private[:phoenix_profiler] do
       %Profile{server: server} when is_atom(server) -> server
@@ -74,8 +68,11 @@ defmodule PhoenixProfiler.Profiler do
     end
   end
 
+  @doc """
+  Returns the profiler for a given `profiler` and a given `token` if it exists.
+  """
   def get(profiler, token) do
-    case :ets.lookup(table(profiler), token) do
+    case :ets.lookup(tab(profiler), token) do
       [] ->
         nil
 
@@ -84,14 +81,23 @@ defmodule PhoenixProfiler.Profiler do
     end
   end
 
+  @doc """
+  Returns all profiles for a given `profiler`.
+  """
   def list(profiler) do
-    :ets.tab2list(table(profiler))
+    :ets.tab2list(tab(profiler))
   end
 
+  @doc """
+  Returns a filtered list of profiles.
+  """
   def list_advanced(profiler, _search, sort_by, sort_dir, _limit) do
     Utils.sort_by(list(profiler), fn {_, profile} -> profile[sort_by] end, sort_dir)
   end
 
+  @doc """
+  Fetches a profile on a remote node.
+  """
   def remote_get(%Profile{} = profile) do
     remote_get(profile.node, profile.server, profile.token)
   end
@@ -100,60 +106,25 @@ defmodule PhoenixProfiler.Profiler do
     :rpc.call(node, __MODULE__, :get, [profiler, token])
   end
 
+  @doc """
+  Returns a filtered list of profiles on a remote node.
+  """
   def remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit) do
     :rpc.call(node, __MODULE__, :list_advanced, [profiler, search, sort_by, sort_dir, limit])
   end
 
-  defp table(profiler) do
+  @doc """
+  Returns the ETS table for a given `profile`.
+  """
+  def table(%Profile{server: profiler} = _profile) do
+    tab(profiler)
+  end
+
+  defp tab(profiler) do
     case :persistent_term.get({PhoenixProfiler, profiler}) do
       %__MODULE__{tab: tab} -> tab
       _ -> nil
     end
-  end
-
-  def telemetry_callback([:phoenix, :endpoint, :stop], %{duration: duration}, _meta, _context) do
-    Process.put(:phxprof_endpoint_duration, duration)
-  end
-
-  def telemetry_callback(
-        [:phxprof, :plug, :stop],
-        measurements,
-        %{conn: %{private: %{phoenix_profiler: %Profile{server: profiler}}} = conn},
-        {profiler, table}
-      ) do
-    profile = conn.private.phoenix_profiler
-
-    case profile.info do
-      :enable ->
-        collect_and_insert_profile(conn, profile, measurements, table)
-        :ok
-
-      :disable ->
-        :ok
-
-      nil ->
-        :ok
-    end
-  end
-
-  def telemetry_callback([:phxprof, :plug, :stop], _, _, _), do: :ok
-
-  defp collect_and_insert_profile(%Plug.Conn{} = conn, %Profile{} = profile, measurements, table) do
-    # Measurements
-    {:memory, bytes} = Process.info(conn.owner, :memory)
-    memory = div(bytes, 1_024)
-
-    data = %{
-      at: profile.system_time,
-      conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
-      metrics: %{
-        endpoint_duration: Process.get(:phxprof_endpoint_duration),
-        memory: memory,
-        total_duration: measurements.duration
-      }
-    }
-
-    :ets.insert(table, {profile.token, data})
   end
 
   defp schedule_sweep(server, time) do
