@@ -7,6 +7,24 @@ defmodule PhoenixProfiler.TelemetryServer do
   @disable_event [:phoenix_profiler, :internal, :collector, :disable]
   @enable_event [:phoenix_profiler, :internal, :collector, :enable]
 
+  @doc """
+  Starts a collector for `server` for a given `pid`.
+  """
+  def listen(server, pid), do: listen(server, pid, nil, :enable)
+  def listen(server, pid, arg), do: listen(server, pid, arg, :enable)
+  def listen(server, pid, arg, info), do: listen(node(), server, pid, arg, info)
+
+  def listen(node, server, pid, arg, info)
+      when is_pid(pid) and is_atom(info) and info in [:disable, :enable] do
+    DynamicSupervisor.start_child(
+      {PhoenixProfiler.DynamicSupervisor, node},
+      {PhoenixProfiler.TelemetryCollector, {server, pid, arg, info}}
+    )
+  end
+
+  @doc """
+  Starts a telemetry server linked to the current process.
+  """
   def start_link(opts) do
     config = Enum.into(opts, %{})
     config = Map.put_new(config, :events, [])

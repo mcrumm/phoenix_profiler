@@ -2,7 +2,6 @@ defmodule PhoenixProfiler.Utils do
   @moduledoc false
   alias Phoenix.LiveView
   alias PhoenixProfiler.Profile
-  alias PhoenixProfiler.TelemetryCollector
   alias PhoenixProfiler.TelemetryServer
 
   @default_profiler_link_base "/dashboard/_profiler"
@@ -86,7 +85,7 @@ defmodule PhoenixProfiler.Utils do
         TelemetryServer.collector_info_exec(profile.info)
         {:ok, profile.collector_pid}
       else
-        TelemetryCollector.listen(server, conn.owner, nil, profile.info)
+        TelemetryServer.listen(server, conn.owner, nil, profile.info)
       end
       |> case do
         {:ok, collector_pid} -> collector_pid
