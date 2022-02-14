@@ -4,7 +4,6 @@ defmodule PhoenixProfiler.Supervisor do
   alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Telemetry
   alias PhoenixProfiler.TelemetryServer
-  alias PhoenixProfiler.Utils
 
   def start_link(opts) do
     {name, opts} = opts |> Enum.into([]) |> Keyword.pop(:name)
@@ -17,18 +16,10 @@ defmodule PhoenixProfiler.Supervisor do
   end
 
   def init({name, opts}) do
-    system = Utils.system()
-    table = :ets.new(name, [:set, :public, {:write_concurrency, true}])
-
-    :persistent_term.put({PhoenixProfiler, name}, %Profiler{
-      system: system,
-      tab: table
-    })
-
     events = (opts[:telemetry] || []) ++ Telemetry.events()
 
     children = [
-      {Profiler, {name, table, opts}},
+      {Profiler, {name, opts}},
       {TelemetryServer, [filter: &Telemetry.collect/4, server: name, events: events]}
     ]
 

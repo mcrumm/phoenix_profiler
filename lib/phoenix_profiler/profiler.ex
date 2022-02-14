@@ -3,6 +3,7 @@ defmodule PhoenixProfiler.Profiler do
   @moduledoc false
   use GenServer
   alias PhoenixProfiler.Profile
+  alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Utils
 
   defstruct [:tab, :system]
@@ -39,7 +40,15 @@ defmodule PhoenixProfiler.Profiler do
   end
 
   @impl GenServer
-  def init({server, tab, options}) do
+  def init({server, options}) do
+    system = Utils.system()
+    tab = :ets.new(server, [:set, :public, {:write_concurrency, true}])
+
+    :persistent_term.put({PhoenixProfiler, server}, %Profiler{
+      system: system,
+      tab: tab
+    })
+
     request_sweep_interval = options[:request_sweep_interval] || @default_sweep_interval
     schedule_sweep(self(), request_sweep_interval)
 
