@@ -69,7 +69,7 @@ defmodule PhoenixProfiler.Telemetry do
 
         data =
           socket
-          |> Map.take([:root_view, :root_pid])
+          |> Map.take([:root_view, :root_pid, :router])
           |> Map.put(:live_action, socket.assigns[:live_action])
           |> Map.put_new(:root_view, socket.private[:root_view])
           |> Map.put(:connected?, Phoenix.LiveView.connected?(socket))

@@ -95,12 +95,10 @@ defmodule PhoenixProfiler.ToolbarLive do
     })
   end
 
-  defp apply_navigation(socket, route) do
+  defp apply_navigation(socket, %{router: router} = route) do
     socket
     |> update(:root_pid, fn _ -> route.root_pid end)
     |> update(:request, fn req ->
-      router = socket.private[:phoenix_router]
-
       {helper, plug, action} = Routes.info(socket.assigns.profile.node, router, route)
 
       %{req | plug: inspect(plug), action: inspect(action), router_helper: helper}
@@ -164,7 +162,8 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp maybe_apply_navigation(socket, data) do
-    if connected?(socket) and socket.assigns.root_pid != data.root_pid do
+    if connected?(socket) and not is_nil(data.router) and
+         socket.assigns.root_pid != data.root_pid do
       apply_navigation(socket, data)
     else
       socket
