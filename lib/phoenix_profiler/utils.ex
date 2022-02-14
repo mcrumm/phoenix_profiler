@@ -40,7 +40,7 @@ defmodule PhoenixProfiler.Utils do
          {:ok, profiler} <- check_profiler_running(config) do
       conn_or_socket
       |> new_profile(endpoint, profiler, config, system_time)
-      |> start_collector_if_enabled(profiler)
+      |> start_collector(profiler)
       |> telemetry_execute(:start, %{system_time: system_time})
     else
       {:error, reason} -> enable_profiler_error(conn_or_socket, reason)
@@ -77,40 +77,32 @@ defmodule PhoenixProfiler.Utils do
   defp profiler_link_base(path) when is_binary(path) and path != "", do: path
   defp profiler_link_base(_), do: @default_profiler_link_base
 
-  defp start_collector_if_enabled(%Plug.Conn{} = conn, server) do
-    start_collector_if_enabled(conn, server, conn.owner)
-  end
+  defp start_collector(%Plug.Conn{} = conn, server) do
+    profile = conn.private.phoenix_profiler
 
-  defp start_collector_if_enabled(%LiveView.Socket{} = socket, _server) do
-    # ToolbarLive acts as the LiveView Socket collector so this is a no-op
-    socket
-  end
-
-  defp start_collector_if_enabled(conn_or_socket, server, pid) do
-    case conn_or_socket.private.phoenix_profiler do
-      %{info: :enable} = profile ->
-        collector = PhoenixProfiler.Supervisor.debug_name(server)
-        start_collector(conn_or_socket, profile, collector, pid)
-
-      _ ->
-        conn_or_socket
-    end
-  end
-
-  defp start_collector(conn_or_socket, profile, collector, pid) do
     collector_pid =
       if is_pid(profile.collector_pid) and Process.alive?(profile.collector_pid) do
-        # re-register as it is likely the collector was disabled
-        Telemetry.register(profile.collector_pid)
+        Telemetry.collector_info_exec(profile.info)
+        {:ok, profile.collector_pid}
       else
-        Telemetry.start_collector(collector, pid)
+        collector = PhoenixProfiler.Supervisor.debug_name(server)
+        Telemetry.start_collector(collector, conn.owner, nil, profile.info)
       end
       |> case do
         {:ok, collector_pid} -> collector_pid
         {:error, {:already_registered, collector_pid}} -> collector_pid
       end
 
-    put_private(conn_or_socket, :phoenix_profiler, %{profile | collector_pid: collector_pid})
+    put_private(conn, :phoenix_profiler, %{profile | collector_pid: collector_pid})
+  end
+
+  defp start_collector(%LiveView.Socket{} = socket, _server) do
+    # ToolbarLive acts as the LiveView Socket collector so we never
+    # start a collector here, but we can execute telemetry to notify it
+    # that the state changed.
+    info = socket.private.phoenix_profiler.info
+    Telemetry.collector_info_exec(info)
+    socket
   end
 
   @doc """
@@ -121,8 +113,10 @@ defmodule PhoenixProfiler.Utils do
   def endpoint(%LiveView.Socket{endpoint: endpoint}), do: endpoint
 
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
-    # no-op in the event a profile already exists
-    conn_or_socket
+    # notify state change and ensure profile info is :enable
+    profile = conn_or_socket.private.phoenix_profiler
+    Telemetry.collector_info_exec(:enable)
+    put_private(conn_or_socket, :phoenix_profiler, %{profile | info: :enable})
   end
 
   defp enable_profiler_error(%LiveView.Socket{}, :waiting_for_connection) do
@@ -167,14 +161,7 @@ defmodule PhoenixProfiler.Utils do
   def disable_profiler(%LiveView.Socket{} = socket), do: socket
 
   defp unregister_collector(conn_or_socket) do
-    case conn_or_socket.private.phoenix_profiler do
-      %{collector_pid: collector_pid} when is_pid(collector_pid) ->
-        Telemetry.unregister(collector_pid)
-
-      _ ->
-        :ok
-    end
-
+    Telemetry.collector_info_exec(:disable)
     conn_or_socket
   end
 

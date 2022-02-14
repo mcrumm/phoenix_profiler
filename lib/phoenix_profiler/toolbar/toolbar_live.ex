@@ -153,6 +153,11 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, socket}
   end
 
+  def handle_info({:collector_info_update, func}, socket) do
+    Telemetry.update_collector_info(transport_pid(socket), func)
+    {:noreply, socket}
+  end
+
   def handle_info(other, socket) do
     Logger.debug("ToolbarLive received an unknown message: #{inspect(other)}")
     {:noreply, socket}

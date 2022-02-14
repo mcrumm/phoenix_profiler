@@ -30,20 +30,6 @@ defmodule PhoenixProfiler.Telemetry do
   end
 
   @doc """
-  Registers an existing given `collector_pid` from a given `pid`.
-  """
-  def register(collector_pid) when is_pid(collector_pid) do
-    DebugThing.Collector.register(collector_pid)
-  end
-
-  @doc """
-  Unregisters an existing given `collector_pid` from a given `pid`.
-  """
-  def unregister(collector_pid) do
-    DebugThing.Collector.unregister(collector_pid)
-  end
-
-  @doc """
   Collector filter callback.
   """
   def collect(_, [:phoenix, :endpoint, :stop], %{duration: duration}, _meta) do
@@ -131,12 +117,22 @@ defmodule PhoenixProfiler.Telemetry do
   end
 
   @doc """
+  Executes the collector event for `info` for the current process.
+  """
+  defdelegate collector_info_exec(info), to: DebugThing.Telemetry
+
+  @doc """
   Starts the collector sidecar for a given `pid`.
   """
-  defdelegate start_collector(server, pid), to: DebugThing
+  defdelegate start_collector(server, pid, arg \\ nil, info \\ :enable), to: DebugThing
 
   @doc """
   Reduces over telemetry events in a given `collector_pid`.
   """
   defdelegate reduce(collector_pid, initial, func), to: DebugThing.Collector
+
+  @doc """
+  Updates the collector info for `pid` for the current process.
+  """
+  defdelegate update_collector_info(pid, func), to: DebugThing.Registry
 end
