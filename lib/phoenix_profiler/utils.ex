@@ -2,7 +2,8 @@ defmodule PhoenixProfiler.Utils do
   @moduledoc false
   alias Phoenix.LiveView
   alias PhoenixProfiler.Profile
-  alias PhoenixProfiler.Telemetry
+  alias PhoenixProfiler.TelemetryCollector
+  alias PhoenixProfiler.TelemetryServer
 
   @default_profiler_link_base "/dashboard/_profiler"
 
@@ -82,11 +83,10 @@ defmodule PhoenixProfiler.Utils do
 
     collector_pid =
       if is_pid(profile.collector_pid) and Process.alive?(profile.collector_pid) do
-        Telemetry.collector_info_exec(profile.info)
+        TelemetryServer.collector_info_exec(profile.info)
         {:ok, profile.collector_pid}
       else
-        collector = PhoenixProfiler.Supervisor.debug_name(server)
-        Telemetry.start_collector(collector, conn.owner, nil, profile.info)
+        TelemetryCollector.listen(server, conn.owner, nil, profile.info)
       end
       |> case do
         {:ok, collector_pid} -> collector_pid
@@ -101,7 +101,7 @@ defmodule PhoenixProfiler.Utils do
     # start a collector here, but we can execute telemetry to notify it
     # that the state changed.
     info = socket.private.phoenix_profiler.info
-    Telemetry.collector_info_exec(info)
+    TelemetryServer.collector_info_exec(info)
     socket
   end
 
@@ -115,7 +115,7 @@ defmodule PhoenixProfiler.Utils do
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
     # notify state change and ensure profile info is :enable
     profile = conn_or_socket.private.phoenix_profiler
-    Telemetry.collector_info_exec(:enable)
+    TelemetryServer.collector_info_exec(:enable)
     put_private(conn_or_socket, :phoenix_profiler, %{profile | info: :enable})
   end
 
@@ -161,7 +161,7 @@ defmodule PhoenixProfiler.Utils do
   def disable_profiler(%LiveView.Socket{} = socket), do: socket
 
   defp unregister_collector(conn_or_socket) do
-    Telemetry.collector_info_exec(:disable)
+    TelemetryServer.collector_info_exec(:disable)
     conn_or_socket
   end
 
@@ -254,18 +254,22 @@ defmodule PhoenixProfiler.Utils do
     conn = telemetry_execute(conn, :stop, %{duration: duration})
 
     data =
-      Telemetry.reduce(profile.collector_pid, %{metrics: %{endpoint_duration: nil}}, fn
-        {:telemetry, _, _, _, %{endpoint_duration: duration}}, acc ->
-          %{acc | metrics: Map.put(acc.metrics, :endpoint_duration, duration)}
+      PhoenixProfiler.TelemetryCollector.reduce(
+        profile.collector_pid,
+        %{metrics: %{endpoint_duration: nil}},
+        fn
+          {:telemetry, _, _, _, %{endpoint_duration: duration}}, acc ->
+            %{acc | metrics: Map.put(acc.metrics, :endpoint_duration, duration)}
 
-        {:telemetry, _, _, _, %{metrics: _} = entry}, acc ->
-          {metrics, rest} = Map.pop!(entry, :metrics)
-          acc = Map.merge(acc, rest)
-          %{acc | metrics: Map.merge(acc.metrics, metrics)}
+          {:telemetry, _, _, _, %{metrics: _} = entry}, acc ->
+            {metrics, rest} = Map.pop!(entry, :metrics)
+            acc = Map.merge(acc, rest)
+            %{acc | metrics: Map.merge(acc.metrics, metrics)}
 
-        {:telemetry, _, _, _, data}, acc ->
-          Map.merge(acc, data)
-      end)
+          {:telemetry, _, _, _, data}, acc ->
+            Map.merge(acc, data)
+        end
+      )
 
     profile
     |> PhoenixProfiler.Profiler.table()

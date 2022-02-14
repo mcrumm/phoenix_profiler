@@ -5,7 +5,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   require Logger
   alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Routes
-  alias PhoenixProfiler.Telemetry
+  alias PhoenixProfiler.TelemetryRegistry
   alias PhoenixProfiler.Utils
 
   @impl Phoenix.LiveView
@@ -22,7 +22,7 @@ defmodule PhoenixProfiler.ToolbarLive do
       end
 
     if connected?(socket) do
-      {:ok, _} = Telemetry.register(profile.server, Utils.transport_pid(socket))
+      {:ok, _} = TelemetryRegistry.register(profile.server, Utils.transport_pid(socket), nil)
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}
@@ -151,8 +151,8 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, socket}
   end
 
-  def handle_info({:collector_info_update, func}, socket) do
-    Telemetry.update_collector_info(transport_pid(socket), func)
+  def handle_info({:collector_update_info, func}, socket) do
+    TelemetryRegistry.update_info(transport_pid(socket), func)
     {:noreply, socket}
   end
 

@@ -3,6 +3,7 @@ defmodule PhoenixProfiler.Supervisor do
   use Supervisor
   alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Telemetry
+  alias PhoenixProfiler.TelemetryServer
   alias PhoenixProfiler.Utils
 
   def start_link(opts) do
@@ -24,19 +25,13 @@ defmodule PhoenixProfiler.Supervisor do
       tab: table
     })
 
+    events = (opts[:telemetry] || []) ++ Telemetry.events()
+
     children = [
       {Profiler, {name, table, opts}},
-      {Telemetry, [{:name, debug_name(name)} | opts]}
+      {TelemetryServer, [filter: &Telemetry.collect/4, server: name, events: events]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
-  end
-
-  def store_name(name) do
-    Module.concat([PhoenixProfiler, :"#{name}", :ProfileStore])
-  end
-
-  def debug_name(name) do
-    Module.concat([PhoenixProfiler, :"#{name}", :Telemetry])
   end
 end

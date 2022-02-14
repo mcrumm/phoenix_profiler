@@ -21,15 +21,6 @@ defmodule PhoenixProfiler.Telemetry do
   def events, do: @events
 
   @doc """
-  Helper to register the current process as a collector.
-  """
-  def register(server, pid) when is_pid(pid) do
-    server
-    |> PhoenixProfiler.Supervisor.debug_name()
-    |> DebugThing.Collector.collect(pid)
-  end
-
-  @doc """
   Collector filter callback.
   """
   def collect(_, [:phoenix, :endpoint, :stop], %{duration: duration}, _meta) do
@@ -96,43 +87,4 @@ defmodule PhoenixProfiler.Telemetry do
     {:memory, bytes} = Process.info(pid, :memory)
     div(bytes, @kB)
   end
-
-  @doc """
-  Returns the child specification to start the profiler
-  under a supervision tree.
-  """
-  def child_spec(opts) do
-    {name, _opts} = Keyword.pop(opts, :name)
-
-    unless name do
-      raise ArgumentError, ":name is required to start the profiler telemetry"
-    end
-
-    %{
-      id: name,
-      start:
-        {DebugThing, :start_link,
-         [[filter: &__MODULE__.collect/4, name: name, telemetry: @events]]}
-    }
-  end
-
-  @doc """
-  Executes the collector event for `info` for the current process.
-  """
-  defdelegate collector_info_exec(info), to: DebugThing.Telemetry
-
-  @doc """
-  Starts the collector sidecar for a given `pid`.
-  """
-  defdelegate start_collector(server, pid, arg \\ nil, info \\ :enable), to: DebugThing
-
-  @doc """
-  Reduces over telemetry events in a given `collector_pid`.
-  """
-  defdelegate reduce(collector_pid, initial, func), to: DebugThing.Collector
-
-  @doc """
-  Updates the collector info for `pid` for the current process.
-  """
-  defdelegate update_collector_info(pid, func), to: DebugThing.Registry
 end
