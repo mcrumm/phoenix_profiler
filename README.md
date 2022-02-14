@@ -162,12 +162,6 @@ live_dashboard "/dashboard",
   ]
 ```
 
-## Reduced motion toolbar options
-
-If a `PHOENIX_PROFILER_REDUCED_MOTION` environment variable is set,
-`PhoenixProfiler` will disable all toolbar animations. The value of the
-environment variable is not evaluated.
-
 <!-- MDOC -->
 
 ## Contributing

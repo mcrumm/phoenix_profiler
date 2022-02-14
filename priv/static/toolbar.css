@@ -38,14 +38,6 @@
   transition: height 1s ease;
 }
 
-.phxprof-toolbar.no-motion * {
-  -webkit-transition: none;
-  -moz-transition: none;
-  -o-transition: none;
-  -ms-transition: none;
-  transition: none;
-}
-
 .phxprof-toolbar.miniaturized > .phxprof-minitoolbar {
   height: var(--size-mini-toolbar-height);
 }
@@ -715,6 +707,19 @@ div.phxprof-toolbar .phxprof-toolbar-panel a:hover {
 }
 
 /* END Symfony Web Debug Toolbar */
+
+@media (prefers-reduced-motion: reduce) {
+  .phxprof-toolbar > .phxprof-minitoolbar,
+  .phxprof-toolbar > .phxprof-toolbar-view {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
 
 .phxprof-toolbar-panel-config .phxprof-toolbar-info-item.attribution b,
 .phxprof-toolbar-panel-config .phxprof-toolbar-info-item.attribution span {

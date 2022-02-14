@@ -91,8 +91,6 @@ defmodule PhoenixProfiler.Plug do
   defp debug_toolbar_assets_tag(conn, profile, config) do
     try do
       if Code.ensure_loaded?(PhoenixProfiler.ToolbarLive) do
-        motion_class = if System.get_env("PHOENIX_PROFILER_REDUCED_MOTION"), do: "no-motion"
-
         toolbar_attrs =
           case config[:toolbar_attrs] do
             attrs when is_list(attrs) -> attrs
@@ -103,7 +101,7 @@ defmodule PhoenixProfiler.Plug do
           Keyword.merge(
             toolbar_attrs,
             id: "pwdt#{profile.token}",
-            class: String.trim("phxprof-toolbar #{motion_class}"),
+            class: "phxprof-toolbar",
             role: "region",
             name: "Phoenix Web Debug Toolbar"
           )
