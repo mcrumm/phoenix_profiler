@@ -188,7 +188,8 @@ defmodule PhoenixProfiler.ToolbarLive do
     socket
   end
 
-  defp apply_event_duration(socket, :handle_event, :stop, %{duration: duration}) do
+  defp apply_event_duration(socket, stage, :stop, %{duration: duration})
+       when stage in [:handle_event, :handle_params] do
     update(socket, :durations, fn durations ->
       durations = durations || %{total: nil, endpoint: nil, latest_event: nil}
       %{durations | latest_event: duration(duration)}
