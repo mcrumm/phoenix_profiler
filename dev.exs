@@ -136,6 +136,8 @@ end
 defmodule EmbeddedLive.Switch do
   use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
 
+  on_mount PhoenixProfiler
+
   def render(assigns) do
     ~H"""
     <div style="display:flex;align-items:baseline;">

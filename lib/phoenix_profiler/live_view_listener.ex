@@ -147,7 +147,8 @@ defmodule PhoenixProfiler.LiveViewListener do
   end
 
   defp check_navigation(state, %{root_pid: pid} = socket) do
-    if LiveView.connected?(socket) and state.root_pid != pid do
+    if LiveView.connected?(socket) and
+         not is_nil(socket.router) and state.root_pid != pid do
       notify_navigation(state.parent, socket)
       %{state | root_pid: pid}
     else
