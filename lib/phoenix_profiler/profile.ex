@@ -47,7 +47,7 @@ defmodule PhoenixProfiler.Profile do
       node: node,
       server: server,
       start_time: System.monotonic_time(),
-      system: PhoenixProfiler.Profiler.system(server),
+      system: PhoenixProfiler.ProfileStore.system(server),
       system_time: system_time,
       token: token,
       url: build_url(server, token, base_url)

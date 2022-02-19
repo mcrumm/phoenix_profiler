@@ -1,7 +1,7 @@
 defmodule PhoenixProfiler.Supervisor do
   @moduledoc false
   use Supervisor
-  alias PhoenixProfiler.Profiler
+  alias PhoenixProfiler.ProfileStore
   alias PhoenixProfiler.Telemetry
   alias PhoenixProfiler.TelemetryServer
 
@@ -19,7 +19,7 @@ defmodule PhoenixProfiler.Supervisor do
     events = (opts[:telemetry] || []) ++ Telemetry.events()
 
     children = [
-      {Profiler, {name, opts}},
+      {ProfileStore, {name, opts}},
       {TelemetryServer, [filter: &Telemetry.collect/4, server: name, events: events]}
     ]
 

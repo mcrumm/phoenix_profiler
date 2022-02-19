@@ -271,7 +271,7 @@ defmodule PhoenixProfiler.Utils do
       )
 
     profile
-    |> PhoenixProfiler.Profiler.table()
+    |> PhoenixProfiler.ProfileStore.table()
     |> :ets.insert({profile.token, data})
 
     conn

@@ -1,9 +1,8 @@
-defmodule PhoenixProfiler.Profiler do
+defmodule PhoenixProfiler.ProfileStore do
   # GenServer that is the owner of the ETS table for requests
   @moduledoc false
   use GenServer
   alias PhoenixProfiler.Profile
-  alias PhoenixProfiler.Profiler
   alias PhoenixProfiler.Utils
 
   defstruct [:tab, :system]
@@ -44,7 +43,7 @@ defmodule PhoenixProfiler.Profiler do
     system = Utils.system()
     tab = :ets.new(server, [:set, :public, {:write_concurrency, true}])
 
-    :persistent_term.put({PhoenixProfiler, server}, %Profiler{
+    :persistent_term.put({PhoenixProfiler, server}, %__MODULE__{
       system: system,
       tab: tab
     })

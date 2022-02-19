@@ -3,7 +3,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
   require Logger
-  alias PhoenixProfiler.Profiler
+  alias PhoenixProfiler.ProfileStore
   alias PhoenixProfiler.Routes
   alias PhoenixProfiler.TelemetryRegistry
   alias PhoenixProfiler.Utils
@@ -16,7 +16,7 @@ defmodule PhoenixProfiler.ToolbarLive do
       |> assign(:profile, profile)
 
     socket =
-      case Profiler.remote_get(profile) do
+      case ProfileStore.remote_get(profile) do
         nil -> assign_error_toolbar(socket)
         remote_profile -> assign_toolbar(socket, remote_profile)
       end

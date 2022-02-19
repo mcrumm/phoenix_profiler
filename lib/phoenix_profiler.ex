@@ -110,14 +110,14 @@ defmodule PhoenixProfiler do
   @doc """
   Resets the storage of the given `profiler`.
   """
-  defdelegate reset(profiler), to: PhoenixProfiler.Profiler
+  defdelegate reset(profiler), to: PhoenixProfiler.ProfileStore
 
   @doc """
   Returns all running PhoenixProfiler names.
   It is important to notice that no order is guaranteed.
   """
   def all_running do
-    for {{PhoenixProfiler, name}, %PhoenixProfiler.Profiler{}} <- :persistent_term.get(),
+    for {{PhoenixProfiler, name}, %PhoenixProfiler.ProfileStore{}} <- :persistent_term.get(),
         GenServer.whereis(name),
         do: name
   end
