@@ -14,25 +14,25 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: '1.7'
+              elixir: "1.8"
               otp: 21
           - pair:
-              elixir: '1.11'
+              elixir: "1.11"
               otp: 23
           - pair:
-              elixir: '1.13'
+              elixir: "1.13"
               otp: 24
-            phoenix: '1.5.3'
+            phoenix: "1.5.3"
           - pair:
-              elixir: '1.13'
+              elixir: "1.13"
               otp: 24
-            phoenix: '1.5.13'
+            phoenix: "1.5.13"
           - pair:
-              elixir: '1.13'
+              elixir: "1.13"
               otp: 24
-            phoenix: '1.6.6'
+            phoenix: "1.6.6"
           - pair:
-              elixir: '1.13'
+              elixir: "1.13"
               otp: 24
             lint: lint
     steps:
