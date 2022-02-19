@@ -261,7 +261,7 @@ defmodule PhoenixProfiler.Utils do
             %{acc | metrics: Map.put(acc.metrics, :endpoint_duration, duration)}
 
           {:telemetry, _, _, _, %{metrics: _} = entry}, acc ->
-            {metrics, rest} = Map.pop!(entry, :metrics)
+            {metrics, rest} = map_pop!(entry, :metrics)
             acc = Map.merge(acc, rest)
             %{acc | metrics: Map.merge(acc.metrics, metrics)}
 
@@ -292,6 +292,19 @@ defmodule PhoenixProfiler.Utils do
 
   def sort_by(enumerable, sort_by_fun, :desc) do
     Enum.sort_by(enumerable, sort_by_fun, &>=/2)
+  end
+
+  # backwards compability
+  if Version.match?(System.version(), ">= 1.10.0") do
+    defdelegate map_pop!(map, key), to: Map, as: :pop!
+  else
+    # https://github.com/elixir-lang/elixir/blob/e29f1492a48c53ff41b4d60b6a7b5307692145f6/lib/elixir/lib/map.ex#L734
+    def map_pop!(map, key) do
+      case :maps.take(key, map) do
+        {_, _} = tuple -> tuple
+        :error -> raise KeyError, key: key, term: map
+      end
+    end
   end
 
   if String.to_integer(System.otp_release()) >= '24' do
