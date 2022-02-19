@@ -10,11 +10,9 @@ defmodule PhoenixProfiler do
   under a supervision tree.
   """
   def child_spec(opts) do
-    name = opts[:name] || raise ArgumentError, ":name is required to start the profiler"
-
     %{
-      id: name,
-      start: {PhoenixProfiler.Profiler, :start_link, [{name, opts}]}
+      id: opts[:name] || PhoenixProfiler,
+      start: {PhoenixProfiler.Supervisor, :start_link, [opts]}
     }
   end
 
@@ -100,20 +98,26 @@ defmodule PhoenixProfiler do
         # code...
       end
 
+  Note that only for LiveView, if you invoke `disable/1` on
+  the LiveView `mount` callback, the profiler may not be
+  registered yet and it will not receive the disable message.
+  If you need on-demand profiling, it is recommended you
+  start with the profiler in a disabled state and enable it
+  after the LiveView has mounted.
   """
   defdelegate disable(conn_or_socket), to: PhoenixProfiler.Utils, as: :disable_profiler
 
   @doc """
   Resets the storage of the given `profiler`.
   """
-  defdelegate reset(profiler), to: PhoenixProfiler.Profiler
+  defdelegate reset(profiler), to: PhoenixProfiler.ProfileStore
 
   @doc """
   Returns all running PhoenixProfiler names.
   It is important to notice that no order is guaranteed.
   """
   def all_running do
-    for {{PhoenixProfiler, name}, %PhoenixProfiler.Profiler{}} <- :persistent_term.get(),
+    for {{PhoenixProfiler, name}, %PhoenixProfiler.ProfileStore{}} <- :persistent_term.get(),
         GenServer.whereis(name),
         do: name
   end

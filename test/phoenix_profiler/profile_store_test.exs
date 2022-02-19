@@ -1,10 +1,12 @@
-defmodule PhoenixProfiler.ProfilerTest do
+defmodule PhoenixProfiler.ProfileStoreTest do
   use ExUnit.Case, async: true
 
   describe "reset/0" do
     test "deletes all records in the table" do
       start_supervised!({PhoenixProfiler, name: ResetProfiler})
-      %PhoenixProfiler.Profiler{tab: tab} = :persistent_term.get({PhoenixProfiler, ResetProfiler})
+
+      %PhoenixProfiler.ProfileStore{tab: tab} =
+        :persistent_term.get({PhoenixProfiler, ResetProfiler})
 
       :ets.insert(tab, {1, 1})
       :ets.insert(tab, {2, 1})
@@ -19,7 +21,9 @@ defmodule PhoenixProfiler.ProfilerTest do
   describe "sweeping requests" do
     test "custom sweep interval" do
       start_supervised!({PhoenixProfiler, name: CustomSweep, request_sweep_interval: 0})
-      %PhoenixProfiler.Profiler{tab: tab} = :persistent_term.get({PhoenixProfiler, CustomSweep})
+
+      %PhoenixProfiler.ProfileStore{tab: tab} =
+        :persistent_term.get({PhoenixProfiler, CustomSweep})
 
       :ets.insert(tab, {"a", %{}})
       :ets.insert(tab, {"b", %{}})

@@ -3,9 +3,10 @@ defmodule PhoenixProfiler.ToolbarLive do
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
   require Logger
-  alias PhoenixProfiler.LiveViewListener
-  alias PhoenixProfiler.Profiler
+  alias PhoenixProfiler.ProfileStore
   alias PhoenixProfiler.Routes
+  alias PhoenixProfiler.TelemetryRegistry
+  alias PhoenixProfiler.Utils
 
   @impl Phoenix.LiveView
   def mount(_, %{"_" => %PhoenixProfiler.Profile{} = profile}, socket) do
@@ -15,13 +16,13 @@ defmodule PhoenixProfiler.ToolbarLive do
       |> assign(:profile, profile)
 
     socket =
-      case Profiler.remote_get(profile) do
+      case ProfileStore.remote_get(profile) do
         nil -> assign_error_toolbar(socket)
         remote_profile -> assign_toolbar(socket, remote_profile)
       end
 
     if connected?(socket) do
-      LiveViewListener.listen(socket)
+      {:ok, _} = TelemetryRegistry.register(profile.server, Utils.transport_pid(socket), nil)
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}
@@ -39,7 +40,8 @@ defmodule PhoenixProfiler.ToolbarLive do
       durations: nil,
       exits: [],
       exits_count: 0,
-      memory: nil
+      memory: nil,
+      root_pid: nil
     )
   end
 
@@ -93,10 +95,10 @@ defmodule PhoenixProfiler.ToolbarLive do
     })
   end
 
-  defp update_view(socket, route) do
-    update(socket, :request, fn req ->
-      router = socket.private[:phoenix_router]
-
+  defp apply_navigation(socket, %{router: router} = route) do
+    socket
+    |> update(:root_pid, fn _ -> route.root_pid end)
+    |> update(:request, fn req ->
       {helper, plug, action} = Routes.info(socket.assigns.profile.node, router, route)
 
       %{req | plug: inspect(plug), action: inspect(action), router_helper: helper}
@@ -137,21 +139,20 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info({:exception, kind, reason, stacktrace}, socket) do
-    apply_exception(socket, kind, reason, stacktrace)
-  end
+  def handle_info({:telemetry, _, [:phoenix, :live_view, _, _] = event, _event_ts, data}, socket) do
+    [_, _, stage, action] = event
 
-  def handle_info({:navigation, view}, socket) do
-    {:noreply, update_view(socket, view)}
-  end
-
-  def handle_info({:event_duration, duration}, socket) do
     socket =
-      update(socket, :durations, fn durations ->
-        durations = durations || %{total: nil, endpoint: nil, latest_event: nil}
-        %{durations | latest_event: duration(duration)}
-      end)
+      socket
+      |> maybe_apply_navigation(data)
+      |> apply_lifecycle(stage, action, data)
+      |> apply_event_duration(stage, action, data)
 
+    {:noreply, socket}
+  end
+
+  def handle_info({:collector_update_info, func}, socket) do
+    TelemetryRegistry.update_info(transport_pid(socket), func)
     {:noreply, socket}
   end
 
@@ -160,17 +161,43 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, socket}
   end
 
-  defp apply_exception(socket, kind, reason, stacktrace) do
+  defp maybe_apply_navigation(socket, data) do
+    if connected?(socket) and not is_nil(data.router) and
+         socket.assigns.root_pid != data.root_pid do
+      apply_navigation(socket, data)
+    else
+      socket
+    end
+  end
+
+  defp apply_lifecycle(socket, _stage, :exception, data) do
+    %{kind: kind, reason: reason, stacktrace: stacktrace} = data
+
     exception = %{
       ref: Phoenix.LiveView.Utils.random_id(),
       reason: Exception.format(kind, reason, stacktrace),
       at: Time.utc_now() |> Time.truncate(:second)
     }
 
-    {:noreply,
-     socket
-     |> update(:exits, &[exception | &1])
-     |> update(:exits_count, &(&1 + 1))}
+    socket
+    |> update(:exits, &[exception | &1])
+    |> update(:exits_count, &(&1 + 1))
+  end
+
+  defp apply_lifecycle(socket, _stage, _action, _data) do
+    socket
+  end
+
+  defp apply_event_duration(socket, stage, :stop, %{duration: duration})
+       when stage in [:handle_event, :handle_params] do
+    update(socket, :durations, fn durations ->
+      durations = durations || %{total: nil, endpoint: nil, latest_event: nil}
+      %{durations | latest_event: duration(duration)}
+    end)
+  end
+
+  defp apply_event_duration(socket, _stage, _action, _measurements) do
+    socket
   end
 
   defp current_duration(durations) do

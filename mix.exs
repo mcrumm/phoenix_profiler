@@ -8,7 +8,7 @@ defmodule PhoenixProfiler.MixProject do
     [
       app: :phoenix_profiler,
       version: @version,
-      elixir: "~> 1.7",
+      elixir: "~> 1.8",
       compilers: [:phoenix] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       package: package(),

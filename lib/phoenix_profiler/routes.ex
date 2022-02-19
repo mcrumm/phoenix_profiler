@@ -62,7 +62,7 @@ defmodule PhoenixProfiler.Routes do
     end
   end
 
-  # route_info from LiveViewListener telemetry
+  # route_info from LiveView telemetry
   defp route(
          %{metadata: %{phoenix_live_view: {lv, action, _opts, _extra}}} = route,
          %{root_pid: _, root_view: lv, live_action: action}

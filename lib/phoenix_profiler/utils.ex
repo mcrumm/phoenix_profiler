@@ -2,6 +2,7 @@ defmodule PhoenixProfiler.Utils do
   @moduledoc false
   alias Phoenix.LiveView
   alias PhoenixProfiler.Profile
+  alias PhoenixProfiler.TelemetryServer
 
   @default_profiler_link_base "/dashboard/_profiler"
 
@@ -39,6 +40,7 @@ defmodule PhoenixProfiler.Utils do
          {:ok, profiler} <- check_profiler_running(config) do
       conn_or_socket
       |> new_profile(endpoint, profiler, config, system_time)
+      |> start_collector(profiler)
       |> telemetry_execute(:start, %{system_time: system_time})
     else
       {:error, reason} -> enable_profiler_error(conn_or_socket, reason)
@@ -75,6 +77,33 @@ defmodule PhoenixProfiler.Utils do
   defp profiler_link_base(path) when is_binary(path) and path != "", do: path
   defp profiler_link_base(_), do: @default_profiler_link_base
 
+  defp start_collector(%Plug.Conn{} = conn, server) do
+    profile = conn.private.phoenix_profiler
+
+    collector_pid =
+      if is_pid(profile.collector_pid) and Process.alive?(profile.collector_pid) do
+        TelemetryServer.collector_info_exec(profile.info)
+        {:ok, profile.collector_pid}
+      else
+        TelemetryServer.listen(server, conn.owner, nil, profile.info)
+      end
+      |> case do
+        {:ok, collector_pid} -> collector_pid
+        {:error, {:already_registered, collector_pid}} -> collector_pid
+      end
+
+    put_private(conn, :phoenix_profiler, %{profile | collector_pid: collector_pid})
+  end
+
+  defp start_collector(%LiveView.Socket{} = socket, _server) do
+    # ToolbarLive acts as the LiveView Socket collector so we never
+    # start a collector here, but we can execute telemetry to notify it
+    # that the state changed.
+    info = socket.private.phoenix_profiler.info
+    TelemetryServer.collector_info_exec(info)
+    socket
+  end
+
   @doc """
   Returns the endpoint for a given `conn` or `socket`.
   """
@@ -83,8 +112,10 @@ defmodule PhoenixProfiler.Utils do
   def endpoint(%LiveView.Socket{endpoint: endpoint}), do: endpoint
 
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
-    # no-op in the event a profile already exists
-    conn_or_socket
+    # notify state change and ensure profile info is :enable
+    profile = conn_or_socket.private.phoenix_profiler
+    TelemetryServer.collector_info_exec(:enable)
+    put_private(conn_or_socket, :phoenix_profiler, %{profile | info: :enable})
   end
 
   defp enable_profiler_error(%LiveView.Socket{}, :waiting_for_connection) do
@@ -120,11 +151,18 @@ defmodule PhoenixProfiler.Utils do
         %{__struct__: kind, private: %{phoenix_profiler: %Profile{} = profile}} = conn_or_socket
       )
       when kind in [Plug.Conn, LiveView.Socket] do
-    put_private(conn_or_socket, :phoenix_profiler, %{profile | info: :disable})
+    conn_or_socket
+    |> put_private(:phoenix_profiler, %{profile | info: :disable})
+    |> unregister_collector()
   end
 
   def disable_profiler(%Plug.Conn{} = conn), do: conn
   def disable_profiler(%LiveView.Socket{} = socket), do: socket
+
+  defp unregister_collector(conn_or_socket) do
+    TelemetryServer.collector_info_exec(:disable)
+    conn_or_socket
+  end
 
   @doc """
   Checks whether or not a socket is connected.
@@ -199,10 +237,44 @@ defmodule PhoenixProfiler.Utils do
     Application.spec(app)[:vsn]
   end
 
+  @doc """
+  Returns the `transport_pid` for a given `socket`.
+  """
+  # TODO: replace with `socket.transport_pid` when we require LiveView v0.16+.
+  def transport_pid(%LiveView.Socket{} = socket) do
+    Map.get_lazy(socket, :transport_pid, fn ->
+      LiveView.transport_pid(socket)
+    end)
+  end
+
   @doc false
   def on_send_resp(conn, %Profile{} = profile) do
     duration = System.monotonic_time() - profile.start_time
-    telemetry_execute(conn, :stop, %{duration: duration})
+    conn = telemetry_execute(conn, :stop, %{duration: duration})
+
+    data =
+      PhoenixProfiler.TelemetryCollector.reduce(
+        profile.collector_pid,
+        %{metrics: %{endpoint_duration: nil}},
+        fn
+          {:telemetry, _, _, _, %{endpoint_duration: duration}}, acc ->
+            %{acc | metrics: Map.put(acc.metrics, :endpoint_duration, duration)}
+
+          {:telemetry, _, _, _, %{metrics: _} = entry}, acc ->
+            {metrics, rest} = map_pop!(entry, :metrics)
+            acc = Map.merge(acc, rest)
+            %{acc | metrics: Map.merge(acc.metrics, metrics)}
+
+          {:telemetry, _, _, _, data}, acc ->
+            Map.merge(acc, data)
+        end
+      )
+
+    profile
+    |> PhoenixProfiler.ProfileStore.table()
+    |> :ets.insert({profile.token, data})
+
+    conn
   end
 
   defp telemetry_execute(%LiveView.Socket{} = socket, _, _), do: socket
@@ -220,5 +292,29 @@ defmodule PhoenixProfiler.Utils do
 
   def sort_by(enumerable, sort_by_fun, :desc) do
     Enum.sort_by(enumerable, sort_by_fun, &>=/2)
+  end
+
+  # backwards compability
+  if Version.match?(System.version(), ">= 1.10.0") do
+    defdelegate map_pop!(map, key), to: Map, as: :pop!
+  else
+    # https://github.com/elixir-lang/elixir/blob/e29f1492a48c53ff41b4d60b6a7b5307692145f6/lib/elixir/lib/map.ex#L734
+    def map_pop!(map, key) do
+      case :maps.take(key, map) do
+        {_, _} = tuple -> tuple
+        :error -> raise KeyError, key: key, term: map
+      end
+    end
+  end
+
+  if String.to_integer(System.otp_release()) >= '24' do
+    defdelegate queue_fold(func, initial, queue), to: :queue, as: :fold
+  else
+    # https://github.com/erlang/otp/blob/9f87c568cd3cdb621cf4cae69ccce880be4ea1b6/lib/stdlib/src/queue.erl#L442
+    def queue_fold(func, initial, {r, f})
+        when is_function(func, 2) and is_list(r) and is_list(f) do
+      acc = :lists.foldl(func, initial, f)
+      :lists.foldr(func, acc, r)
+    end
   end
 end
