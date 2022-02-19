@@ -293,4 +293,15 @@ defmodule PhoenixProfiler.Utils do
   def sort_by(enumerable, sort_by_fun, :desc) do
     Enum.sort_by(enumerable, sort_by_fun, &>=/2)
   end
+
+  if String.to_integer(System.otp_release()) >= '24' do
+    defdelegate queue_fold(func, initial, queue), to: :queue, as: :fold
+  else
+    # https://github.com/erlang/otp/blob/9f87c568cd3cdb621cf4cae69ccce880be4ea1b6/lib/stdlib/src/queue.erl#L442
+    def queue_fold(func, initial, {r, f})
+        when is_function(func, 2) and is_list(r) and is_list(f) do
+      acc = :lists.foldl(func, initial, f)
+      :lists.foldr(func, acc, r)
+    end
+  end
 end

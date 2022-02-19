@@ -46,6 +46,7 @@ defmodule PhoenixProfiler.TelemetryCollector do
 
   use GenServer
   alias PhoenixProfiler.TelemetryRegistry
+  alias PhoenixProfiler.Utils
 
   @doc """
   Starts a collector linked to the current process.
@@ -109,7 +110,7 @@ defmodule PhoenixProfiler.TelemetryCollector do
 
   @impl GenServer
   def handle_call({:reduce, initial, func}, _from, %{queue: q} = state) do
-    {:reply, :queue.fold(func, initial, q), state}
+    {:reply, Utils.queue_fold(func, initial, q), state}
   end
 
   @impl GenServer
