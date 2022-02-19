@@ -18,23 +18,23 @@ defmodule PhoenixProfiler.TelemetryRegistryTest do
       assert {:ok, _pid} = TelemetryRegistry.register(nil, self(), nil)
 
       assert self() in Registry.keys(TelemetryRegistry, self())
-      assert Registry.values(TelemetryRegistry, self(), self()) == [{nil, nil, :enable}]
+      assert [{_pid, {nil, nil, :enable}}] = Registry.lookup(TelemetryRegistry, self())
     end
 
     test "disable on register" do
       assert {:ok, _pid} = TelemetryRegistry.register(nil, self(), nil, :disable)
 
       assert self() in Registry.keys(TelemetryRegistry, self())
-      assert Registry.values(TelemetryRegistry, self(), self()) == [{nil, nil, :disable}]
+      assert [{_pid, {nil, nil, :disable}}] = Registry.lookup(TelemetryRegistry, self())
     end
   end
 
   test "update_info/1" do
     assert {:ok, _} = TelemetryRegistry.register(nil, self(), nil, :enable)
     TelemetryRegistry.update_info(self(), fn :enable -> :disable end)
-    assert Registry.values(TelemetryRegistry, self(), self()) == [{nil, nil, :disable}]
+    assert [{_pid, {nil, nil, :disable}}] = Registry.lookup(TelemetryRegistry, self())
 
     TelemetryRegistry.update_info(self(), fn :disable -> :enable end)
-    assert Registry.values(TelemetryRegistry, self(), self()) == [{nil, nil, :enable}]
+    assert [{_pid, {nil, nil, :enable}}] = Registry.lookup(TelemetryRegistry, self())
   end
 end

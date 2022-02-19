@@ -53,15 +53,8 @@ defmodule PhoenixProfiler.TelemetryServerTest do
 
       {:ok, collector_pid} = TelemetryServer.listen(name, self())
 
-      Task.async(fn ->
-        :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
-
-        Task.async(fn ->
-          :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
-        end)
-        |> Task.await()
-      end)
-      |> Task.await()
+      :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
+      :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
 
       assert reduce_events(collector_pid) == [
                {1, [:debug, :me]},

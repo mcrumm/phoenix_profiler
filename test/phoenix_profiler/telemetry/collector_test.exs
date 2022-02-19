@@ -24,9 +24,7 @@ defmodule PhoenixProfiler.TelemetryCollectorTest do
 
       {:ok, _} = TelemetryRegistry.register(name, self())
 
-      fn -> :telemetry.execute([:debug, :me], %{}, %{}) end
-      |> Task.async()
-      |> Task.await()
+      :telemetry.execute([:debug, :me], %{}, %{})
 
       assert_received {:telemetry, _, [:debug, :me], _, _}
     end

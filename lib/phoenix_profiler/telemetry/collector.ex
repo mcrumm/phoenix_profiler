@@ -54,12 +54,11 @@ defmodule PhoenixProfiler.TelemetryCollector do
   ## Examples
 
       iex> start_supervised!({PhoenixProfiler, name: :debug})
-      iex> {:ok, pid} = PhoenixProfiler.TelemetryCollector.start_link({:debug, self()})
-      {:ok, pid}
-      iex> PhoenixProfiler.TelemetryCollector.start_link({:debug, self(), :arg})
-      {:error, {:already_registered, pid}}
-      iex> PhoenixProfiler.TelemetryCollector.start_link({:debug, self(), :arg, :disable})
-      {:error, {:already_registered, pid}}
+      iex> {:ok, _pid} = PhoenixProfiler.TelemetryCollector.start_link({:debug, self()})
+      iex> {:error, {:already_registered, _pid}} = PhoenixProfiler.TelemetryCollector.start_link({:debug, self(), :arg})
+      iex> {:error, {:already_registered, pid}} = PhoenixProfiler.TelemetryCollector.start_link({:debug, self(), :arg, :disable})
+      iex> Process.alive?(pid)
+      true
 
   """
   def start_link({server, pid}) when is_pid(pid) do
