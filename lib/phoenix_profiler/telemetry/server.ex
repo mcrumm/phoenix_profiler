@@ -35,6 +35,7 @@ defmodule PhoenixProfiler.TelemetryServer do
   @doc """
   Executes the collector event for `info` for the current process.
   """
+  @spec collector_info_exec(info :: :disable | :enable) :: :ok
   def collector_info_exec(:disable), do: telemetry_exec(@disable_event)
   def collector_info_exec(:enable), do: telemetry_exec(@enable_event)
 
