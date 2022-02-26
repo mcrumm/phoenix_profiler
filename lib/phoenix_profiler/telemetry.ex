@@ -28,23 +28,14 @@ defmodule PhoenixProfiler.Telemetry do
   end
 
   def collect(_, [:phxprof, :plug, :stop], measures, %{conn: conn}) do
-    profile = conn.private.phoenix_profiler
-
-    case profile.info do
-      :disable ->
-        :skip
-
-      info when info in [nil, :enable] ->
-        {:keep,
-         %{
-           at: profile.system_time,
-           conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
-           metrics: %{
-             memory: collect_memory(conn.owner),
-             total_duration: measures.duration
-           }
-         }}
-    end
+    {:keep,
+     %{
+       conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
+       metrics: %{
+         memory: collect_memory(conn.owner),
+         total_duration: measures.duration
+       }
+     }}
   end
 
   def collect(_, [:phoenix, :live_view | _] = event, measures, %{socket: socket} = meta) do

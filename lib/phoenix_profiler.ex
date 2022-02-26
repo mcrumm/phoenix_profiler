@@ -39,7 +39,12 @@ defmodule PhoenixProfiler do
 
   """
   def on_mount(_arg, _params, _session, socket) do
-    {:cont, PhoenixProfiler.Utils.maybe_mount_profile(socket)}
+    with true <- Phoenix.LiveView.connected?(socket),
+         {:ok, socket} <- PhoenixProfiler.Configurator.configure(socket) do
+      {:cont, socket}
+    else
+      _ -> {:cont, socket}
+    end
   end
 
   @doc """
@@ -77,7 +82,7 @@ defmodule PhoenixProfiler do
       end
 
   """
-  defdelegate enable(conn_or_socket), to: PhoenixProfiler.Utils, as: :enable_profiler
+  defdelegate enable(conn_or_socket), to: PhoenixProfiler.Configurator
 
   @doc """
   Disables profiling on a given `conn` or `socket`.
@@ -105,7 +110,7 @@ defmodule PhoenixProfiler do
   start with the profiler in a disabled state and enable it
   after the LiveView has mounted.
   """
-  defdelegate disable(conn_or_socket), to: PhoenixProfiler.Utils, as: :disable_profiler
+  defdelegate disable(conn_or_socket), to: PhoenixProfiler.Configurator
 
   @doc """
   Resets the storage of the given `profiler`.

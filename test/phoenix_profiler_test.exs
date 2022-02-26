@@ -1,7 +1,6 @@
 defmodule PhoenixProfilerUnitTest do
   use ExUnit.Case, async: true
   alias Phoenix.LiveView.Socket
-  alias PhoenixProfiler.Profile
 
   doctest PhoenixProfiler
 
@@ -50,100 +49,120 @@ defmodule PhoenixProfilerUnitTest do
     assert [AllRunning_1, AllRunning_2] -- PhoenixProfiler.all_running() == []
   end
 
-  describe "enable/1 with Plug.Conn" do
-    test "raises when the profiler is not defined on the endpoint" do
-      assert_raise RuntimeError,
-                   ~r/attempted to enable profiling but no profiler is configured on the endpoint/,
-                   fn ->
-                     NoConfigEndpoint
-                     |> build_conn()
-                     |> PhoenixProfiler.enable()
-                   end
+  describe "configure/1 with Plug.Conn" do
+    test "returns {:error, :profiler_not_available} when the profiler is not defined on the endpoint" do
+      assert NoConfigEndpoint
+             |> build_conn()
+             |> PhoenixProfiler.Configurator.configure() == {:error, :profiler_not_available}
     end
 
     test "raises when the profiler is not running" do
       assert_raise RuntimeError,
-                   ~r/attempted to enable profiling but the profiler is not running/,
+                   ~r/attempted to configure a profiler on the given conn, but the profiler is not running/,
                    fn ->
                      EndpointMock
                      |> build_conn()
-                     |> PhoenixProfiler.enable()
+                     |> PhoenixProfiler.Configurator.configure()
                    end
     end
 
-    test "puts a profile on the conn" do
-      start_supervised!({PhoenixProfiler, name: MyProfiler})
+    test "starts a collector" do
+      profiler_name = MyProfiler
+      start_supervised!({PhoenixProfiler, name: profiler_name})
 
-      conn =
-        build_conn()
-        |> PhoenixProfiler.Utils.put_private(:phoenix_endpoint, EndpointMock)
-        |> PhoenixProfiler.enable()
+      conn = build_conn()
 
-      %Profile{server: MyProfiler, info: :enable} = conn.private.phoenix_profiler
+      assert PhoenixProfiler.Utils.collector_info(profiler_name, conn) == :error
+
+      assert {:ok, conn} =
+               conn
+               |> PhoenixProfiler.Utils.put_private(:phoenix_endpoint, EndpointMock)
+               |> PhoenixProfiler.Configurator.configure()
+
+      assert {:enable, collector_pid} = PhoenixProfiler.Utils.collector_info(profiler_name, conn)
+
+      assert Process.alive?(collector_pid)
     end
   end
 
-  describe "enable/1 with LiveView.Socket" do
+  describe "configure/1 with LiveView.Socket" do
     test "raises when socket is not connected" do
       assert_raise RuntimeError,
-                   ~r/attempted to enable profiling on a disconnected socket/,
+                   ~r/attempted to configure a profiler on the given socket, but it is disconnected/,
                    fn ->
-                     PhoenixProfiler.enable(build_socket())
+                     PhoenixProfiler.Configurator.configure(build_socket())
                    end
     end
 
-    test "raises when the profiler is not configured on the endpoint" do
-      assert_raise RuntimeError,
-                   ~r/attempted to enable profiling but no profiler is configured on the endpoint/,
-                   fn ->
-                     build_socket()
-                     |> Map.put(:endpoint, NoConfigEndpoint)
-                     |> connect()
-                     |> PhoenixProfiler.enable()
-                   end
+    test "returns {:error, :profiler_not_available} when the profiler is not defined on the endpoint" do
+      assert build_socket()
+             |> Map.put(:endpoint, NoConfigEndpoint)
+             |> connect()
+             |> PhoenixProfiler.Configurator.configure() == {:error, :profiler_not_available}
     end
 
     test "raises when the profiler is not running" do
       assert_raise RuntimeError,
-                   ~r/attempted to enable profiling but the profiler is not running/,
+                   ~r/attempted to configure a profiler on the given socket, but the profiler is not running/,
                    fn ->
-                     build_socket() |> connect() |> PhoenixProfiler.enable()
+                     build_socket() |> connect() |> PhoenixProfiler.Configurator.configure()
                    end
     end
 
-    test "puts a profile on the socket" do
-      start_supervised!({PhoenixProfiler, name: MyProfiler})
-      socket = build_socket() |> connect() |> PhoenixProfiler.enable()
-      assert %Profile{server: MyProfiler, info: :enable} = socket.private.phoenix_profiler
+    test "does not start a collector" do
+      profiler_name = MyProfiler
+      start_supervised!({PhoenixProfiler, name: profiler_name})
+      socket = build_socket() |> connect()
+
+      assert PhoenixProfiler.Utils.collector_info(profiler_name, socket) == :error
+
+      assert {:ok, socket} = PhoenixProfiler.Configurator.configure(socket)
+
+      assert PhoenixProfiler.Utils.collector_info(profiler_name, socket) == :error
     end
   end
 
-  test "disable/1 when no profile is set" do
-    conn = build_conn(EndpointMock)
-    assert PhoenixProfiler.disable(conn) == conn
-
-    socket = build_socket() |> connect() |> PhoenixProfiler.disable()
-    assert PhoenixProfiler.disable(socket) == socket
-  end
-
   test "disable/1 with Plug.Conn" do
-    start_supervised!({PhoenixProfiler, name: MyProfiler})
+    profiler = start_profiler!()
 
     conn =
       build_conn()
       |> PhoenixProfiler.Utils.put_private(:phoenix_endpoint, EndpointMock)
-      |> PhoenixProfiler.enable()
 
-    assert conn.private.phoenix_profiler.info == :enable
+    assert PhoenixProfiler.Utils.collector_info(profiler, conn) == :error
+
+    {:ok, conn} = PhoenixProfiler.Configurator.configure(conn)
+    assert {:enable, _pid} = PhoenixProfiler.Utils.collector_info(profiler, conn)
+
     conn = PhoenixProfiler.disable(conn)
-    assert conn.private.phoenix_profiler.info == :disable
+    assert conn.private.phoenix_profiler_info == :disable
   end
 
   test "disable/1 with LiveView.Socket" do
-    start_supervised!({PhoenixProfiler, name: MyProfiler})
-    socket = build_socket() |> connect() |> PhoenixProfiler.enable()
-    assert socket.private.phoenix_profiler.info == :enable
+    profiler = start_profiler!()
+
+    socket = build_socket() |> connect()
+    assert PhoenixProfiler.Utils.collector_info(profiler, socket) == :error
+
+    {:ok, socket} = PhoenixProfiler.Configurator.configure(socket)
+
+    {:ok, pid} =
+      PhoenixProfiler.TelemetryServer.listen(
+        profiler,
+        PhoenixProfiler.Utils.transport_pid(socket)
+      )
+
+    assert {:enable, ^pid} = PhoenixProfiler.Utils.collector_info(profiler, socket)
+
     socket = PhoenixProfiler.disable(socket)
-    assert socket.private.phoenix_profiler.info == :disable
+    assert socket.private.phoenix_profiler_info == :disable
+
+    :timer.sleep(10)
+    assert {:disable, ^pid} = PhoenixProfiler.Utils.collector_info(profiler, socket)
+  end
+
+  defp start_profiler!(name \\ MyProfiler) do
+    start_supervised!({PhoenixProfiler, name: name})
+    name
   end
 end

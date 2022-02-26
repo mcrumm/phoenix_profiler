@@ -1,6 +1,7 @@
 defmodule PhoenixProfiler.PhoenixProfilerTest do
   use ExUnit.Case, async: true
   import Phoenix.ConnTest
+  alias PhoenixProfiler.Profile
   alias PhoenixProfiler.ProfileStore
   alias PhoenixProfilerTest.Endpoint
 
@@ -22,21 +23,23 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert url ==
              "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
 
-    %{
-      conn: %Plug.Conn{
-        host: "www.example.com",
-        method: "GET",
-        path_info: [],
-        private: %{
-          phoenix_action: :index,
-          phoenix_controller: PhoenixProfilerTest.PageController,
-          phoenix_endpoint: PhoenixProfilerTest.Endpoint,
-          phoenix_router: PhoenixProfilerTest.Router,
-          phoenix_view: PhoenixProfilerTest.PageView
+    %Profile{
+      data: %{
+        conn: %Plug.Conn{
+          host: "www.example.com",
+          method: "GET",
+          path_info: [],
+          private: %{
+            phoenix_action: :index,
+            phoenix_controller: PhoenixProfilerTest.PageController,
+            phoenix_endpoint: PhoenixProfilerTest.Endpoint,
+            phoenix_router: PhoenixProfilerTest.Router,
+            phoenix_view: PhoenixProfilerTest.PageView
+          },
+          status: 200
         },
-        status: 200
-      },
-      metrics: metrics
+        metrics: metrics
+      }
     } = conn |> ProfileStore.profiler() |> ProfileStore.get(token)
 
     assert metrics.total_duration > 0
@@ -60,21 +63,23 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert url ==
              "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
 
-    %{
-      conn: %Plug.Conn{
-        host: "www.example.com",
-        method: "GET",
-        path_info: ["api"],
-        private: %{
-          phoenix_action: :index,
-          phoenix_controller: PhoenixProfilerTest.APIController,
-          phoenix_endpoint: PhoenixProfilerTest.Endpoint,
-          phoenix_router: PhoenixProfilerTest.Router,
-          phoenix_view: PhoenixProfilerTest.APIView
+    %Profile{
+      data: %{
+        conn: %Plug.Conn{
+          host: "www.example.com",
+          method: "GET",
+          path_info: ["api"],
+          private: %{
+            phoenix_action: :index,
+            phoenix_controller: PhoenixProfilerTest.APIController,
+            phoenix_endpoint: PhoenixProfilerTest.Endpoint,
+            phoenix_router: PhoenixProfilerTest.Router,
+            phoenix_view: PhoenixProfilerTest.APIView
+          },
+          status: 200
         },
-        status: 200
-      },
-      metrics: metrics
+        metrics: metrics
+      }
     } = conn |> ProfileStore.profiler() |> ProfileStore.get(token)
 
     assert metrics.endpoint_duration > 0

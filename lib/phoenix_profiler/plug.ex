@@ -21,14 +21,16 @@ defmodule PhoenixProfiler.Plug do
 
   def call(conn, _) do
     endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(:phoenix_profiler)
+    start_time = System.monotonic_time()
 
-    if config do
-      conn
-      |> PhoenixProfiler.Utils.enable_profiler(endpoint, config, System.system_time())
-      |> before_send_profile(endpoint, config)
-    else
-      conn
+    case PhoenixProfiler.Configurator.configure(conn) do
+      {:ok, conn} ->
+        conn
+        |> telemetry_execute(:start, %{system_time: System.system_time()})
+        |> before_send_profile(endpoint, [], start_time)
+
+      {:error, :profiler_not_available} ->
+        conn
     end
   end
 
@@ -38,19 +40,26 @@ defmodule PhoenixProfiler.Plug do
     |> put_resp_header(@profiler_header_key, profile.url)
   end
 
-  defp before_send_profile(conn, endpoint, config) do
+  defp before_send_profile(conn, endpoint, config, start_time) do
     register_before_send(conn, fn conn ->
-      case Map.get(conn.private, :phoenix_profiler) do
-        %Profile{info: :enable} = profile ->
-          conn
-          |> apply_profile_headers(profile)
-          |> PhoenixProfiler.Utils.on_send_resp(profile)
-          |> maybe_inject_debug_toolbar(profile, endpoint, config)
+      telemetry_execute(conn, :stop, %{duration: System.monotonic_time() - start_time})
 
-        _ ->
+      case PhoenixProfiler.Profiler.collect(conn) do
+        {:ok, profile} ->
+          conn = apply_profile_headers(conn, profile)
+          true = PhoenixProfiler.Profiler.insert_profile(profile)
+          maybe_inject_debug_toolbar(conn, profile, endpoint, config)
+
+        :error ->
           conn
       end
     end)
+  end
+
+  defp telemetry_execute(%Plug.Conn{} = conn, action, measurements)
+       when action in [:start, :stop] do
+    :telemetry.execute([:phxprof, :plug, action], measurements, %{conn: conn})
+    conn
   end
 
   defp maybe_inject_debug_toolbar(%{resp_body: nil} = conn, _, _, _), do: conn
@@ -106,11 +115,17 @@ defmodule PhoenixProfiler.Plug do
             name: "Phoenix Web Debug Toolbar"
           )
 
+        # Note: if the session keys change then you must bump the version:
         ToolbarView
         |> Phoenix.View.render("index.html", %{
           conn: conn,
-          session: %{"_" => profile},
-          profile: profile,
+          session: %{
+            "vsn" => 1,
+            "node" => node(),
+            "server" => profile.server,
+            "token" => profile.token
+          },
+          token: profile.token,
           toolbar_attrs: attrs(attrs)
         })
         |> Phoenix.HTML.Safe.to_iodata()

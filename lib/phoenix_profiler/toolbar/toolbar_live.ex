@@ -3,26 +3,25 @@ defmodule PhoenixProfiler.ToolbarLive do
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
   require Logger
+  alias PhoenixProfiler.Profile
   alias PhoenixProfiler.ProfileStore
   alias PhoenixProfiler.Routes
   alias PhoenixProfiler.TelemetryRegistry
   alias PhoenixProfiler.Utils
 
   @impl Phoenix.LiveView
-  def mount(_, %{"_" => %PhoenixProfiler.Profile{} = profile}, socket) do
-    socket =
-      socket
-      |> assign_defaults()
-      |> assign(:profile, profile)
+  # Note if the session keys change you must bump the version.
+  def mount(_, %{"vsn" => 1, "node" => node, "server" => server, "token" => token}, socket) do
+    socket = assign_defaults(socket)
 
     socket =
-      case ProfileStore.remote_get(profile) do
+      case ProfileStore.remote_get(node, server, token) do
         nil -> assign_error_toolbar(socket)
         remote_profile -> assign_toolbar(socket, remote_profile)
       end
 
     if connected?(socket) do
-      {:ok, _} = TelemetryRegistry.register(profile.server, Utils.transport_pid(socket), nil)
+      {:ok, _} = TelemetryRegistry.register(server, Utils.transport_pid(socket), nil)
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}
@@ -65,9 +64,10 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp assign_toolbar(socket, profile) do
-    %{metrics: metrics} = profile
+    %Profile{data: %{metrics: metrics}} = profile
 
     socket
+    |> assign(:profile, profile)
     |> apply_request(profile)
     |> assign(:durations, %{
       total: duration(metrics.total_duration),
@@ -78,7 +78,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp apply_request(socket, profile) do
-    %{conn: %Plug.Conn{} = conn} = profile
+    %Profile{data: %{conn: %Plug.Conn{} = conn}} = profile
     router = conn.private[:phoenix_router]
     {helper, plug, action} = Routes.info(socket.assigns.profile.node, conn)
     socket = %{socket | private: Map.put(socket.private, :phoenix_router, router)}

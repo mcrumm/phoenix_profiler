@@ -71,7 +71,7 @@ defmodule PhoenixProfiler.ProfileStore do
   """
   def profiler(%Plug.Conn{} = conn) do
     case conn.private[:phoenix_profiler] do
-      %Profile{server: server} when is_atom(server) -> server
+      server when is_atom(server) -> server
       nil -> nil
     end
   end
@@ -106,10 +106,6 @@ defmodule PhoenixProfiler.ProfileStore do
   @doc """
   Fetches a profile on a remote node.
   """
-  def remote_get(%Profile{} = profile) do
-    remote_get(profile.node, profile.server, profile.token)
-  end
-
   def remote_get(node, profiler, token) do
     :rpc.call(node, __MODULE__, :get, [profiler, token])
   end
