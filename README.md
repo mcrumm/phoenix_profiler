@@ -25,7 +25,7 @@ To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_profiler` dependency
 2. Define a profiler on your supervision tree
-3. Enable the profiler on your Endpoint
+3. Enable the profiler on your Endpoint config
 4. Configure LiveView
 5. Use `PhoenixProfiler.Endpoint`
 6. Mount the profiler on your LiveViews
@@ -63,7 +63,7 @@ The following options are available:
 * `:request_sweep_interval` - How often to sweep the ETS table where
   the profiles are stored. Default is `24h` in milliseconds.
 
-### 3. Enable the profiler on your Endpoint
+### 3. Enable the profiler on your Endpoint config
 
 PhoenixProfiler is disabled by default. In order to enable it,
 you must update your endpoint's `:dev` configuration to include the
