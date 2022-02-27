@@ -28,6 +28,11 @@ defmodule PhoenixProfiler.Endpoint do
     end
   end
 
+  # TODO: remove this clause when we add config for profiler exclude_patterns
+  def __prologue__(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
+    conn
+  end
+
   def __prologue__(conn, endpoint) do
     case PhoenixProfiler.Profiler.configure(conn, endpoint) do
       {:ok, conn} ->
