@@ -27,7 +27,7 @@ To start using the profiler, you will need the following steps:
 2. Define a profiler on your supervision tree
 3. Enable the profiler on your Endpoint config
 4. Configure LiveView
-5. Use `PhoenixProfiler.Endpoint`
+5. Use `PhoenixProfiler.Endpoint` on your Endpoint module
 6. Mount the profiler on your LiveViews
 7. Add the profiler page on your LiveDashboard (optional)
 
@@ -41,20 +41,18 @@ Add phoenix_profiler to your `mix.exs`:
 
 ### 2. Define a profiler on your supervision tree
 
-You define a profiler on your main application's supervision
-tree (usually in `lib/my_app/application.ex`):
+You define a profiler on your main application's telemetry supervision
+tree (usually in `lib/my_app_web/telemetry.ex`):
 
 ```elixir
     children = [
       {PhoenixProfiler, name: MyAppWeb.Profiler},
-      # MyApp.Repo
-      # MyAppWeb.Endpoint,
-      # etc...
+      # :telemetry_poller, etc.
     ]
 ```
 
 Note that the profiler must be running for data to be collected,
-so it must come before any endpoints in your supervision tree.
+so it must come before any Endpoint modules in your supervision tree.
 
 The following options are available:
 
@@ -108,7 +106,7 @@ config :my_app, MyAppWeb.Endpoint,
 
 ### 5. Use PhoenixProfiler.Endpoint
 
-Add `use PhoenixProfiler.Endpoint` to your Endpoint
+Add `use PhoenixProfiler.Endpoint` on your Endpoint module
 (usually in `lib/my_app_web/endpoint.ex`):
 
 ```elixir
