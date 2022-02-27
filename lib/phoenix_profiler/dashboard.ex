@@ -298,7 +298,8 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     defp fetch_profiles(params, profiler, node) do
       %{search: search, sort_by: sort_by, sort_dir: sort_dir, limit: limit} = params
 
-      {profiles, total} = fetch_profiles(node, profiler, search, sort_by, sort_dir, limit)
+      {profiles, total} =
+        ProfileStore.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
 
       rows =
         for {token, profile} <- profiles do
@@ -312,13 +313,6 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
         end
 
       {rows, total}
-    end
-
-    defp fetch_profiles(node, profiler, search, sort_by, sort_dir, limit) do
-      profiles =
-        ProfileStore.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
-
-      {profiles, length(profiles)}
     end
 
     defp columns do
