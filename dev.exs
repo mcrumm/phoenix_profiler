@@ -322,7 +322,7 @@ end
 
 defmodule DemoWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
-  use PhoenixProfiler.Endpoint
+  use PhoenixProfiler
 
   @session_options [
     store: :cookie,

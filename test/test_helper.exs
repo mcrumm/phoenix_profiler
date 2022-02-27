@@ -107,7 +107,7 @@ end
 
 defmodule PhoenixProfilerTest.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
-  use PhoenixProfiler.Endpoint
+  use PhoenixProfiler
 
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
@@ -121,7 +121,7 @@ end
 
 defmodule PhoenixProfilerTest.EndpointDisabled do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
-  use PhoenixProfiler.Endpoint
+  use PhoenixProfiler
 
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 end

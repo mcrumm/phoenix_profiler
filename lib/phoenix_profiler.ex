@@ -5,6 +5,21 @@ defmodule PhoenixProfiler do
              |> String.split("<!-- MDOC -->")
              |> Enum.fetch!(1)
 
+  defmacro __using__(_) do
+    quote do
+      unquote(plug())
+
+      @before_compile PhoenixProfiler.Endpoint
+    end
+  end
+
+  defp plug do
+    # todo: ensure we are within a Phoenix.Endpoint
+    quote location: :keep do
+      plug PhoenixProfiler.Plug
+    end
+  end
+
   @doc """
   Returns the child specification to start the profiler
   under a supervision tree.

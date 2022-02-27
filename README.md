@@ -27,7 +27,7 @@ To start using the profiler, you will need the following steps:
 2. Define a profiler on your supervision tree
 3. Enable the profiler on your Endpoint config
 4. Configure LiveView
-5. Use `PhoenixProfiler.Endpoint` on your Endpoint module
+5. Use `PhoenixProfiler` on your Endpoint module
 6. Mount the profiler on your LiveViews
 7. Add the profiler page on your LiveDashboard (optional)
 
@@ -106,13 +106,13 @@ config :my_app, MyAppWeb.Endpoint,
 
 ### 5. Use PhoenixProfiler.Endpoint
 
-Add `use PhoenixProfiler.Endpoint` on your Endpoint module
+Add `use PhoenixProfiler` on your Endpoint module
 (usually in `lib/my_app_web/endpoint.ex`):
 
 ```elixir
   defmodule MyAppWeb.Endpoint do
     use Phoenix.Endpoint, otp_app: :my_app
-    use PhoenixProfiler.Endpoint
+    use PhoenixProfiler
 
     # plugs...
   end

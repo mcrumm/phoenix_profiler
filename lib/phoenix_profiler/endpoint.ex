@@ -1,24 +1,7 @@
 defmodule PhoenixProfiler.Endpoint do
-  @moduledoc """
-  Provides profiling on an [`Endpoint`](`Phoenix.Endpoint`).
-  """
+  # Overrides Phoenix.Endpoint.call/2 for profiling.
+  @moduledoc false
 
-  defmacro __using__(_) do
-    quote do
-      unquote(plug())
-
-      @before_compile PhoenixProfiler.Endpoint
-    end
-  end
-
-  defp plug do
-    # todo: ensure we are within a Phoenix.Endpoint
-    quote location: :keep do
-      plug PhoenixProfiler.Plug
-    end
-  end
-
-  @doc false
   defmacro __before_compile__(%{module: _module}) do
     quote do
       defoverridable call: 2
@@ -56,13 +39,11 @@ defmodule PhoenixProfiler.Endpoint do
     end
   end
 
-  @doc false
   def __catch__(conn, kind, reason, stack, start_time) do
     __epilogue__(conn, start_time, kind, reason, stack)
     :erlang.raise(kind, reason, stack)
   end
 
-  @doc false
   def __epilogue__(conn, start_time) do
     if profiler = conn.private[:phoenix_profiler] do
       telemetry_execute(:stop, %{duration: duration(start_time)}, %{
