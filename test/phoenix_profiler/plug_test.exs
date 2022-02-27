@@ -5,19 +5,27 @@ defmodule PhoenixProfiler.PlugTest do
 
   @token_header_key "x-debug-token"
   @profiler_header_key "x-debug-token-link"
-
   defp conn(path) do
     :get
     |> conn(path)
     |> put_private(:phoenix_endpoint, PhoenixProfilerTest.Endpoint)
+
+    conn(:get, path)
+  end
+
+  defp profile_thru(conn, endpoint) do
+    conn = put_private(conn, :phoenix_endpoint, endpoint)
+    {:ok, conn} = PhoenixProfiler.Profiler.configure(conn)
+    conn
   end
 
   test "injects debug token headers if configured" do
-    opts = PhoenixProfiler.init([])
+    opts = PhoenixProfiler.Plug.init([])
 
     conn =
       conn("/")
-      |> PhoenixProfiler.call(opts)
+      |> profile_thru(PhoenixProfilerTest.Endpoint)
+      |> PhoenixProfiler.Plug.call(opts)
       |> send_resp(200, "")
 
     assert [token] = Plug.Conn.get_resp_header(conn, @token_header_key)
@@ -28,12 +36,12 @@ defmodule PhoenixProfiler.PlugTest do
   end
 
   test "skips debug token when disabled at the Endpoint" do
-    opts = PhoenixProfiler.init([])
+    opts = PhoenixProfiler.Plug.init([])
 
     conn =
       conn("/")
-      |> put_private(:phoenix_endpoint, PhoenixProfilerTest.EndpointDisabled)
-      |> PhoenixProfiler.call(opts)
+      |> profile_thru(PhoenixProfilerTest.EndpointDisabled)
+      |> PhoenixProfiler.Plug.call(opts)
       |> send_resp(200, "")
 
     assert get_resp_header(conn, @token_header_key) == []
@@ -41,12 +49,13 @@ defmodule PhoenixProfiler.PlugTest do
   end
 
   test "injects debug toolbar for html requests if configured and contains the <body> tag" do
-    opts = PhoenixProfiler.init([])
+    opts = PhoenixProfiler.Plug.init([])
 
     conn =
       conn("/")
+      |> profile_thru(PhoenixProfilerTest.Endpoint)
       |> put_resp_content_type("text/html")
-      |> PhoenixProfiler.call(opts)
+      |> PhoenixProfiler.Plug.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixProfiler</h1></body></html>")
 
     assert [token] = get_resp_header(conn, @token_header_key)
@@ -56,13 +65,13 @@ defmodule PhoenixProfiler.PlugTest do
   end
 
   test "skips debug toolbar injection when disabled at the Endpoint" do
-    opts = PhoenixProfiler.init([])
+    opts = PhoenixProfiler.Plug.init([])
 
     conn =
       conn("/")
       |> put_private(:phoenix_endpoint, PhoenixProfilerTest.EndpointDisabled)
       |> put_resp_content_type("text/html")
-      |> PhoenixProfiler.call(opts)
+      |> PhoenixProfiler.Plug.call(opts)
       |> send_resp(200, "<html><body><h1>PhoenixProfiler</h1></body></html>")
 
     assert get_resp_header(conn, @token_header_key) == []
@@ -71,24 +80,26 @@ defmodule PhoenixProfiler.PlugTest do
   end
 
   test "skips toolbar injection if html response is missing the body tag" do
-    opts = PhoenixProfiler.init([])
+    opts = PhoenixProfiler.Plug.init([])
 
     conn =
       conn("/")
+      |> profile_thru(PhoenixProfilerTest.Endpoint)
       |> put_resp_content_type("text/html")
-      |> PhoenixProfiler.call(opts)
+      |> PhoenixProfiler.Plug.call(opts)
       |> send_resp(200, "<h1>PhoenixProfiler</h1>")
 
     assert to_string(conn.resp_body) == "<h1>PhoenixProfiler</h1>"
   end
 
   test "skips toolbar injection if not an html request" do
-    opts = PhoenixProfiler.init([])
+    opts = PhoenixProfiler.Plug.init([])
 
     conn =
       conn("/")
+      |> profile_thru(PhoenixProfilerTest.Endpoint)
       |> put_resp_content_type("application/json")
-      |> PhoenixProfiler.call(opts)
+      |> PhoenixProfiler.Plug.call(opts)
       |> send_resp(200, "")
 
     assert [token] = get_resp_header(conn, @token_header_key)

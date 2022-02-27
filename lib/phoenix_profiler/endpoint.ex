@@ -33,31 +33,30 @@ defmodule PhoenixProfiler.Endpoint do
           # todo: rescue any profiler errors and handle them appropriately.
           e in Plug.Conn.WrapperError ->
             %{conn: conn, kind: kind, reason: reason, stack: stack} = e
-            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, config, start_time)
+            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, start_time)
         catch
           kind, reason ->
             stack = __STACKTRACE__
-            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, config, start_time)
+            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, start_time)
         end
       end
     end
   end
 
   def __prologue__(conn, endpoint) do
-    config = endpoint.config(:phoenix_profiler)
+    case PhoenixProfiler.Profiler.configure(conn, endpoint) do
+      {:ok, conn} ->
+        telemetry_execute(:start, %{system_time: System.system_time()}, %{conn: conn})
+        conn
 
-    if config do
-      conn = PhoenixProfiler.Utils.configure_profile(conn, endpoint, config, System.system_time())
-      telemetry_execute(:start, %{system_time: System.system_time()}, %{conn: conn})
-      conn
-    else
-      conn
+      {:error, :profiler_not_available} ->
+        conn
     end
   end
 
   @doc false
-  def __catch__(conn, kind, reason, stack, config, start_time) do
-    __epilogue__(conn, kind, reason, stack, config, start_time)
+  def __catch__(conn, kind, reason, stack, start_time) do
+    __epilogue__(conn, start_time, kind, reason, stack)
     :erlang.raise(kind, reason, stack)
   end
 
@@ -66,27 +65,29 @@ defmodule PhoenixProfiler.Endpoint do
   #  - late collect (this can be its *own* telemetry event)
   #  - compile/persist the profile (built-in data collector than runs last?)
   def __epilogue__(conn, start_time) do
-    if profile = conn.private[:phoenix_profiler] do
+    if profiler = conn.private[:phoenix_profiler] do
       telemetry_execute(:stop, %{duration: duration(start_time)}, %{
         conn: conn,
-        profile: profile
+        profiler: profiler
       })
 
-      conn
+      late_collect(conn)
     else
       conn
     end
   end
 
-  def __epilogue__(conn, start_time, kind, reason, stack, _config) do
-    if profile = conn.private[:phoenix_profiler] do
+  def __epilogue__(conn, start_time, kind, reason, stack) do
+    if profiler = conn.private[:phoenix_profiler] do
       telemetry_execute(:exception, %{duration: duration(start_time)}, %{
         conn: conn,
-        profile: profile,
+        profiler: profiler,
         kind: kind,
         reason: reason,
         stacktrace: stack
       })
+
+      late_collect(conn, {kind, stack, reason})
     end
   end
 
@@ -96,5 +97,16 @@ defmodule PhoenixProfiler.Endpoint do
 
   defp duration(start_time) when is_integer(start_time) do
     System.monotonic_time() - start_time
+  end
+
+  defp late_collect(conn, _error \\ nil) do
+    case PhoenixProfiler.Profiler.collect(conn) do
+      {:ok, profile} ->
+        true = PhoenixProfiler.Profiler.insert_profile(profile)
+        conn
+
+      :error ->
+        conn
+    end
   end
 end

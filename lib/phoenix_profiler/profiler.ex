@@ -89,8 +89,8 @@ defmodule PhoenixProfiler.Profiler do
   @doc """
   Configures profiling for a given `conn` or `socket`.
   """
-  def configure(conn_or_socket) do
-    case apply_profiler_info(conn_or_socket) do
+  def configure(conn_or_socket, endpoint \\ nil) do
+    case apply_profiler_info(conn_or_socket, endpoint) do
       {:ok, conn_or_socket} ->
         {:ok, conn_or_socket}
 
@@ -129,8 +129,8 @@ defmodule PhoenixProfiler.Profiler do
     Utils.put_private(conn_or_socket, :phoenix_profiler_info, action)
   end
 
-  defp apply_profiler_info(conn_or_socket) do
-    endpoint = Utils.endpoint(conn_or_socket)
+  defp apply_profiler_info(conn_or_socket, endpoint) do
+    endpoint = endpoint || Utils.endpoint(conn_or_socket)
 
     with {:ok, config} <- Utils.check_configuration(endpoint),
          :ok <- maybe_check_socket_connection(conn_or_socket),

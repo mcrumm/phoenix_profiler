@@ -16,14 +16,6 @@ defmodule PhoenixProfiler do
     }
   end
 
-  @behaviour Plug
-
-  @impl Plug
-  defdelegate init(opts), to: PhoenixProfiler.Plug
-
-  @impl Plug
-  defdelegate call(conn, opts), to: PhoenixProfiler.Plug
-
   # TODO: Remove when we require LiveView v0.17+.
   @doc false
   def mount(params, session, socket) do

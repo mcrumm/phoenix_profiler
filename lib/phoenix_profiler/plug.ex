@@ -5,31 +5,28 @@ defmodule PhoenixProfiler.Plug do
   alias PhoenixProfiler.ToolbarView
   require Logger
 
+  @behaviour Plug
+
   @token_header_key "x-debug-token"
   @profiler_header_key "x-debug-token-link"
 
+  @impl Plug
   def init(opts) do
     opts
   end
 
-  # TODO: remove this clause when we add config for profiler except_patterns
-  def call(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
-    # this clause is to ignore the phoenix live reload iframe in case someone installs
-    # the toolbar plug above the LiveReloader plug in their Endpoint.
-    conn
-  end
-
+  @impl Plug
   def call(conn, _) do
     endpoint = conn.private.phoenix_endpoint
     start_time = System.monotonic_time()
 
-    case PhoenixProfiler.Profiler.configure(conn) do
-      {:ok, conn} ->
+    case conn.private do
+      %{phoenix_profiler: profiler} when is_atom(profiler) ->
         conn
         |> telemetry_execute(:start, %{system_time: System.system_time()})
         |> before_send_profile(endpoint, [], start_time)
 
-      {:error, :profiler_not_available} ->
+      _ ->
         conn
     end
   end
