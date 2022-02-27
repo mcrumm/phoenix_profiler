@@ -1,5 +1,7 @@
 defmodule PhoenixProfiler.Endpoint do
-  @moduledoc false
+  @moduledoc """
+  Provides profiling on an [`Endpoint`](`Phoenix.Endpoint`).
+  """
 
   defmacro __using__(_) do
     quote do
@@ -61,9 +63,6 @@ defmodule PhoenixProfiler.Endpoint do
   end
 
   @doc false
-  # todo: this should be all be handled in telemetry events (aka not special))
-  #  - late collect (this can be its *own* telemetry event)
-  #  - compile/persist the profile (built-in data collector than runs last?)
   def __epilogue__(conn, start_time) do
     if profiler = conn.private[:phoenix_profiler] do
       telemetry_execute(:stop, %{duration: duration(start_time)}, %{
