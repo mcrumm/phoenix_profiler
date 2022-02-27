@@ -23,7 +23,7 @@ defmodule PhoenixProfiler.Plug do
     endpoint = conn.private.phoenix_endpoint
     start_time = System.monotonic_time()
 
-    case PhoenixProfiler.Configurator.configure(conn) do
+    case PhoenixProfiler.Profiler.configure(conn) do
       {:ok, conn} ->
         conn
         |> telemetry_execute(:start, %{system_time: System.system_time()})

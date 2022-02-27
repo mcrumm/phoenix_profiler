@@ -12,7 +12,7 @@ defmodule PhoenixProfiler do
   def child_spec(opts) do
     %{
       id: opts[:name] || PhoenixProfiler,
-      start: {PhoenixProfiler.Supervisor, :start_link, [opts]}
+      start: {PhoenixProfiler.Profiler, :start_link, [opts]}
     }
   end
 
@@ -77,7 +77,7 @@ defmodule PhoenixProfiler do
       end
 
   """
-  defdelegate enable(conn_or_socket), to: PhoenixProfiler.Configurator
+  defdelegate enable(conn_or_socket), to: PhoenixProfiler.Profiler
 
   @doc """
   Disables profiling on a given `conn` or `socket`.
@@ -105,7 +105,7 @@ defmodule PhoenixProfiler do
   start with the profiler in a disabled state and enable it
   after the LiveView has mounted.
   """
-  defdelegate disable(conn_or_socket), to: PhoenixProfiler.Configurator
+  defdelegate disable(conn_or_socket), to: PhoenixProfiler.Profiler
 
   @doc """
   Resets the storage of the given `profiler`.

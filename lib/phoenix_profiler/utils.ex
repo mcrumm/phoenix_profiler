@@ -8,7 +8,7 @@ defmodule PhoenixProfiler.Utils do
   """
   def maybe_mount_profiler(%LiveView.Socket{} = socket) do
     with true <- Phoenix.LiveView.connected?(socket),
-         {:ok, socket} <- PhoenixProfiler.Configurator.configure(socket) do
+         {:ok, socket} <- PhoenixProfiler.Profiler.configure(socket) do
       socket
     else
       _ -> socket

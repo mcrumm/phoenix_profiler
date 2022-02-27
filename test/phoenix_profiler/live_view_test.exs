@@ -25,7 +25,7 @@ defmodule PhoenixProfiler.LiveViewTest do
     end
 
     test "when the profiler is enabled on the endpoint, configures an enabled profile" do
-      {:ok, socket} = build_socket() |> connect() |> PhoenixProfiler.Configurator.configure()
+      {:ok, socket} = build_socket() |> connect() |> PhoenixProfiler.Profiler.configure()
 
       assert {:cont, %{private: %{phoenix_profiler: _profiler, phoenix_profiler_info: :enable}}} =
                PhoenixProfiler.on_mount(:default, %{}, %{}, socket)
