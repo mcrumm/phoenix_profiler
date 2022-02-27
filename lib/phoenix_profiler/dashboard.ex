@@ -303,13 +303,16 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
       rows =
         for {token, profile} <- profiles do
-          %Profile{data: %{conn: %Plug.Conn{} = conn}, system_time: at} = profile
+          %Profile{
+            data: %{conn: %Plug.Conn{} = conn},
+            system_time: system_time
+          } = profile
 
           conn
           |> Map.take([:host, :status, :method, :remote_ip])
           |> Map.put(:url, Plug.Conn.request_url(conn))
           |> Map.put(:token, token)
-          |> Map.put(:at, at)
+          |> Map.put(:system_time, system_time)
         end
 
       {rows, total}
@@ -334,8 +337,8 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
           header: "URL"
         },
         %{
-          field: :at,
-          header: "Profiled at",
+          field: :system_time,
+          header: "Time",
           sortable: :desc,
           format: &format_time/1
         },
