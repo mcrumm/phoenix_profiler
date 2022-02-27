@@ -15,6 +15,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
     """
     use Phoenix.LiveDashboard.PageBuilder
+    alias PhoenixProfiler.Profile
     alias PhoenixProfiler.ProfileStore
     alias PhoenixProfiler.Utils
 
@@ -188,7 +189,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     defp render_panel(:request, assigns) do
-      conn = assigns.profile.conn
+      conn = assigns.profile.data.conn
 
       nav_bar(
         items: [
@@ -300,8 +301,8 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
       {profiles, total} = fetch_profiles(node, profiler, search, sort_by, sort_dir, limit)
 
       rows =
-        for {token, prof} <- profiles do
-          %{at: at, conn: %Plug.Conn{} = conn} = prof
+        for {token, profile} <- profiles do
+          %Profile{data: %{conn: %Plug.Conn{} = conn}, system_time: at} = profile
 
           conn
           |> Map.take([:host, :status, :method, :remote_ip])

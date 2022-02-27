@@ -99,8 +99,12 @@ defmodule PhoenixProfiler.ProfileStore do
   @doc """
   Returns a filtered list of profiles.
   """
+  def list_advanced(profiler, _search, :at, sort_dir, _limit) do
+    Utils.sort_by(list(profiler), fn {_, %Profile{system_time: at}} -> at end, sort_dir)
+  end
+
   def list_advanced(profiler, _search, sort_by, sort_dir, _limit) do
-    Utils.sort_by(list(profiler), fn {_, profile} -> profile[sort_by] end, sort_dir)
+    Utils.sort_by(list(profiler), fn {_, %Profile{data: data}} -> data[sort_by] end, sort_dir)
   end
 
   @doc """
