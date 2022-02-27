@@ -24,8 +24,8 @@ Provides a **development tool** that gives detailed information about the execut
 To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_profiler` dependency
-2. Define a profiler on your supervision tree
-3. Enable the profiler on your Endpoint config
+2. Define a profiler server on your supervision tree
+3. Enable your profiler on your Endpoint config
 4. Configure LiveView
 5. Use `PhoenixProfiler` on your Endpoint module
 6. Mount the profiler on your LiveViews
@@ -39,10 +39,10 @@ Add phoenix_profiler to your `mix.exs`:
 {:phoenix_profiler, "~> 0.1.0", github: "mcrumm/phoenix_profiler"}
 ```
 
-### 2. Define a profiler on your supervision tree
+### 2. Define a profiler server on your supervision tree
 
-You define a profiler on your main application's telemetry supervision
-tree (usually in `lib/my_app_web/telemetry.ex`):
+You define a profiler on your telemetry supervision tree
+(usually in `lib/my_app_web/telemetry.ex`):
 
 ```elixir
     children = [
@@ -61,7 +61,7 @@ The following options are available:
 * `:request_sweep_interval` - How often to sweep the ETS table where
   the profiles are stored. Default is `24h` in milliseconds.
 
-### 3. Enable the profiler on your Endpoint config
+### 3. Enable your profiler on your Endpoint config
 
 PhoenixProfiler is disabled by default. In order to enable it,
 you must update your endpoint's `:dev` configuration to include the
@@ -104,7 +104,7 @@ config :my_app, MyAppWeb.Endpoint,
   live_view: [signing_salt: "SECRET_SALT"]
 ```
 
-### 5. Use PhoenixProfiler.Endpoint
+### 5. Use PhoenixProfiler
 
 Add `use PhoenixProfiler` on your Endpoint module
 (usually in `lib/my_app_web/endpoint.ex`):
@@ -118,12 +118,12 @@ Add `use PhoenixProfiler` on your Endpoint module
   end
 ```
 
-### 6. Mount the profiler on your LiveViews
+### 6. Mount PhoenixProfiler on your LiveViews
 
 Note this section is required only if you are using LiveView, otherwise you may skip it.
 
-Add the profiler hook to the `live_view` function on your
-web module (usually in `lib/my_app_web.ex`):
+Add PhoenixProfiler to the `live_view` function on your web
+module (usually in `lib/my_app_web.ex`):
 
 ```elixir
   def live_view do

@@ -52,34 +52,27 @@ defmodule PhoenixProfiler do
   @doc """
   Enables the profiler on a given `conn` or connected `socket`.
 
-  Normally you do not need to invoke this function manually. It is invoked
-  automatically by the PhoenixProfiler plug in the Endpoint when a
-  profiler is enabled. In LiveView v0.16+ it is invoked automatically when
-  you define `on_mount PhoenixProfiler` on your LiveView.
+  Useful when choosing to start a profiler with
+  `[enable: false]`, but normally you do not need to invoke it
+  manually.
 
-  This function will raise if the endpoint is not configured with a profiler,
-  or if the configured profiler is not running. For LiveView specifically,
-  this function also raises if the given socket is not connected.
+  Note the profiler server must be running and the `conn` or
+  `socket` must have been configured for profiling for this
+  function to have any effect.
 
   ## Example
 
-  Within a Phoenix Controller (for example, on a show callback):
+  Within a Phoenix Controller (for example on a `show` callback):
 
       def show(conn, params) do
         conn = PhoenixProfiler.enable(conn)
         # code...
       end
 
-  Within a LiveView (for example, on the mount callback):
+  Within a LiveView (for example on a `handle_info` callback):
 
-      def mount(params, session, socket) do
-        socket =
-          if connected?(socket) do
-            PhoenixProfiler.enable(socket)
-          else
-            socket
-          end
-
+      def handle_info(:debug_me, socket) do
+        socket = PhoenixProfiler.enable(socket)
         # code...
       end
 
@@ -91,26 +84,23 @@ defmodule PhoenixProfiler do
 
   ## Examples
 
-  Within a Phoenix Controller (for example, on an update callback):
+  Within a Phoenix Controller (for example on an `update` callback):
 
       def update(conn, params) do
         conn = PhoenixProfiler.disable(conn)
         # code...
       end
 
-  Within in a LiveView (for example, on a handle_event callback):
+  Within in a LiveView (for example on a `handle_event` callback):
 
       def handle_event("some-event", _, socket) do
         socket = PhoenixProfiler.disable(socket)
         # code...
       end
 
-  Note that only for LiveView, if you invoke `disable/1` on
-  the LiveView `mount` callback, the profiler may not be
-  registered yet and it will not receive the disable message.
-  If you need on-demand profiling, it is recommended you
-  start with the profiler in a disabled state and enable it
-  after the LiveView has mounted.
+  Note that for LiveView, you must invoke `disable/1` _after_
+  the LiveView has completed its connected mount for this function
+  to have any effect.
   """
   defdelegate disable(conn_or_socket), to: PhoenixProfiler.Profiler
 
