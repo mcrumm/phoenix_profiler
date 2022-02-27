@@ -3,7 +3,21 @@ defmodule PhoenixProfiler.Utils do
   alias Phoenix.LiveView
 
   @doc """
-  Returns info for `server` about the registered collector for a given `conn` or `socket`.
+  Mounts the profiler on a connected LiveView socket only if
+  it is enabled on the Endpoint.
+  """
+  def maybe_mount_profiler(%LiveView.Socket{} = socket) do
+    with true <- Phoenix.LiveView.connected?(socket),
+         {:ok, socket} <- PhoenixProfiler.Configurator.configure(socket) do
+      socket
+    else
+      _ -> socket
+    end
+  end
+
+  @doc """
+  Returns info for `server` about the registered collector for a
+  given `conn` or `socket`.
   """
   def collector_info(server, conn_or_socket) do
     case Registry.lookup(PhoenixProfiler.TelemetryRegistry, target_pid(conn_or_socket)) do
