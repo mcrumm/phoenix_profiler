@@ -6,46 +6,48 @@ defmodule PhoenixProfiler.Endpoint do
     quote do
       defoverridable call: 2
 
+      # Ignore requests from :phoenix_live_reload
+      def call(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, opts) do
+        super(conn, opts)
+      end
+
       def call(conn, opts) do
         start_time = System.monotonic_time()
+        endpoint = __MODULE__
+        config = endpoint.config(:phoenix_profiler)
+        conn = PhoenixProfiler.Endpoint.__prologue__(conn, endpoint, config)
 
         try do
           conn
-          |> PhoenixProfiler.Endpoint.__prologue__(__MODULE__)
           |> super(opts)
           |> PhoenixProfiler.Endpoint.__epilogue__(start_time)
-        rescue
-          # todo: rescue any profiler errors and handle them appropriately.
-          e in Plug.Conn.WrapperError ->
-            %{conn: conn, kind: kind, reason: reason, stack: stack} = e
-            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, start_time)
         catch
           kind, reason ->
             stack = __STACKTRACE__
-            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, start_time)
+            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, config, start_time)
         end
       end
     end
   end
 
-  # TODO: remove this clause when we add config for profiler exclude_patterns
-  def __prologue__(%Plug.Conn{path_info: ["phoenix", "live_reload", "frame" | _suffix]} = conn, _) do
+  # Skip profiling if no configuration set on the Endpoint
+  def __prologue__(conn, _endpoint, nil) do
     conn
   end
 
-  def __prologue__(conn, endpoint) do
-    case PhoenixProfiler.Profiler.configure(conn, endpoint) do
-      {:ok, conn} ->
-        telemetry_execute(:start, %{system_time: System.system_time()}, %{conn: conn})
-        conn
-
-      {:error, :profiler_not_available} ->
-        conn
+  def __prologue__(conn, endpoint, config) do
+    if server = config[:server] do
+      conn = PhoenixProfiler.Profiler.apply_configuration(conn, endpoint, server, config)
+      telemetry_execute(:start, %{system_time: System.system_time()}, %{conn: conn})
+      conn
+    else
+      IO.warn("no profiler server found for endpoint #{inspect(endpoint)}")
+      conn
     end
   end
 
-  def __catch__(conn, kind, reason, stack, start_time) do
-    __epilogue__(conn, start_time, kind, reason, stack)
+  def __catch__(conn, kind, reason, stack, config, start_time) do
+    __epilogue__(conn, kind, reason, stack, config, start_time)
     :erlang.raise(kind, reason, stack)
   end
 
@@ -62,7 +64,7 @@ defmodule PhoenixProfiler.Endpoint do
     end
   end
 
-  def __epilogue__(conn, start_time, kind, reason, stack) do
+  def __epilogue__(conn, kind, reason, stack, _config, start_time) do
     if profiler = conn.private[:phoenix_profiler] do
       telemetry_execute(:exception, %{duration: duration(start_time)}, %{
         conn: conn,
@@ -72,7 +74,7 @@ defmodule PhoenixProfiler.Endpoint do
         stacktrace: stack
       })
 
-      late_collect(conn, {kind, stack, reason})
+      late_collect(conn, {kind, reason, stack})
     end
   end
 

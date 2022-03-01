@@ -2,6 +2,8 @@ defmodule PhoenixProfiler.Utils do
   @moduledoc false
   alias Phoenix.LiveView
 
+  @default_profiler_base_path "/dashboard/_profiler"
+
   @doc """
   Mounts the profiler on a connected LiveView socket only if
   it is enabled on the Endpoint.
@@ -12,6 +14,19 @@ defmodule PhoenixProfiler.Utils do
       socket
     else
       _ -> socket
+    end
+  end
+
+  @doc """
+  Returns the base path for profile links.
+  """
+  def profile_base_path(config) do
+    case Keyword.fetch(config, :profiler_link_base) do
+      {:ok, path} when is_binary(path) and path != "" ->
+        "/" <> String.trim_leading(path, "/")
+
+      _ ->
+        @default_profiler_base_path
     end
   end
 

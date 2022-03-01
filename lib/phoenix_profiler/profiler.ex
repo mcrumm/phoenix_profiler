@@ -8,26 +8,13 @@ defmodule PhoenixProfiler.Profiler do
   alias PhoenixProfiler.TelemetryServer
   alias PhoenixProfiler.Utils
 
-  @default_profiler_link_base "/dashboard/_profiler"
-
   @doc """
   Builds a profile from data collected for a given `conn`.
   """
   def collect(%Plug.Conn{} = conn) do
-    endpoint = conn.private.phoenix_endpoint
-    config = endpoint.config(:phoenix_profiler)
-
-    link_base =
-      case Keyword.fetch(config, :profiler_link_base) do
-        {:ok, path} when is_binary(path) and path != "" ->
-          "/" <> String.trim_leading(path, "/")
-
-        _ ->
-          @default_profiler_link_base
-      end
-
     if conn.private.phoenix_profiler_info == :enable do
       time = System.system_time()
+      profiler_base_url = conn.private.phoenix_profiler_base_url
 
       data =
         PhoenixProfiler.TelemetryCollector.reduce(
@@ -46,8 +33,6 @@ defmodule PhoenixProfiler.Profiler do
               Map.merge(acc, data)
           end
         )
-
-      profiler_base_url = endpoint.url() <> link_base
 
       profile =
         Profile.new(
@@ -90,7 +75,7 @@ defmodule PhoenixProfiler.Profiler do
   Configures profiling for a given `conn` or `socket`.
   """
   def configure(conn_or_socket, endpoint \\ nil) do
-    case apply_profiler_info(conn_or_socket, endpoint) do
+    case validate_apply_configuration(conn_or_socket, endpoint) do
       {:ok, conn_or_socket} ->
         {:ok, conn_or_socket}
 
@@ -129,19 +114,26 @@ defmodule PhoenixProfiler.Profiler do
     Utils.put_private(conn_or_socket, :phoenix_profiler_info, action)
   end
 
-  defp apply_profiler_info(conn_or_socket, endpoint) do
+  def apply_configuration(conn_or_socket, endpoint, server, config)
+      when is_atom(endpoint) and is_atom(server) do
+    info = if config[:enable] == false, do: :disable, else: :enable
+    base_url = endpoint.url() <> Utils.profile_base_path(config)
+    {:ok, collector_pid} = start_collector(conn_or_socket, server, info)
+
+    conn_or_socket
+    |> Utils.put_private(:phoenix_profiler, server)
+    |> Utils.put_private(:phoenix_profiler_base_url, base_url)
+    |> Utils.put_private(:phoenix_profiler_collector, collector_pid)
+    |> Utils.put_private(:phoenix_profiler_info, info)
+  end
+
+  defp validate_apply_configuration(conn_or_socket, endpoint) do
     endpoint = endpoint || Utils.endpoint(conn_or_socket)
 
     with {:ok, config} <- Utils.check_configuration(endpoint),
          :ok <- maybe_check_socket_connection(conn_or_socket),
-         {:ok, profiler} <- check_profiler_running(config),
-         info = if(config[:enable] == false, do: :disable, else: :enable),
-         {:ok, collector_pid} <- start_collector(conn_or_socket, profiler, info) do
-      {:ok,
-       conn_or_socket
-       |> Utils.put_private(:phoenix_profiler, profiler)
-       |> Utils.put_private(:phoenix_profiler_collector, collector_pid)
-       |> Utils.put_private(:phoenix_profiler_info, info)}
+         {:ok, profiler} <- check_profiler_running(config) do
+      {:ok, apply_configuration(conn_or_socket, endpoint, profiler, config)}
     end
   end
 
@@ -166,6 +158,9 @@ defmodule PhoenixProfiler.Profiler do
     end
   end
 
+  # We do not start a collector for a LiveView Socket–
+  # ToolbarLive will register itself as a collector for its
+  # Socket's transport_pid.
   defp start_collector(%LiveView.Socket{}, _, _) do
     {:ok, nil}
   end
