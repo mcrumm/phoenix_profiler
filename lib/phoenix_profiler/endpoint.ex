@@ -74,7 +74,7 @@ defmodule PhoenixProfiler.Endpoint do
         stacktrace: stack
       })
 
-      late_collect(conn, {kind, reason, stack})
+      late_collect(conn)
     end
   end
 
@@ -86,7 +86,7 @@ defmodule PhoenixProfiler.Endpoint do
     System.monotonic_time() - start_time
   end
 
-  defp late_collect(conn, _error \\ nil) do
+  defp late_collect(conn) do
     case PhoenixProfiler.Profiler.collect(conn) do
       {:ok, profile} ->
         true = PhoenixProfiler.Profiler.insert_profile(profile)

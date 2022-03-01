@@ -10,6 +10,7 @@ defmodule PhoenixProfiler.Telemetry do
 
   plug_events = [
     [:phoenix, :endpoint, :stop],
+    [:phoenix_profiler, :endpoint, :exception],
     [:phxprof, :plug, :stop]
   ]
 
@@ -36,6 +37,10 @@ defmodule PhoenixProfiler.Telemetry do
          total_duration: measures.duration
        }
      }}
+  end
+
+  def collect(_, [:phoenix_profiler, :endpoint, :exception], _, meta) do
+    {:keep, %{exception: Map.take(meta, [:kind, :reason, :stacktrace])}}
   end
 
   def collect(_, [:phoenix, :live_view | _] = event, measures, %{socket: socket} = meta) do

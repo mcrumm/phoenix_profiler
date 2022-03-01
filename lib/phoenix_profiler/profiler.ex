@@ -15,6 +15,7 @@ defmodule PhoenixProfiler.Profiler do
     if conn.private.phoenix_profiler_info == :enable do
       time = System.system_time()
       profiler_base_url = conn.private.phoenix_profiler_base_url
+      token = Map.get_lazy(conn.private, :phoenix_profiler_token, &Utils.random_unique_id/0)
 
       data =
         PhoenixProfiler.TelemetryCollector.reduce(
@@ -37,7 +38,7 @@ defmodule PhoenixProfiler.Profiler do
       profile =
         Profile.new(
           conn.private.phoenix_profiler,
-          Utils.random_unique_id(),
+          token,
           profiler_base_url,
           time
         )
@@ -125,6 +126,7 @@ defmodule PhoenixProfiler.Profiler do
     |> Utils.put_private(:phoenix_profiler_base_url, base_url)
     |> Utils.put_private(:phoenix_profiler_collector, collector_pid)
     |> Utils.put_private(:phoenix_profiler_info, info)
+    |> Utils.put_private(:phoenix_profiler_token, Utils.random_unique_id())
   end
 
   defp validate_apply_configuration(conn_or_socket, endpoint) do

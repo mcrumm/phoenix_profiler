@@ -66,6 +66,15 @@ defmodule PhoenixProfiler.ToolbarLive do
   defp assign_toolbar(socket, profile) do
     %Profile{data: %{metrics: metrics}} = profile
 
+    socket =
+      case profile.data[:exception] do
+        %{kind: kind, reason: reason, stacktrace: stack} ->
+          apply_exception(socket, kind, reason, stack)
+
+        _ ->
+          socket
+      end
+
     socket
     |> assign(:profile, profile)
     |> apply_request(profile)
@@ -171,17 +180,8 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp apply_lifecycle(socket, _stage, :exception, data) do
-    %{kind: kind, reason: reason, stacktrace: stacktrace} = data
-
-    exception = %{
-      ref: Phoenix.LiveView.Utils.random_id(),
-      reason: Exception.format(kind, reason, stacktrace),
-      at: Time.utc_now() |> Time.truncate(:second)
-    }
-
-    socket
-    |> update(:exits, &[exception | &1])
-    |> update(:exits_count, &(&1 + 1))
+    %{kind: kind, reason: reason, stacktrace: stack} = data
+    apply_exception(socket, kind, reason, stack)
   end
 
   defp apply_lifecycle(socket, _stage, _action, _data) do
@@ -198,6 +198,18 @@ defmodule PhoenixProfiler.ToolbarLive do
 
   defp apply_event_duration(socket, _stage, _action, _measurements) do
     socket
+  end
+
+  defp apply_exception(socket, kind, reason, stack) do
+    exception = %{
+      ref: Phoenix.LiveView.Utils.random_id(),
+      reason: Exception.format(kind, reason, stack),
+      at: Time.utc_now() |> Time.truncate(:second)
+    }
+
+    socket
+    |> update(:exits, &[exception | &1])
+    |> update(:exits_count, &(&1 + 1))
   end
 
   defp current_duration(durations) do
