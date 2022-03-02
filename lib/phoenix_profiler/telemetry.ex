@@ -11,7 +11,7 @@ defmodule PhoenixProfiler.Telemetry do
   plug_events = [
     [:phoenix, :endpoint, :stop],
     [:phoenix_profiler, :endpoint, :exception],
-    [:phxprof, :plug, :stop]
+    [:phoenix_profiler, :plug, :stop]
   ]
 
   @events plug_events ++ live_view_events
@@ -28,7 +28,7 @@ defmodule PhoenixProfiler.Telemetry do
     {:keep, %{endpoint_duration: duration}}
   end
 
-  def collect(_, [:phxprof, :plug, :stop], measures, %{conn: conn}) do
+  def collect(_, [:phoenix_profiler, :plug, :stop], measures, %{conn: conn}) do
     {:keep,
      %{
        conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},

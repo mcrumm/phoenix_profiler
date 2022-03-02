@@ -55,7 +55,7 @@ defmodule PhoenixProfiler.Plug do
 
   defp telemetry_execute(%Plug.Conn{} = conn, action, measurements)
        when action in [:start, :stop] do
-    :telemetry.execute([:phxprof, :plug, action], measurements, %{conn: conn})
+    :telemetry.execute([:phoenix_profiler, :plug, action], measurements, %{conn: conn})
     conn
   end
 
