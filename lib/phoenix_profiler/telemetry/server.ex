@@ -4,9 +4,6 @@ defmodule PhoenixProfiler.TelemetryServer do
   alias PhoenixProfiler.TelemetryCollector
   alias PhoenixProfiler.TelemetryRegistry
 
-  @disable_event [:phoenix_profiler, :internal, :collector, :disable]
-  @enable_event [:phoenix_profiler, :internal, :collector, :enable]
-
   @doc """
   Starts a collector for `server` for a given `pid`.
   """
@@ -23,6 +20,38 @@ defmodule PhoenixProfiler.TelemetryServer do
   end
 
   @doc """
+  Disables the collector for `key` if it exists.
+  """
+  def disable_key(server, key) do
+    case TelemetryRegistry.lookup_key(server, key) do
+      {:ok, {pid, {_, _, :enable}}} ->
+        TelemetryCollector.disable(pid)
+
+      {:ok, _} ->
+        :ok
+
+      :error ->
+        :error
+    end
+  end
+
+  @doc """
+  Enables the collector for `key` if it exists.
+  """
+  def enable_key(server, key) do
+    case TelemetryRegistry.lookup_key(server, key) do
+      {:ok, {pid, {_, _, :disable}}} ->
+        TelemetryCollector.enable(pid)
+
+      {:ok, _} ->
+        :ok
+
+      :error ->
+        :error
+    end
+  end
+
+  @doc """
   Starts a telemetry server linked to the current process.
   """
   def start_link(opts) do
@@ -32,24 +61,13 @@ defmodule PhoenixProfiler.TelemetryServer do
     GenServer.start_link(__MODULE__, config)
   end
 
-  @doc """
-  Executes the collector event for `info` for the current process.
-  """
-  @spec collector_info_exec(info :: :disable | :enable) :: :ok
-  def collector_info_exec(:disable), do: telemetry_exec(@disable_event)
-  def collector_info_exec(:enable), do: telemetry_exec(@enable_event)
-
-  defp telemetry_exec(event) do
-    :telemetry.execute(event, %{system_time: System.system_time()}, %{})
-  end
-
   @impl true
   def init(%{events: events, filter: filter, server: server}) do
     Process.flag(:trap_exit, true)
 
     :telemetry.attach_many(
       {__MODULE__, self()},
-      events ++ [@disable_event, @enable_event],
+      events,
       &__MODULE__.handle_execute/4,
       %{filter: filter, server: server}
     )
@@ -60,17 +78,6 @@ defmodule PhoenixProfiler.TelemetryServer do
   @doc """
   Forwards telemetry events to a registered collector, if it exists.
   """
-  def handle_execute([_, _, _, info] = event, _, _, %{server: server})
-      when event in [@disable_event, @enable_event] do
-    case TelemetryRegistry.lookup(server) do
-      {:ok, {pid, {^server, _, old_info}}} when old_info !== info ->
-        TelemetryCollector.update_info(pid, fn _ -> info end)
-
-      _ ->
-        :ok
-    end
-  end
-
   def handle_execute(event, measurements, metadata, %{filter: filter, server: server}) do
     with {:ok, {pid, {^server, arg, :enable}}} <- TelemetryRegistry.lookup(server) do
       # todo: ensure span ref is set on data (or message) if it exists
