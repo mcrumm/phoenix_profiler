@@ -36,7 +36,7 @@ To start using the profiler, you will need the following steps:
 Add phoenix_profiler to your `mix.exs`:
 
 ```elixir
-{:phoenix_profiler, "~> 0.1.0", github: "mcrumm/phoenix_profiler"}
+{:phoenix_profiler, "~> 0.1.0"}
 ```
 
 ### 2. Define a profiler server on your supervision tree
