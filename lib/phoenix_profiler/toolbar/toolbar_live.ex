@@ -160,20 +160,15 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, socket}
   end
 
-  def handle_info({:collector_update_info, func}, socket) do
-    TelemetryRegistry.update_info(transport_pid(socket), func)
-    {:noreply, socket}
-  end
-
   def handle_info(other, socket) do
     Logger.debug("ToolbarLive received an unknown message: #{inspect(other)}")
     {:noreply, socket}
   end
 
   @impl Phoenix.LiveView
-  def handle_call({TelemetryCollector, action}, _, socket)
+  def handle_call({PhoenixProfiler.TelemetryCollector, action}, _, socket)
       when action in [:disable, :enable] do
-    TelemetryRegistry.update_info(transport_pid(socket), fn _ -> action end)
+    TelemetryRegistry.update_info(Utils.transport_pid(socket), fn _ -> action end)
     {:reply, :ok, socket}
   end
 
