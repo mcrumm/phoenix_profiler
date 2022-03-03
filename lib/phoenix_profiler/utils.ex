@@ -67,20 +67,6 @@ defmodule PhoenixProfiler.Utils do
   def endpoint(%LiveView.Socket{endpoint: endpoint}), do: endpoint
 
   @doc """
-  Checks whether or not a configuration exists.
-  """
-  def check_configuration(endpoint) when is_atom(endpoint) do
-    case endpoint.config(:phoenix_profiler) do
-      [_ | _] = config -> {:ok, config}
-      _ -> {:error, :profiler_not_available}
-    end
-  end
-
-  def check_configuration(%_{} = struct) do
-    struct |> endpoint() |> check_configuration()
-  end
-
-  @doc """
   Checks whether or not a socket is connected.
   """
   @spec check_socket_connection(socket :: LiveView.Socket.t()) ::
