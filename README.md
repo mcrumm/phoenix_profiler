@@ -41,20 +41,18 @@ Add phoenix_profiler to your `mix.exs`:
 
 ### 2. Define a profiler on your supervision tree
 
-You define a profiler on your main application's supervision
-tree (usually in `lib/my_app/application.ex`):
+You define a profiler on your main application's telemetry supervision
+tree (usually in `lib/my_app_web/telemetry.ex`):
 
 ```elixir
     children = [
       {PhoenixProfiler, name: MyAppWeb.Profiler},
-      # MyApp.Repo
-      # MyAppWeb.Endpoint,
-      # etc...
+      # :telemetry_poller, etc.
     ]
 ```
 
 Note that the profiler must be running for data to be collected,
-so it must come before any endpoints in your supervision tree.
+so it must come before any Endpoint modules in your supervision tree.
 
 The following options are available:
 
