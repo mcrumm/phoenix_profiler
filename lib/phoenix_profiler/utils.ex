@@ -7,11 +7,22 @@ defmodule PhoenixProfiler.Utils do
   @doc """
   Mounts the profiler on a connected LiveView socket only if
   it is enabled on the Endpoint.
+
+  ## Example
+
+      def mount(_params, _session, socket) do
+        socket = PhoenixProfiler.Utils.maybe_mount_profiler(socket)
+
+        #code...
+
+        {:ok, socket}
+      end
+
   """
   def maybe_mount_profiler(%LiveView.Socket{} = socket) do
     with true <- Phoenix.LiveView.connected?(socket),
-         {:ok, socket} <- PhoenixProfiler.Profiler.configure(socket) do
-      socket
+         {:ok, profile} <- PhoenixProfiler.Profiler.preflight(socket.endpoint) do
+      put_private(socket, :phoenix_profiler, profile)
     else
       _ -> socket
     end

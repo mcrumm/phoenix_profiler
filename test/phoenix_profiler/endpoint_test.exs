@@ -40,19 +40,22 @@ defmodule PhoenixProfiler.EndpointTest do
 
   test "puts profiler info on conn" do
     conn = Endpoint.call(conn(:get, "/"), [])
-    assert conn.private.phoenix_profiler == Profiler
-    assert conn.private.phoenix_profiler_base_url == "https://example.com/dashboard/_profiler"
+    profile = conn.private.phoenix_profiler
+    assert %PhoenixProfiler.Profile{} = profile
+    assert conn.private.phoenix_profiler.server == Profiler
+    assert conn.private.phoenix_profiler.info == :enable
+
+    assert conn.private.phoenix_profiler.url ==
+             "https://example.com/dashboard/_profiler?nav=#{inspect(Profiler)}&panel=request&token=#{profile.token}"
+
     assert is_pid(conn.private.phoenix_profiler_collector)
-    assert conn.private.phoenix_profiler_info == :enable
   end
 
   test "skips profiling live_reload frame" do
     for path <- ["/phoenix/live_reload/frame", "/phoenix/live_reload/frame/suffix"] do
       conn = Endpoint.call(conn(:get, path), [])
       refute Map.has_key?(conn.private, :phoenix_profiler)
-      refute Map.has_key?(conn.private, :phoenix_profiler_base_url)
       refute Map.has_key?(conn.private, :phoenix_profiler_collector)
-      refute Map.has_key?(conn.private, :phoenix_profiler_info)
     end
   end
 end

@@ -1,4 +1,5 @@
 Code.require_file("support/endpoint_helper.exs", __DIR__)
+Code.require_file("support/profiler_helper.exs", __DIR__)
 
 alias PhoenixProfiler.Integration.EndpointHelper
 

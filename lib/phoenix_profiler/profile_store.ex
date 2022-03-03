@@ -71,7 +71,7 @@ defmodule PhoenixProfiler.ProfileStore do
   """
   def profiler(%Plug.Conn{} = conn) do
     case conn.private[:phoenix_profiler] do
-      server when is_atom(server) -> server
+      %Profile{server: server} -> server
       nil -> nil
     end
   end

@@ -1,6 +1,7 @@
 defmodule PhoenixProfiler.LiveViewTest do
   use ExUnit.Case
   alias Phoenix.LiveView.Socket
+  alias PhoenixProfiler.Profile
 
   defp build_socket(endpoint \\ PhoenixProfilerTest.Endpoint) do
     %Socket{endpoint: endpoint}
@@ -25,9 +26,9 @@ defmodule PhoenixProfiler.LiveViewTest do
     end
 
     test "when the profiler is enabled on the endpoint, configures an enabled profile" do
-      {:ok, socket} = build_socket() |> connect() |> PhoenixProfiler.Profiler.configure()
+      socket = build_socket() |> connect() |> PhoenixProfiler.Utils.maybe_mount_profiler()
 
-      assert {:cont, %{private: %{phoenix_profiler: _profiler, phoenix_profiler_info: :enable}}} =
+      assert {:cont, %{private: %{phoenix_profiler: %Profile{info: :enable}}}} =
                PhoenixProfiler.on_mount(:default, %{}, %{}, socket)
     end
 
@@ -37,7 +38,7 @@ defmodule PhoenixProfiler.LiveViewTest do
         |> build_socket()
         |> connect()
 
-      assert {:cont, %Socket{private: %{phoenix_profiler_info: :disable}}} =
+      assert {:cont, %Socket{private: %{phoenix_profiler: %Profile{info: :disable}}}} =
                PhoenixProfiler.on_mount(:default, %{}, %{}, socket)
     end
 

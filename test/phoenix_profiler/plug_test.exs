@@ -1,7 +1,6 @@
 defmodule PhoenixProfiler.PlugTest do
   use ExUnit.Case, async: true
-  import Plug.Test
-  import Plug.Conn
+  use ProfilerHelper
 
   @token_header_key "x-debug-token"
   @profiler_header_key "x-debug-token-link"
@@ -11,12 +10,6 @@ defmodule PhoenixProfiler.PlugTest do
     |> put_private(:phoenix_endpoint, PhoenixProfilerTest.Endpoint)
 
     conn(:get, path)
-  end
-
-  defp profile_thru(conn, endpoint) do
-    conn = put_private(conn, :phoenix_endpoint, endpoint)
-    {:ok, conn} = PhoenixProfiler.Profiler.configure(conn)
-    conn
   end
 
   test "injects debug token headers if configured" do

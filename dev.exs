@@ -214,7 +214,7 @@ defmodule DemoWeb.AppLive.Index do
 
   defp apply_profiler_toggle(socket) do
     if connected?(socket) do
-      info = socket.private.phoenix_profiler_info
+      info = socket.private.phoenix_profiler.info
       next = if info == :enable, do: :disable, else: :enable
       assign(socket, :toggle_text, String.capitalize(to_string(next)) <> " Profiler")
     else
@@ -259,7 +259,7 @@ defmodule DemoWeb.AppLive.Index do
   end
 
   def handle_event("toggle-profiler", _, socket) do
-    info = socket.private.phoenix_profiler_info
+    info = socket.private.phoenix_profiler.info
     next = if info == :enable, do: :disable, else: :enable
     socket = apply(PhoenixProfiler, next, [socket])
 

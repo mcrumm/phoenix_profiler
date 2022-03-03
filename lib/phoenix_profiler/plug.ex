@@ -21,7 +21,7 @@ defmodule PhoenixProfiler.Plug do
     start_time = System.monotonic_time()
 
     case conn.private do
-      %{phoenix_profiler: profiler} when is_atom(profiler) ->
+      %{phoenix_profiler: %Profile{}} ->
         conn
         |> telemetry_execute(:start, %{system_time: System.system_time()})
         |> before_send_profile(endpoint, [], start_time)
@@ -41,7 +41,10 @@ defmodule PhoenixProfiler.Plug do
     register_before_send(conn, fn conn ->
       telemetry_execute(conn, :stop, %{duration: System.monotonic_time() - start_time})
 
-      case PhoenixProfiler.Profiler.collect(conn) do
+      case PhoenixProfiler.Profiler.collect(
+             conn.private.phoenix_profiler,
+             conn.private.phoenix_profiler_collector
+           ) do
         {:ok, profile} ->
           conn = apply_profile_headers(conn, profile)
           true = PhoenixProfiler.Profiler.insert_profile(profile)
@@ -118,7 +121,7 @@ defmodule PhoenixProfiler.Plug do
           conn: conn,
           session: %{
             "vsn" => 1,
-            "node" => node(),
+            "node" => profile.node,
             "server" => profile.server,
             "token" => profile.token
           },

@@ -170,6 +170,13 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, socket}
   end
 
+  @impl Phoenix.LiveView
+  def handle_call({TelemetryCollector, action}, _, socket)
+      when action in [:disable, :enable] do
+    TelemetryRegistry.update_info(transport_pid(socket), fn _ -> action end)
+    {:reply, :ok, socket}
+  end
+
   defp maybe_apply_navigation(socket, data) do
     if connected?(socket) and not is_nil(data.router) and
          socket.assigns.root_pid != data.root_pid do

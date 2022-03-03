@@ -10,7 +10,6 @@ defmodule PhoenixProfiler.MixProject do
       version: @version,
       elixir: "~> 1.8",
       compilers: [:phoenix] ++ Mix.compilers(),
-      elixirc_paths: elixirc_paths(Mix.env()),
       package: package(),
       deps: deps(),
       docs: docs(),
@@ -19,9 +18,6 @@ defmodule PhoenixProfiler.MixProject do
       aliases: aliases()
     ]
   end
-
-  defp elixirc_paths(:dev), do: ["lib", "dev"]
-  defp elixirc_paths(_), do: ["lib"]
 
   def application do
     [

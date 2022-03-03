@@ -13,69 +13,60 @@ defmodule PhoenixProfiler.Endpoint do
 
       def call(conn, opts) do
         start_time = System.monotonic_time()
-        endpoint = __MODULE__
-        config = endpoint.config(:phoenix_profiler)
-        conn = PhoenixProfiler.Endpoint.__prologue__(conn, endpoint, config)
 
-        try do
-          conn
-          |> super(opts)
-          |> PhoenixProfiler.Endpoint.__epilogue__(start_time)
-        catch
-          kind, reason ->
-            stack = __STACKTRACE__
-            PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, config, start_time)
+        case PhoenixProfiler.Profiler.preflight(__MODULE__) do
+          {:ok, profile} ->
+            try do
+              conn
+              |> PhoenixProfiler.Endpoint.__prologue__(profile)
+              |> super(opts)
+              |> PhoenixProfiler.Endpoint.__epilogue__(start_time)
+            catch
+              kind, reason ->
+                stack = __STACKTRACE__
+                PhoenixProfiler.Endpoint.__catch__(conn, kind, reason, stack, profile, start_time)
+            end
+
+          :error ->
+            super(conn, opts)
         end
       end
     end
   end
 
-  # Skip profiling if no configuration set on the Endpoint
-  def __prologue__(conn, _endpoint, nil) do
+  alias PhoenixProfiler.{Profile, Profiler}
+
+  def __prologue__(conn, %Profile{} = profile) do
+    {:ok, pid} = Profiler.start_collector(conn, profile)
+    telemetry_execute(:start, %{system_time: System.system_time()}, %{conn: conn})
+
     conn
-  end
-
-  def __prologue__(conn, endpoint, config) do
-    if server = config[:server] do
-      conn = PhoenixProfiler.Profiler.apply_configuration(conn, endpoint, server, config)
-      telemetry_execute(:start, %{system_time: System.system_time()}, %{conn: conn})
-      conn
-    else
-      IO.warn("no profiler server found for endpoint #{inspect(endpoint)}")
-      conn
-    end
-  end
-
-  def __catch__(conn, kind, reason, stack, config, start_time) do
-    __epilogue__(conn, kind, reason, stack, config, start_time)
-    :erlang.raise(kind, reason, stack)
+    |> Plug.Conn.put_private(:phoenix_profiler, profile)
+    |> Plug.Conn.put_private(:phoenix_profiler_collector, pid)
   end
 
   def __epilogue__(conn, start_time) do
-    if profiler = conn.private[:phoenix_profiler] do
-      telemetry_execute(:stop, %{duration: duration(start_time)}, %{
-        conn: conn,
-        profiler: profiler
-      })
-
-      late_collect(conn)
-    else
-      conn
-    end
+    profile = Map.fetch!(conn.private, :phoenix_profiler)
+    telemetry_execute(:stop, %{duration: duration(start_time)}, %{conn: conn})
+    late_collect(conn, profile)
   end
 
-  def __epilogue__(conn, kind, reason, stack, _config, start_time) do
-    if profiler = conn.private[:phoenix_profiler] do
-      telemetry_execute(:exception, %{duration: duration(start_time)}, %{
-        conn: conn,
-        profiler: profiler,
-        kind: kind,
-        reason: reason,
-        stacktrace: stack
-      })
+  def __epilogue__(conn, kind, reason, stack, profile, start_time) do
+    telemetry_execute(:exception, %{duration: duration(start_time)}, %{
+      conn: conn,
+      profile: profile,
+      kind: kind,
+      reason: reason,
+      stacktrace: stack
+    })
 
-      late_collect(conn)
-    end
+    {_, pid} = PhoenixProfiler.Utils.collector_info(profile.server, conn)
+    late_collect(conn, profile, pid)
+  end
+
+  def __catch__(conn, kind, reason, stack, profile, start_time) do
+    __epilogue__(conn, kind, reason, stack, profile, start_time)
+    :erlang.raise(kind, reason, stack)
   end
 
   defp telemetry_execute(action, measurements, metadata) do
@@ -86,8 +77,12 @@ defmodule PhoenixProfiler.Endpoint do
     System.monotonic_time() - start_time
   end
 
-  defp late_collect(conn) do
-    case PhoenixProfiler.Profiler.collect(conn) do
+  defp late_collect(conn, profile) do
+    late_collect(conn, profile, conn.private.phoenix_profiler_collector)
+  end
+
+  defp late_collect(conn, profile, collector_pid) do
+    case PhoenixProfiler.Profiler.collect(profile, collector_pid) do
       {:ok, profile} ->
         true = PhoenixProfiler.Profiler.insert_profile(profile)
         conn

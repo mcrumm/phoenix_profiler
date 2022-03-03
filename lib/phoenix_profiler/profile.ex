@@ -2,13 +2,15 @@ defmodule PhoenixProfiler.Profile do
   # An internal data structure for a request profile.
   @moduledoc false
   defstruct [
-    :data,
+    :endpoint,
+    :info,
     :node,
     :server,
     :system,
     :system_time,
     :token,
-    :url
+    :url,
+    data: %{}
   ]
 
   @type system :: %{
@@ -21,32 +23,34 @@ defmodule PhoenixProfiler.Profile do
 
   @type t :: %__MODULE__{
           :data => map(),
+          :endpoint => module(),
+          :info => nil | :disable | :enable,
           :token => String.t(),
           :server => module(),
           :node => node(),
           :system => system(),
-          :system_time => integer(),
+          :system_time => nil | integer(),
           :url => String.t()
         }
 
   @doc """
   Returns a new profile.
   """
-  def new(server, token, base_url, system_time)
-      when is_atom(server) and is_binary(token) and
-             is_binary(base_url) and is_integer(system_time) do
+  def new(endpoint, server, token, base_url, info)
+      when is_atom(endpoint) and is_atom(server) and
+             is_binary(token) and is_binary(base_url) and
+             is_atom(info) do
+    params = %{nav: inspect(server), panel: :request, token: token}
+    url = base_url <> "?" <> URI.encode_query(params)
+
     %__MODULE__{
+      endpoint: endpoint,
+      info: info,
       node: node(),
       server: server,
       system: PhoenixProfiler.ProfileStore.system(server),
-      system_time: system_time,
       token: token,
-      url: build_url(server, token, base_url)
+      url: url
     }
-  end
-
-  defp build_url(server, token, base_url) do
-    params = %{nav: inspect(server), panel: :request, token: token}
-    base_url <> "?" <> URI.encode_query(params)
   end
 end
