@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### `use PhoenixProfiler` on your Endpoint
+
+PhoenixProfiler needs to wrap the whole Plug pipeline to get
+a complete picture of each request. Make the following changes
+in your Endpoint module(s):
+
+1. Add `use PhoenixProfiler` directly after `use Phoenix.Endpoint`:
+
+```diff
+defmodule MyAppWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :my_app
++ use PhoenixProfiler
+```
+
+2. Remove the plug from the `code_reloading?` block:
+
+```diff
+if code_reloading? do
+-  plug PhoenixProfiler
+end
+```
+
+
 ## [0.1.0] - 2022-03-03
 ### Added
 
