@@ -36,6 +36,7 @@ defmodule PhoenixProfiler.ToolbarLive do
 
   defp assign_defaults(socket) do
     assign(socket,
+      profile: %Profile{system: %{phoenix: nil}},
       durations: nil,
       exits: [],
       exits_count: 0,
