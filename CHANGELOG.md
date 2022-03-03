@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Ensure dashboard profiles list respects the selected limit
+
 ### Changed
 
 #### `use PhoenixProfiler` on your Endpoint
