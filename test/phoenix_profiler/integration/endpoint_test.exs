@@ -147,6 +147,7 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
         raise "timeout"
 
       true ->
+        :timer.sleep(100)
         wait_for_profile_data(server, token, func, timeout, start)
     end
   end
