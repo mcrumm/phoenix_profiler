@@ -132,7 +132,7 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
 
   def now, do: System.monotonic_time(:millisecond)
 
-  def wait_for_profile_data(server, token, func, timeout \\ 3000) do
+  def wait_for_profile_data(server, token, func, timeout \\ 5000) do
     wait_for_profile_data(server, token, func, timeout, now())
   end
 
