@@ -125,7 +125,7 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
           check_profile(server, token, expected, false)
 
         true ->
-          :error
+          result
       end
     end
 
