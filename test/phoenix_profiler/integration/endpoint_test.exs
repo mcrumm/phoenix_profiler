@@ -121,7 +121,7 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
           result
 
         retry? ->
-          :timer.sleep(500)
+          :timer.sleep(1_000)
           check_profile(server, token, expected, false)
 
         true ->
