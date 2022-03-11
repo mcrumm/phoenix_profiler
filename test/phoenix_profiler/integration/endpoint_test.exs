@@ -179,7 +179,17 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
     # For NoRouteError the response is sent early so the toolbar is not injected
     refute resp.body =~ ~s|<div id="pwdt#{token}" class="phxprof-toolbar"|
     # Ensure that the error was collected
-    assert wait_for_profile_data(Profiler, token, &get_in(&1.data, [:exception]))
+    assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
+             case profile.data do
+               %{exception: exception} ->
+                 IO.inspect(exception, label: "got exception")
+                 true
+
+               other ->
+                 IO.inspect(other, label: "other")
+                 false
+             end
+           end)
 
     capture_log(fn ->
       # Errors in the Plug stack will not be caught by the profiler

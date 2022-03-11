@@ -39,6 +39,7 @@ defmodule PhoenixProfiler.Plug do
 
   defp before_send_profile(conn, endpoint, config, start_time) do
     register_before_send(conn, fn conn ->
+      # todo: look for exceptions in the conn
       telemetry_execute(conn, :stop, %{duration: System.monotonic_time() - start_time})
 
       case PhoenixProfiler.Profiler.collect(
