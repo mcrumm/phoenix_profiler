@@ -63,10 +63,20 @@ defmodule PhoenixProfiler.TelemetryRegistry do
 
   defp lookup(server, callers) do
     Enum.reduce_while(callers, :error, fn caller, acc ->
-      case Registry.lookup(__MODULE__, caller) do
-        [{_, {^server, _, _}} = collector] -> {:halt, {:ok, collector}}
-        _ -> {:cont, acc}
+      case lookup_key(server, caller) do
+        {:ok, _} = ok -> {:halt, ok}
+        :error -> {:cont, acc}
       end
     end)
+  end
+
+  @doc """
+  Returns the collector for `server` registered for `key` if it exists.
+  """
+  def lookup_key(server, key) do
+    case Registry.lookup(__MODULE__, key) do
+      [{_, {^server, _, _}} = collector] -> {:ok, collector}
+      _ -> :error
+    end
   end
 end

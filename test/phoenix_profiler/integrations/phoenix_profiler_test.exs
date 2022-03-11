@@ -1,6 +1,7 @@
 defmodule PhoenixProfiler.PhoenixProfilerTest do
   use ExUnit.Case, async: true
   import Phoenix.ConnTest
+  alias PhoenixProfiler.Profile
   alias PhoenixProfiler.ProfileStore
   alias PhoenixProfilerTest.Endpoint
 
@@ -22,24 +23,24 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert url ==
              "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
 
-    assert profiler = ProfileStore.profiler(conn)
-
-    %{
-      conn: %Plug.Conn{
-        host: "www.example.com",
-        method: "GET",
-        path_info: [],
-        private: %{
-          phoenix_action: :index,
-          phoenix_controller: PhoenixProfilerTest.PageController,
-          phoenix_endpoint: PhoenixProfilerTest.Endpoint,
-          phoenix_router: PhoenixProfilerTest.Router,
-          phoenix_view: PhoenixProfilerTest.PageView
+    %Profile{
+      data: %{
+        conn: %Plug.Conn{
+          host: "www.example.com",
+          method: "GET",
+          path_info: [],
+          private: %{
+            phoenix_action: :index,
+            phoenix_controller: PhoenixProfilerTest.PageController,
+            phoenix_endpoint: PhoenixProfilerTest.Endpoint,
+            phoenix_router: PhoenixProfilerTest.Router,
+            phoenix_view: PhoenixProfilerTest.PageView
+          },
+          status: 200
         },
-        status: 200
-      },
-      metrics: metrics
-    } = ProfileStore.get(profiler, token)
+        metrics: metrics
+      }
+    } = conn |> ProfileStore.profiler() |> ProfileStore.get(token)
 
     assert metrics.total_duration > 0
     assert metrics.endpoint_duration > 0
@@ -50,8 +51,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     conn = get(conn, "/plug-router")
     assert [token] = Plug.Conn.get_resp_header(conn, @token_header_key)
     assert [_] = Plug.Conn.get_resp_header(conn, @profiler_header_key)
-    assert profiler = ProfileStore.profiler(conn)
-    assert ProfileStore.get(profiler, token)
+    assert conn |> ProfileStore.profiler() |> ProfileStore.get(token)
   end
 
   test "profiling an api request", %{conn: conn} do
@@ -63,24 +63,24 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert url ==
              "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
 
-    assert profiler = ProfileStore.profiler(conn)
-
-    %{
-      conn: %Plug.Conn{
-        host: "www.example.com",
-        method: "GET",
-        path_info: ["api"],
-        private: %{
-          phoenix_action: :index,
-          phoenix_controller: PhoenixProfilerTest.APIController,
-          phoenix_endpoint: PhoenixProfilerTest.Endpoint,
-          phoenix_router: PhoenixProfilerTest.Router,
-          phoenix_view: PhoenixProfilerTest.APIView
+    %Profile{
+      data: %{
+        conn: %Plug.Conn{
+          host: "www.example.com",
+          method: "GET",
+          path_info: ["api"],
+          private: %{
+            phoenix_action: :index,
+            phoenix_controller: PhoenixProfilerTest.APIController,
+            phoenix_endpoint: PhoenixProfilerTest.Endpoint,
+            phoenix_router: PhoenixProfilerTest.Router,
+            phoenix_view: PhoenixProfilerTest.APIView
+          },
+          status: 200
         },
-        status: 200
-      },
-      metrics: metrics
-    } = ProfileStore.get(profiler, token)
+        metrics: metrics
+      }
+    } = conn |> ProfileStore.profiler() |> ProfileStore.get(token)
 
     assert metrics.endpoint_duration > 0
     assert metrics.memory > 0
@@ -91,10 +91,5 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
 
     assert Plug.Conn.get_resp_header(conn, @token_header_key) == []
     assert Plug.Conn.get_resp_header(conn, @profiler_header_key) == []
-
-    assert %PhoenixProfiler.Profile{info: :disable, server: server, token: token} =
-             conn.private.phoenix_profiler
-
-    refute ProfileStore.get(server, token)
   end
 end

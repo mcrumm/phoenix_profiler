@@ -15,6 +15,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
     """
     use Phoenix.LiveDashboard.PageBuilder
+    alias PhoenixProfiler.Profile
     alias PhoenixProfiler.ProfileStore
     alias PhoenixProfiler.Utils
 
@@ -188,7 +189,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     defp render_panel(:request, assigns) do
-      conn = assigns.profile.conn
+      conn = assigns.profile.data.conn
 
       nav_bar(
         items: [
@@ -297,27 +298,24 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     defp fetch_profiles(params, profiler, node) do
       %{search: search, sort_by: sort_by, sort_dir: sort_dir, limit: limit} = params
 
-      {profiles, total} = fetch_profiles(node, profiler, search, sort_by, sort_dir, limit)
+      {profiles, total} =
+        ProfileStore.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
 
       rows =
-        for {token, prof} <- profiles do
-          %{at: at, conn: %Plug.Conn{} = conn} = prof
+        for {token, profile} <- profiles do
+          %Profile{
+            data: %{conn: %Plug.Conn{} = conn},
+            system_time: system_time
+          } = profile
 
           conn
           |> Map.take([:host, :status, :method, :remote_ip])
           |> Map.put(:url, Plug.Conn.request_url(conn))
           |> Map.put(:token, token)
-          |> Map.put(:at, at)
+          |> Map.put(:system_time, system_time)
         end
 
       {rows, total}
-    end
-
-    defp fetch_profiles(node, profiler, search, sort_by, sort_dir, limit) do
-      profiles =
-        ProfileStore.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
-
-      {profiles, length(profiles)}
     end
 
     defp columns do
@@ -339,8 +337,8 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
           header: "URL"
         },
         %{
-          field: :at,
-          header: "Profiled at",
+          field: :system_time,
+          header: "Time",
           sortable: :desc,
           format: &format_time/1
         },

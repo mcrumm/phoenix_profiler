@@ -77,11 +77,9 @@ defmodule PhoenixProfiler.TelemetryServerTest do
       {:ok, collector_pid} = TelemetryServer.listen(name, self())
 
       :ok = :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
-      :ok = TelemetryServer.collector_info_exec(:disable)
-      :timer.sleep(1)
+      :ok = TelemetryServer.disable_key(name, self())
       :ok = :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
-      :ok = TelemetryServer.collector_info_exec(:enable)
-      :timer.sleep(1)
+      :ok = TelemetryServer.enable_key(name, self())
       :ok = :telemetry.execute([:debug, :me], %{system_time: 3}, %{})
 
       assert reduce_events(collector_pid) == [
@@ -100,15 +98,11 @@ defmodule PhoenixProfiler.TelemetryServerTest do
       {:ok, collector_pid} = TelemetryServer.listen(name, self())
 
       :ok = :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
-      :ok = TelemetryServer.collector_info_exec(:disable)
-      :timer.sleep(1)
-      :ok = TelemetryServer.collector_info_exec(:disable)
-      :timer.sleep(1)
+      :ok = TelemetryServer.disable_key(name, self())
+      :ok = TelemetryServer.disable_key(name, self())
       :ok = :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
-      :ok = TelemetryServer.collector_info_exec(:enable)
-      :timer.sleep(1)
-      :ok = TelemetryServer.collector_info_exec(:enable)
-      :timer.sleep(1)
+      :ok = TelemetryServer.enable_key(name, self())
+      :ok = TelemetryServer.enable_key(name, self())
       :ok = :telemetry.execute([:debug, :me], %{system_time: 3}, %{})
 
       assert reduce_events(collector_pid) == [

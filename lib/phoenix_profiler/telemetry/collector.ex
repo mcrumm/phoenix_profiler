@@ -49,6 +49,18 @@ defmodule PhoenixProfiler.TelemetryCollector do
   alias PhoenixProfiler.Utils
 
   @doc """
+  Disables a given `collector`.
+
+  Disabled collectors will not receive telemetry events.
+  """
+  def disable(collector), do: GenServer.call(collector, {__MODULE__, :disable})
+
+  @doc """
+  Enables a given `collector`.
+  """
+  def enable(collector), do: GenServer.call(collector, {__MODULE__, :enable})
+
+  @doc """
   Starts a collector linked to the current process.
 
   ## Examples
@@ -88,17 +100,6 @@ defmodule PhoenixProfiler.TelemetryCollector do
     GenServer.call(pid, {:reduce, initial, func})
   end
 
-  @doc """
-  Sends a message to `collector_pid` to update its status.
-
-  The collector process will update its registry value to
-  to status returned by `func`, a function that accepts the
-  current status and returns one of `:enable` or `:disable`.
-  """
-  def update_info(collector_pid, func) when is_function(func, 1) do
-    send(collector_pid, {:collector_update_info, func})
-  end
-
   @impl GenServer
   def init({server, pid, arg, info}) do
     case TelemetryRegistry.register(server, pid, {self(), arg}, info) do
@@ -113,16 +114,18 @@ defmodule PhoenixProfiler.TelemetryCollector do
   end
 
   @impl GenServer
+  def handle_call({__MODULE__, action}, _from, %{pid: pid} = state)
+      when action in [:disable, :enable] do
+    _ = TelemetryRegistry.update_info(pid, fn _ -> action end)
+    {:reply, :ok, state}
+  end
+
+  @impl GenServer
   def handle_info(
         {:telemetry, {pid, _}, _, _, _} = event,
         %{queue: q} = state
       )
       when pid == self() do
     {:noreply, %{state | queue: :queue.in(event, q)}}
-  end
-
-  def handle_info({:collector_update_info, func}, %{pid: pid} = state) do
-    TelemetryRegistry.update_info(pid, func)
-    {:noreply, state}
   end
 end

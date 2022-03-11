@@ -109,7 +109,7 @@
       </div>
 
 
-      <div class="phxprof-toolbar-info-group">
+      <%= if @profile.system[:elixir] do %><div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
           <b>LiveView Version</b><span><a href="https://hexdocs.pm/phoenix_live_view/<%= @profile.system.phoenix_live_view %>/"><%= @profile.system.phoenix_live_view %></a></span>
         </div>
@@ -142,7 +142,7 @@
           <b>Made with <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg> by</b>
           <span><a href="https://github.com/sponsors/mcrumm">@mcrumm</a></span>
         </div>
-      </div>
+      </div><% end %>
     </div>
   </div>
   <button class="hide-button" type="button" id="phxprof-toolbar-hide-<%= @profile.token %>>" title="Hide Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxprof-toolbar-main-<%= @profile.token %>">

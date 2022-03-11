@@ -1,8 +1,12 @@
+Code.require_file("support/endpoint_helper.exs", __DIR__)
+Code.require_file("support/profiler_helper.exs", __DIR__)
+
+alias PhoenixProfiler.Integration.EndpointHelper
+
 Application.put_env(:phoenix_profiler, PhoenixProfilerTest.Endpoint,
   url: [host: "localhost", port: 4000],
-  secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
-  live_view: [signing_salt: "NbA2FdHo"],
-  render_errors: [view: PhoenixProfilerTest.ErrorView],
+  secret_key_base: EndpointHelper.gen_secret_key(),
+  live_view: [signing_salt: EndpointHelper.gen_salt()],
   check_origin: false,
   pubsub_server: PhoenixProfilerTest.PubSub,
   phoenix_profiler: [server: PhoenixProfilerTest.Profiler]
@@ -10,9 +14,8 @@ Application.put_env(:phoenix_profiler, PhoenixProfilerTest.Endpoint,
 
 Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
   url: [host: "localhost", port: 4000],
-  secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
-  live_view: [signing_salt: "NbA2FdHo"],
-  render_errors: [view: PhoenixProfilerTest.ErrorView],
+  secret_key_base: EndpointHelper.gen_secret_key(),
+  live_view: [signing_salt: EndpointHelper.gen_salt()],
   check_origin: false,
   pubsub_server: PhoenixProfilerTest.PubSub,
   phoenix_profiler: [server: PhoenixProfilerTest.Profiler, enable: false]
@@ -20,18 +23,25 @@ Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
 
 Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointNotConfigured,
   url: [host: "localhost", port: 4000],
-  secret_key_base: "LIyk9co9Mt8KowH/g1WeMkufq/9Bz1XuEZMhCZAwnBc7VFKCfkDq/vRw+Xso4Q0q",
-  live_view: [signing_salt: "NbA2FdHo"],
-  render_errors: [view: PhoenixProfilerTest.ErrorView],
+  secret_key_base: EndpointHelper.gen_secret_key(),
+  live_view: [signing_salt: EndpointHelper.gen_salt()],
   check_origin: false,
   pubsub_server: PhoenixProfilerTest.PubSub
 )
 
-defmodule PhoenixProfilerTest.ErrorView do
-  use Phoenix.View, root: "test/templates"
+defmodule PhoenixProfiler.ErrorView do
+  def render(template, %{conn: conn}) do
+    unless conn.private.phoenix_endpoint do
+      raise "no endpoint in error view"
+    end
 
-  def template_not_found(template, _assigns) do
-    Phoenix.Controller.status_message_from_template(template)
+    err = "#{template} from PhoenixProfiler.ErrorView"
+
+    if String.ends_with?(template, ".html") do
+      Phoenix.HTML.html_escape("<html><body>#{err}</body></html>")
+    else
+      err
+    end
   end
 end
 
@@ -107,8 +117,8 @@ end
 
 defmodule PhoenixProfilerTest.Endpoint do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
+  use PhoenixProfiler
 
-  plug PhoenixProfiler
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Session,
@@ -121,6 +131,9 @@ end
 
 defmodule PhoenixProfilerTest.EndpointDisabled do
   use Phoenix.Endpoint, otp_app: :phoenix_profiler
+  use PhoenixProfiler
+
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 end
 
 defmodule PhoenixProfilerTest.EndpointNotConfigured do
