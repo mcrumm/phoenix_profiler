@@ -201,7 +201,16 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
       assert [token] = HTTPClient.get_resp_header(resp, "x-debug-token")
       assert [link] = HTTPClient.get_resp_header(resp, "x-debug-token-link")
       assert link =~ "/dashboard/_profiler"
-      assert wait_for_profile_data(Profiler, token, &get_in(&1.data, [:exception]))
+
+      assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
+               case profile.data do
+                 %{exception: exception} ->
+                   true
+
+                 other ->
+                   false
+               end
+             end)
 
       Supervisor.stop(DebugEndpoint)
     end) =~ "** (RuntimeError) oops"
@@ -228,7 +237,15 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
     # For NoRouteError the response is sent early so the toolbar is not injected
     refute resp.body =~ ~s|<div id="pwdt#{token}" class="phxprof-toolbar"|
     # Ensure that the error was collected
-    assert wait_for_profile_data(Profiler, token, &get_in(&1.data, [:exception]))
+    assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
+             case profile.data do
+               %{exception: exception} ->
+                 true
+
+               other ->
+                 false
+             end
+           end)
 
     # Disables the profiler on-demand
     {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@enabled}/router/disable", %{})
@@ -249,7 +266,16 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
       assert [token] = HTTPClient.get_resp_header(resp, "x-debug-token")
       assert [link] = HTTPClient.get_resp_header(resp, "x-debug-token-link")
       assert link =~ "/dashboard/_profiler"
-      assert wait_for_profile_data(Profiler, token, &get_in(&1.data, [:exception]))
+
+      assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
+               case profile.data do
+                 %{exception: exception} ->
+                   true
+
+                 other ->
+                   false
+               end
+             end)
 
       Supervisor.stop(EnabledEndpoint)
     end) =~ "** (RuntimeError) oops"
