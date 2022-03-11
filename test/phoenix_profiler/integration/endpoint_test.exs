@@ -182,11 +182,9 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
     assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
              case profile.data do
                %{exception: exception} ->
-                 IO.inspect(exception, label: "got exception")
                  true
 
                other ->
-                 IO.inspect(other, label: "other")
                  false
              end
            end)
