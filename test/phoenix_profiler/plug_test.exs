@@ -40,7 +40,7 @@ defmodule PhoenixProfiler.PlugTest do
     assert get_resp_header(conn, @profiler_header_key) == []
   end
 
-  test "injects debug toolbar for html requests if configured and contains the <body> tag" do
+  test "injects debug toolbar for html requests if configured and contains the </body> tag" do
     opts = PhoenixProfiler.init([])
 
     conn =
@@ -53,6 +53,21 @@ defmodule PhoenixProfiler.PlugTest do
 
     assert to_string(conn.resp_body) =~
              ~s[<html><body><h1>PhoenixProfiler</h1><!-- START Phoenix Web Debug Toolbar -->\n<div id="pwdt#{profile.token}" class="phxprof-toolbar" role="region" name="Phoenix Web Debug Toolbar">]
+  end
+
+  test "injects debug toolbar for html requests if configured and contains multiple </body> tags" do
+    opts = PhoenixProfiler.init([])
+
+    conn =
+      conn("/")
+      |> put_resp_content_type("text/html")
+      |> PhoenixProfiler.call(opts)
+      |> send_resp(200, "<html><body><h1><body>PhoenixProfiler</body></h1></body></html>")
+
+    profile = conn.private.phoenix_profiler
+
+    assert to_string(conn.resp_body) =~
+             ~s[<html><body><h1><body>PhoenixProfiler</body></h1><!-- START Phoenix Web Debug Toolbar -->\n<div id="pwdt#{profile.token}" class="phxprof-toolbar" role="region" name="Phoenix Web Debug Toolbar">]
   end
 
   test "skips debug toolbar injection when disabled at the Endpoint" do
