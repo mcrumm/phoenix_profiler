@@ -160,6 +160,30 @@ live_dashboard "/dashboard",
   ]
 ```
 
+## Troubleshooting
+
+### Exception raised with other on_mount hooks
+
+If after enabling the profiler, you see an error like the
+following:
+
+```elixir
+** (exit) an exception was raised:
+** (RuntimeError) cannot attach hook with id :active_tab on :handle_params because the view was not mounted at the router with the live/3 macro
+```
+
+Then you need to add an extra clause on your `on_mount/4` function:
+
+```elixir
+def on_mount(_arg, :not_mounted_at_router, _session, socket) do
+  {:cont, socket}
+end
+```
+
+This is true for any handle_params hooks that will be invoked
+for LiveView modules not mounted at the router (i.e. via
+live_render/3), and the web debug toolbar is no exception.
+
 <!-- MDOC -->
 
 ## Contributing
