@@ -196,7 +196,6 @@ end
 defmodule DemoWeb.AppLive.Hooks do
   import Phoenix.LiveView
 
-  # TODO: https://github.com/mcrumm/phoenix_profiler/issues/61
   def on_mount(_, :not_mounted_at_router, _, socket), do: {:cont, socket}
 
   def on_mount(:default, _params, _session, socket) do
