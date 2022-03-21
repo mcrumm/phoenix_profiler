@@ -193,6 +193,20 @@ defmodule DemoWeb.ErrorsView do
   end
 end
 
+defmodule DemoWeb.AppLive.Hooks do
+  import Phoenix.LiveView
+
+  # TODO: https://github.com/mcrumm/phoenix_profiler/issues/61
+  def on_mount(_, :not_mounted_at_router, _, socket), do: {:cont, socket}
+
+  def on_mount(:default, _params, _session, socket) do
+    {:cont,
+     attach_hook(socket, :my_hook, :handle_params, fn _, _, socket ->
+       {:cont, socket}
+     end)}
+  end
+end
+
 defmodule DemoWeb.AppLive.Index do
   use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
   use Phoenix.HTML
@@ -308,8 +322,11 @@ defmodule DemoWeb.Router do
     get "/disabled", PageController, :disabled
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
     get "/live-render", PageController, :live
-    live "/app", AppLive.Index, :index
-    live "/app/foo", AppLive.Index, :foo
+
+    live_session :default, on_mount: DemoWeb.AppLive.Hooks do
+      live "/app", AppLive.Index, :index
+      live "/app/foo", AppLive.Index, :foo
+    end
 
     forward "/plug-router", PlugRouter
 
