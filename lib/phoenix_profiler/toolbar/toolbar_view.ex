@@ -2,7 +2,7 @@ defmodule PhoenixProfiler.ToolbarView do
   # ToolbarView acts as a Phoenix.View rendering the embedded
   # web debug toolbar into an HTML response.
   @moduledoc false
-  import Phoenix.LiveView.Helpers
+  use Phoenix.Component
   alias PhoenixProfiler.ToolbarLive
 
   toolbar_css_path = Application.app_dir(:phoenix_profiler, "priv/static/toolbar.css")
@@ -18,11 +18,11 @@ defmodule PhoenixProfiler.ToolbarView do
     assigns = Map.put(assigns, :toolbar_css, @toolbar_css)
     assigns = Map.put(assigns, :toolbar_js, @toolbar_js)
 
-    ~L"""
+    ~H"""
     <!-- START Phoenix Web Debug Toolbar -->
-    <div<%= Phoenix.HTML.raw(@toolbar_attrs) %>>
-      <div class="phxprof-minitoolbar"><button class="show-button" type="button" id="phxprof-toolbar-show-<%= @profile.token %>>" title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxprof-toolbar-main-<%= @profile.token %>"></button></div>
-      <div id="phxprof-toolbar-clearer-<%= @profile.token %>" class="phxprof-toolbar-clearer" style="display: block;"></div>
+    <div {@toolbar_attrs}>
+      <div class="phxprof-minitoolbar"><button class="show-button" type="button" id={"phxprof-toolbar-show-#{@profile.token}"} title="Show Toolbar" accesskey="D" aria-expanded="true" aria-controls={"phxprof-toolbar-main-#{@profile.token}"}></button></div>
+      <div id={"phxprof-toolbar-clearer-#{@profile.token}"} class="phxprof-toolbar-clearer" style="display: block;"></div>
       <%= live_render(@conn, ToolbarLive, session: @session) %>
     </div>
     <script><%= Phoenix.HTML.raw(@toolbar_js) %></script>

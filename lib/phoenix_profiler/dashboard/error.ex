@@ -5,8 +5,6 @@ defmodule PhoenixProfiler.Dashboard.Error do
   use Phoenix.LiveComponent
 
   def render(assigns) do
-    ~L"""
-    <h2><%= @error_message %></h2>
-    """
+    ~H"<h2><%= @error_message %></h2>"
   end
 end
