@@ -1,15 +1,15 @@
 <div class="phxprof-toolbar-container">
-  <div class="phxprof-toolbar-panel phxprof-toolbar-panel-request" aria-label="Status, <%= @request.status_phrase %>">
+  <div class="phxprof-toolbar-panel phxprof-toolbar-panel-request" aria-label={"Status, #{@request.status_phrase}"}>
     <div class="phxprof-toolbar-icon">
-      <span class="phxprof-toolbar-status phxprof-toolbar-status-<%= @request.class %>"><%= case @request.status_code do %>
-      <%= ":|" -> %><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <span class={"phxprof-toolbar-status phxprof-toolbar-status-#{@request.class}"}><%= case @request.status_code do %>
+      <% ":|" -> %><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clip-rule="evenodd" />
       </svg>
       <% _ -> %><%= @request.status_code %><% end %>
       </span>
       <%= if @request.router_helper do %>
       <span class="phxprof-toolbar-label"> @</span>
-      <span class="phxprof-toolbar-value" title="<%= @request.router_helper %>"><%= @request.router_helper %></span>
+      <span class="phxprof-toolbar-value" title={@request.router_helper}><%= @request.router_helper %></span>
       <% end %>
     </div>
     <div class="phxprof-toolbar-info">
@@ -59,7 +59,7 @@
       </div><% end %>
     </div>
   </div><% end %><%= if @memory do %>
-  <div class="phxprof-toolbar-panel phxprof-toolbar-panel-memory" aria-label="Memory, <%= @memory.phrase %>">
+  <div class="phxprof-toolbar-panel phxprof-toolbar-panel-memory" aria-label={"Memory, #{@memory.phrase}"}>
     <div class="phxprof-toolbar-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -87,7 +87,7 @@
     </div>
     <div class="phxprof-toolbar-info">
       <div id="phxprof-toolbar-exits" class="phxprof-toolbar-info-group" phx-update="prepend"><%= for %{at: at, ref: ref, reason: reason} <- @exits do %>
-        <div id="<%= ref %>" class="phxprof-toolbar-info-item">
+        <div id={ref} class="phxprof-toolbar-info-item">
           <b><%= at %></b>
           <span><pre><%= reason %></pre></span>
         </div><% end %>
@@ -111,11 +111,11 @@
 
       <div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
-          <b>LiveView Version</b><span><a href="https://hexdocs.pm/phoenix_live_view/<%= @profile.system.phoenix_live_view %>/"><%= @profile.system.phoenix_live_view %></a></span>
+          <b>LiveView Version</b><span><a href={"https://hexdocs.pm/phoenix_live_view/#{@profile.system.phoenix_live_view}/"}><%= @profile.system.phoenix_live_view %></a></span>
         </div>
         <div class="phxprof-toolbar-info-item">
           <b>Elixir Version</b>
-          <span><a href="https://hexdocs.pm/elixir/<%= @profile.system.elixir %>/"><%= @profile.system.elixir %></a></span>
+          <span><a href={"https://hexdocs.pm/elixir/#{@profile.system.elixir}/"}><%= @profile.system.elixir %></a></span>
         </div>
         <div class="phxprof-toolbar-info-item">
           <b>OTP Release</b>
@@ -126,7 +126,7 @@
       <div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
           <b>Resources</b>
-          <span><a href="https://hexdocs.pm/phoenix/<%= @profile.system.phoenix %>">Read Phoenix <%= @profile.system.phoenix %> Docs</a></span>
+          <span><a href={"https://hexdocs.pm/phoenix/#{@profile.system.phoenix}"}>Read Phoenix <%= @profile.system.phoenix %> Docs</a></span>
         </div>
         <div class="phxprof-toolbar-info-item">
           <b>Help</b>
@@ -136,7 +136,7 @@
       <div class="phxprof-toolbar-info-group">
         <div class="phxprof-toolbar-info-item">
           <b>Toolbar Version</b>
-          <span><a href="https://hexdocs.pm/phoenix_profiler/<%= @profile.system.phoenix_profiler %>"><%= @profile.system.phoenix_profiler %></a></span>
+          <span><a href={"https://hexdocs.pm/phoenix_profiler/#{@profile.system.phoenix_profiler}"}><%= @profile.system.phoenix_profiler %></a></span>
         </div>
         <div class="phxprof-toolbar-info-item attribution">
           <b>Made with <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg> by</b>
@@ -145,7 +145,7 @@
       </div>
     </div>
   </div>
-  <button class="hide-button" type="button" id="phxprof-toolbar-hide-<%= @profile.token %>>" title="Hide Toolbar" accesskey="D" aria-expanded="true" aria-controls="phxprof-toolbar-main-<%= @profile.token %>">
+  <button class="hide-button" type="button" id={"phxprof-toolbar-hide-#{@profile.token}"} title="Hide Toolbar" accesskey="D" aria-expanded="true" aria-controls={"phxprof-toolbar-main-#{@profile.token}"}>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
     </svg>

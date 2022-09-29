@@ -111,7 +111,7 @@ defmodule PhoenixProfiler.Plug do
           conn: conn,
           session: %{"_" => profile},
           profile: profile,
-          toolbar_attrs: attrs(attrs)
+          toolbar_attrs: attrs
         })
         |> Phoenix.HTML.Safe.to_iodata()
       else
@@ -122,27 +122,5 @@ defmodule PhoenixProfiler.Plug do
         IO.puts(Exception.format(kind, reason, __STACKTRACE__))
         []
     end
-  end
-
-  defp attrs(attrs) do
-    Enum.map(attrs, fn
-      {_key, nil} -> []
-      {_key, false} -> []
-      {key, true} -> [?\s, key(key)]
-      {key, value} -> [?\s, key(key), ?=, ?", value(value), ?"]
-    end)
-  end
-
-  defp key(key) do
-    key
-    |> to_string()
-    |> String.replace("_", "-")
-    |> Plug.HTML.html_escape_to_iodata()
-  end
-
-  defp value(value) do
-    value
-    |> to_string()
-    |> Plug.HTML.html_escape_to_iodata()
   end
 end
