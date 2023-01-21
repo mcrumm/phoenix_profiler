@@ -189,31 +189,31 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
              end
            end)
 
-    capture_log(fn ->
-      # Errors in the Plug stack will not be caught by the profiler
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@debug}/oops", %{})
-      assert resp.status == 500
-      assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
-      assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+    assert capture_log(fn ->
+             # Errors in the Plug stack will not be caught by the profiler
+             {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@debug}/oops", %{})
+             assert resp.status == 500
+             assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
+             assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
 
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@debug}/router/oops", %{})
-      assert resp.status == 500
-      assert [token] = HTTPClient.get_resp_header(resp, "x-debug-token")
-      assert [link] = HTTPClient.get_resp_header(resp, "x-debug-token-link")
-      assert link =~ "/dashboard/_profiler"
+             {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@debug}/router/oops", %{})
+             assert resp.status == 500
+             assert [token] = HTTPClient.get_resp_header(resp, "x-debug-token")
+             assert [link] = HTTPClient.get_resp_header(resp, "x-debug-token-link")
+             assert link =~ "/dashboard/_profiler"
 
-      assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
-               case profile.data do
-                 %{exception: exception} ->
-                   true
+             assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
+                      case profile.data do
+                        %{exception: exception} ->
+                          true
 
-                 other ->
-                   false
-               end
-             end)
+                        other ->
+                          false
+                      end
+                    end)
 
-      Supervisor.stop(DebugEndpoint)
-    end) =~ "** (RuntimeError) oops"
+             Supervisor.stop(DebugEndpoint)
+           end) =~ "** (RuntimeError) oops"
   end
 
   test "starts collector and injects headers and toolbar and saves profile to storage unless disabled for enabled" do
@@ -253,32 +253,34 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
     assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
     assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
 
-    capture_log(fn ->
-      # Errors in the Plug stack will not be caught by the Profiler
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@enabled}/oops", %{})
-      assert resp.status == 500
-      assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
-      assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
-      assert link =~ "/dashboard/_profiler"
+    assert capture_log(fn ->
+             # Errors in the Plug stack will not be caught by the Profiler
+             {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@enabled}/oops", %{})
+             assert resp.status == 500
+             assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
+             assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+             assert link =~ "/dashboard/_profiler"
 
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@enabled}/router/oops", %{})
-      assert resp.status == 500
-      assert [token] = HTTPClient.get_resp_header(resp, "x-debug-token")
-      assert [link] = HTTPClient.get_resp_header(resp, "x-debug-token-link")
-      assert link =~ "/dashboard/_profiler"
+             {:ok, resp} =
+               HTTPClient.request(:get, "http://127.0.0.1:#{@enabled}/router/oops", %{})
 
-      assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
-               case profile.data do
-                 %{exception: exception} ->
-                   true
+             assert resp.status == 500
+             assert [token] = HTTPClient.get_resp_header(resp, "x-debug-token")
+             assert [link] = HTTPClient.get_resp_header(resp, "x-debug-token-link")
+             assert link =~ "/dashboard/_profiler"
 
-                 other ->
-                   false
-               end
-             end)
+             assert wait_for_profile_data(Profiler, token, fn %PhoenixProfiler.Profile{} = profile ->
+                      case profile.data do
+                        %{exception: exception} ->
+                          true
 
-      Supervisor.stop(EnabledEndpoint)
-    end) =~ "** (RuntimeError) oops"
+                        other ->
+                          false
+                      end
+                    end)
+
+             Supervisor.stop(EnabledEndpoint)
+           end) =~ "** (RuntimeError) oops"
   end
 
   test "skips injecting headers and toolbar and profile storage unless enabled for disabled" do
@@ -305,14 +307,16 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
     assert resp.body =~ ~s|<div id="pwdt#{token}" class="phxprof-toolbar"|
     assert %PhoenixProfiler.Profile{} = get_profile(Profiler, token)
 
-    capture_log(fn ->
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@disabled}/router/oops", %{})
-      assert resp.status == 500
-      assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
-      assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+    assert capture_log(fn ->
+             {:ok, resp} =
+               HTTPClient.request(:get, "http://127.0.0.1:#{@disabled}/router/oops", %{})
 
-      Supervisor.stop(DisabledEndpoint)
-    end) =~ "** (RuntimeError) oops"
+             assert resp.status == 500
+             assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
+             assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+
+             Supervisor.stop(DisabledEndpoint)
+           end) =~ "** (RuntimeError) oops"
   end
 
   test "skips headers and toolbar and profile storage for noconf" do
@@ -330,18 +334,20 @@ defmodule PhoenixProfiler.Integration.EndpointTest do
     assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
     refute resp.body =~ ~s|class="phxprof-toolbar"|
 
-    capture_log(fn ->
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@noconf}/oops", %{})
-      assert resp.status == 500
-      assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
-      assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+    assert capture_log(fn ->
+             {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@noconf}/oops", %{})
+             assert resp.status == 500
+             assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
+             assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
 
-      {:ok, resp} = HTTPClient.request(:get, "http://127.0.0.1:#{@noconf}/router/oops", %{})
-      assert resp.status == 500
-      assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
-      assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+             {:ok, resp} =
+               HTTPClient.request(:get, "http://127.0.0.1:#{@noconf}/router/oops", %{})
 
-      Supervisor.stop(NotConfiguredEndpoint)
-    end) =~ "** (RuntimeError) oops"
+             assert resp.status == 500
+             assert HTTPClient.get_resp_header(resp, "x-debug-token") == []
+             assert HTTPClient.get_resp_header(resp, "x-debug-token-link") == []
+
+             Supervisor.stop(NotConfiguredEndpoint)
+           end) =~ "** (RuntimeError) oops"
   end
 end
