@@ -75,14 +75,14 @@ defmodule PhoenixProfiler.Plug do
 
   # HTML Injection
   # Copyright (c) 2018 Chris McCord
-  # https://github.com/phoenixframework/phoenix_live_reload/blob/ac73922c87fb9c554d03c5c466c2d62bf2216b0b/lib/phoenix_live_reload/live_reloader.ex
+  # https://github.com/phoenixframework/phoenix_live_reload/blob/564ab19d54f2476a6c43d43beeb3ed2807f453c0/lib/phoenix_live_reload/live_reloader.ex#L129
   defp inject_debug_toolbar(conn, profile, endpoint, config) do
     resp_body = IO.iodata_to_binary(conn.resp_body)
 
     if has_body?(resp_body) and Code.ensure_loaded?(endpoint) do
-      [page | rest] = String.split(resp_body, "</body>")
-
-      body = [page, debug_toolbar_assets_tag(conn, profile, config), "</body>" | rest]
+      {head, [last]} = Enum.split(String.split(resp_body, "</body>"), -1)
+      head = Enum.intersperse(head, "</body>")
+      body = [head, debug_toolbar_assets_tag(conn, profile, config), "</body>" | last]
       put_in(conn.resp_body, body)
     else
       conn
@@ -127,7 +127,7 @@ defmodule PhoenixProfiler.Plug do
             "token" => profile.token
           },
           token: profile.token,
-          toolbar_attrs: attrs(attrs)
+          toolbar_attrs: attrs
         })
         |> Phoenix.HTML.Safe.to_iodata()
       else
@@ -138,27 +138,5 @@ defmodule PhoenixProfiler.Plug do
         IO.puts(Exception.format(kind, reason, __STACKTRACE__))
         []
     end
-  end
-
-  defp attrs(attrs) do
-    Enum.map(attrs, fn
-      {_key, nil} -> []
-      {_key, false} -> []
-      {key, true} -> [?\s, key(key)]
-      {key, value} -> [?\s, key(key), ?=, ?", value(value), ?"]
-    end)
-  end
-
-  defp key(key) do
-    key
-    |> to_string()
-    |> String.replace("_", "-")
-    |> Plug.HTML.html_escape_to_iodata()
-  end
-
-  defp value(value) do
-    value
-    |> to_string()
-    |> Plug.HTML.html_escape_to_iodata()
   end
 end

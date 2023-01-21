@@ -168,7 +168,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
             "This token is not available for this profiler on this node."
         end
 
-      {PhoenixProfiler.Dashboard.Error, %{error_message: error_message}}
+      card(value: error_message)
     end
 
     defp render_profile_nav(assigns) do

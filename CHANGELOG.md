@@ -34,6 +34,16 @@ if code_reloading? do
 end
 ```
 
+## [0.2.0] - 2022-09-28
+
+### Added
+
+- Support for LiveView 0.18.0  (#65)
+- Handle multiple body tags (#60)
+
+### Removed
+
+- Support for LiveView < 0.16.0 (#65)
 
 ## [0.1.0] - 2022-03-03
 ### Added
@@ -41,5 +51,6 @@ end
 - Initial release of the web profiler and debug toolbar.
 
 
-[Unreleased]: https://github.com/mcrumm/phoenix_profiler/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mcrumm/phoenix_profiler/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mcrumm/phoenix_profiler/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mcrumm/phoenix_profiler/releases/tag/v0.1.0

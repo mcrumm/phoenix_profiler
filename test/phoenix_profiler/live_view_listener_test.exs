@@ -14,7 +14,7 @@ defmodule PhoenixProfiler.LiveViewListenerTest do
     end
 
     def render(assigns) do
-      ~L"""
+      ~H"""
       <div>
         <button id="boom" phx-click="boom">boom</button>
       </div>

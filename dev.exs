@@ -44,14 +44,13 @@ defmodule DemoWeb.ErrorView do
 end
 
 defmodule DemoWeb.LayoutView do
-  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
+  use Phoenix.Component
   use Phoenix.HTML
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
 
   import Phoenix.Controller,
     only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
 
-  import Phoenix.LiveView.Helpers
-  import Phoenix.View
   alias DemoWeb.Router.Helpers, as: Routes
 end
 
@@ -82,10 +81,9 @@ defmodule DemoWeb.PageController do
 end
 
 defmodule DemoWeb.PageView do
-  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
   use Phoenix.Component
   use Phoenix.HTML
-  import Phoenix.View
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
   alias DemoWeb.Router.Helpers, as: Routes
 
   def render("index.html", assigns) do
@@ -183,13 +181,25 @@ defmodule DemoWeb.ErrorsController do
 end
 
 defmodule DemoWeb.ErrorsView do
-  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
+  use Phoenix.Component
   use Phoenix.HTML
+  use Phoenix.View, root: "dev/templates", namespace: DemoWeb
 
   def render("assign_not_available.html", assigns) do
-    ~E"""
-    <p><%= @not_available %></p>
-    """
+    ~H"<p><%= @not_available %></p>"
+  end
+end
+
+defmodule DemoWeb.AppLive.Hooks do
+  import Phoenix.LiveView
+
+  def on_mount(_, :not_mounted_at_router, _, socket), do: {:cont, socket}
+
+  def on_mount(:default, _params, _session, socket) do
+    {:cont,
+     attach_hook(socket, :my_hook, :handle_params, fn _, _, socket ->
+       {:cont, socket}
+     end)}
   end
 end
 
@@ -223,7 +233,7 @@ defmodule DemoWeb.AppLive.Index do
   end
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <section class="live">
       <h2>AppLive Page</h2>
       <p>Action=<%= @live_action %></p>
@@ -308,8 +318,11 @@ defmodule DemoWeb.Router do
     get "/disabled", PageController, :disabled
     get "/errors/assign-not-available", ErrorsController, :assign_not_available
     get "/live-render", PageController, :live
-    live "/app", AppLive.Index, :index
-    live "/app/foo", AppLive.Index, :foo
+
+    live_session :default, on_mount: DemoWeb.AppLive.Hooks do
+      live "/app", AppLive.Index, :index
+      live "/app/foo", AppLive.Index, :foo
+    end
 
     forward "/plug-router", PlugRouter
 
