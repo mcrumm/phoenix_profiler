@@ -10,7 +10,6 @@ defmodule PhoenixProfiler.MixProject do
       version: @version,
       elixir: "~> 1.8",
       compilers: [:phoenix] ++ Mix.compilers(),
-      elixirc_paths: elixirc_paths(Mix.env()),
       package: package(),
       deps: deps(),
       docs: docs(),
@@ -19,9 +18,6 @@ defmodule PhoenixProfiler.MixProject do
       aliases: aliases()
     ]
   end
-
-  defp elixirc_paths(:dev), do: ["lib", "dev"]
-  defp elixirc_paths(_), do: ["lib"]
 
   def application do
     [
@@ -44,7 +40,7 @@ defmodule PhoenixProfiler.MixProject do
         {:phoenix_live_dashboard, "~> 0.7.0 or ~> 0.6.0 or ~> 0.5.0", optional: true},
         # Dev Dependencies
         {:phoenix_live_reload, "~> 1.3", only: :dev},
-        {:plug_cowboy, "~> 2.0", only: :dev},
+        {:plug_cowboy, "~> 2.0", only: [:dev, :test]},
         {:jason, "~> 1.0", only: [:dev, :test, :docs]},
         {:ex_doc, "~> 0.25", only: :docs},
         {:esbuild, "~> 0.2", runtime: false, only: :dev},

@@ -10,7 +10,9 @@ defmodule PhoenixProfiler.Telemetry do
 
   plug_events = [
     [:phoenix, :endpoint, :stop],
-    [:phxprof, :plug, :stop]
+    [:phoenix, :error_rendered],
+    [:phoenix_profiler, :endpoint, :exception],
+    [:phoenix_profiler, :plug, :stop]
   ]
 
   @events plug_events ++ live_view_events
@@ -27,24 +29,23 @@ defmodule PhoenixProfiler.Telemetry do
     {:keep, %{endpoint_duration: duration}}
   end
 
-  def collect(_, [:phxprof, :plug, :stop], measures, %{conn: conn}) do
-    profile = conn.private.phoenix_profiler
+  def collect(_, [:phoenix_profiler, :plug, :stop], measures, %{conn: conn}) do
+    {:keep,
+     %{
+       conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
+       metrics: %{
+         memory: collect_memory(conn.owner),
+         total_duration: measures.duration
+       }
+     }}
+  end
 
-    case profile.info do
-      :disable ->
-        :skip
+  def collect(_, [:phoenix, :error_rendered], _, meta) do
+    {:keep, %{exception: Map.take(meta, [:kind, :reason, :stacktrace])}}
+  end
 
-      info when info in [nil, :enable] ->
-        {:keep,
-         %{
-           at: profile.system_time,
-           conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
-           metrics: %{
-             memory: collect_memory(conn.owner),
-             total_duration: measures.duration
-           }
-         }}
-    end
+  def collect(_, [:phoenix_profiler, :endpoint, :exception], _, meta) do
+    {:keep, %{exception: Map.take(meta, [:kind, :reason, :stacktrace])}}
   end
 
   def collect(_, [:phoenix, :live_view | _] = event, measures, %{socket: socket} = meta) do

@@ -71,7 +71,7 @@ defmodule PhoenixProfiler.ProfileStore do
   """
   def profiler(%Plug.Conn{} = conn) do
     case conn.private[:phoenix_profiler] do
-      %Profile{server: server} when is_atom(server) -> server
+      %Profile{server: server} -> server
       nil -> nil
     end
   end
@@ -99,17 +99,22 @@ defmodule PhoenixProfiler.ProfileStore do
   @doc """
   Returns a filtered list of profiles.
   """
-  def list_advanced(profiler, _search, sort_by, sort_dir, _limit) do
-    Utils.sort_by(list(profiler), fn {_, profile} -> profile[sort_by] end, sort_dir)
+  def list_advanced(profiler, _search, :at, sort_dir, limit) do
+    results = Utils.sort_by(list(profiler), fn {_, %Profile{} = p} -> p.system_time end, sort_dir)
+
+    {Enum.take(results, limit), length(results)}
+  end
+
+  def list_advanced(profiler, _search, sort_by, sort_dir, limit) do
+    results =
+      Utils.sort_by(list(profiler), fn {_, %Profile{} = p} -> p.data[sort_by] end, sort_dir)
+
+    {Enum.take(results, limit), length(results)}
   end
 
   @doc """
   Fetches a profile on a remote node.
   """
-  def remote_get(%Profile{} = profile) do
-    remote_get(profile.node, profile.server, profile.token)
-  end
-
   def remote_get(node, profiler, token) do
     :rpc.call(node, __MODULE__, :get, [profiler, token])
   end

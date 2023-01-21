@@ -3,26 +3,25 @@ defmodule PhoenixProfiler.ToolbarLive do
   @moduledoc false
   use Phoenix.LiveView, container: {:div, [class: "phxprof-toolbar-view"]}
   require Logger
+  alias PhoenixProfiler.Profile
   alias PhoenixProfiler.ProfileStore
   alias PhoenixProfiler.Routes
   alias PhoenixProfiler.TelemetryRegistry
   alias PhoenixProfiler.Utils
 
   @impl Phoenix.LiveView
-  def mount(_, %{"_" => %PhoenixProfiler.Profile{} = profile}, socket) do
-    socket =
-      socket
-      |> assign_defaults()
-      |> assign(:profile, profile)
+  # Note if the session keys change you must bump the version.
+  def mount(_, %{"vsn" => 1, "node" => node, "server" => server, "token" => token}, socket) do
+    socket = assign_defaults(socket)
 
     socket =
-      case ProfileStore.remote_get(profile) do
+      case ProfileStore.remote_get(node, server, token) do
         nil -> assign_error_toolbar(socket)
         remote_profile -> assign_toolbar(socket, remote_profile)
       end
 
     if connected?(socket) do
-      {:ok, _} = TelemetryRegistry.register(profile.server, Utils.transport_pid(socket), nil)
+      {:ok, _} = TelemetryRegistry.register(server, Utils.transport_pid(socket), nil)
     end
 
     {:ok, socket, temporary_assigns: [exits: []]}
@@ -37,6 +36,7 @@ defmodule PhoenixProfiler.ToolbarLive do
 
   defp assign_defaults(socket) do
     assign(socket,
+      profile: %Profile{system: %{phoenix: nil}},
       durations: nil,
       exits: [],
       exits_count: 0,
@@ -65,9 +65,19 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp assign_toolbar(socket, profile) do
-    %{metrics: metrics} = profile
+    %Profile{data: %{metrics: metrics}} = profile
+
+    socket =
+      case profile.data[:exception] do
+        %{kind: kind, reason: reason, stacktrace: stack} ->
+          apply_exception(socket, kind, reason, stack)
+
+        _ ->
+          socket
+      end
 
     socket
+    |> assign(:profile, profile)
     |> apply_request(profile)
     |> assign(:durations, %{
       total: duration(metrics.total_duration),
@@ -78,7 +88,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp apply_request(socket, profile) do
-    %{conn: %Plug.Conn{} = conn} = profile
+    %Profile{data: %{conn: %Plug.Conn{} = conn}} = profile
     router = conn.private[:phoenix_router]
     {helper, plug, action} = Routes.info(socket.assigns.profile.node, conn)
     socket = %{socket | private: Map.put(socket.private, :phoenix_router, router)}
@@ -151,14 +161,16 @@ defmodule PhoenixProfiler.ToolbarLive do
     {:noreply, socket}
   end
 
-  def handle_info({:collector_update_info, func}, socket) do
-    TelemetryRegistry.update_info(transport_pid(socket), func)
-    {:noreply, socket}
-  end
-
   def handle_info(other, socket) do
     Logger.debug("ToolbarLive received an unknown message: #{inspect(other)}")
     {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_call({PhoenixProfiler.TelemetryCollector, action}, _, socket)
+      when action in [:disable, :enable] do
+    TelemetryRegistry.update_info(Utils.transport_pid(socket), fn _ -> action end)
+    {:reply, :ok, socket}
   end
 
   defp maybe_apply_navigation(socket, data) do
@@ -171,17 +183,8 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp apply_lifecycle(socket, _stage, :exception, data) do
-    %{kind: kind, reason: reason, stacktrace: stacktrace} = data
-
-    exception = %{
-      ref: Phoenix.LiveView.Utils.random_id(),
-      reason: Exception.format(kind, reason, stacktrace),
-      at: Time.utc_now() |> Time.truncate(:second)
-    }
-
-    socket
-    |> update(:exits, &[exception | &1])
-    |> update(:exits_count, &(&1 + 1))
+    %{kind: kind, reason: reason, stacktrace: stack} = data
+    apply_exception(socket, kind, reason, stack)
   end
 
   defp apply_lifecycle(socket, _stage, _action, _data) do
@@ -198,6 +201,18 @@ defmodule PhoenixProfiler.ToolbarLive do
 
   defp apply_event_duration(socket, _stage, _action, _measurements) do
     socket
+  end
+
+  defp apply_exception(socket, kind, reason, stack) do
+    exception = %{
+      ref: Phoenix.LiveView.Utils.random_id(),
+      reason: Exception.format(kind, reason, stack),
+      at: Time.utc_now() |> Time.truncate(:second)
+    }
+
+    socket
+    |> update(:exits, &[exception | &1])
+    |> update(:exits_count, &(&1 + 1))
   end
 
   defp current_duration(durations) do

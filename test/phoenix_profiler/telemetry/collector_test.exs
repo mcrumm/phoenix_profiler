@@ -6,6 +6,38 @@ defmodule PhoenixProfiler.TelemetryCollectorTest do
 
   doctest TelemetryCollector
 
+  defmodule Collector do
+    use GenServer
+
+    def start_link(init_arg) do
+      GenServer.start_link(__MODULE__, init_arg)
+    end
+
+    @impl true
+    def init({server, pid}) do
+      TelemetryRegistry.register(server, pid)
+      {:ok, pid}
+    end
+
+    @impl true
+    def handle_call({TelemetryCollector, :disable}, _from, pid) do
+      TelemetryRegistry.update_info(pid, fn _ -> :disable end)
+      {:reply, :ok, pid}
+    end
+
+    @impl true
+    def handle_call({TelemetryCollector, :enable}, _from, pid) do
+      TelemetryRegistry.update_info(pid, fn _ -> :enable end)
+      {:reply, :ok, pid}
+    end
+
+    @impl true
+    def handle_info({:telemetry, _, _, _, _} = event, pid) do
+      send(pid, {:collector, event})
+      {:noreply, pid}
+    end
+  end
+
   describe "collecting telemetry" do
     test "events from watched pid" do
       name = unique_debug_name()
@@ -114,30 +146,20 @@ defmodule PhoenixProfiler.TelemetryCollectorTest do
       name = unique_debug_name()
       start_supervised!({PhoenixProfiler, name: name, telemetry: [[:debug, :me]]})
 
-      {:ok, _} = TelemetryRegistry.register(name, self())
+      start_supervised!({Collector, {name, self()}})
 
       :ok = :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
-      assert_received {:telemetry, nil, [:debug, :me], 1, _}
+      assert_receive {:collector, {:telemetry, nil, [:debug, :me], 1, _}}, 10
 
-      :ok = TelemetryServer.collector_info_exec(:disable)
-
-      receive do
-        {:collector_update_info, func} ->
-          TelemetryRegistry.update_info(self(), func)
-      end
+      :ok = TelemetryServer.disable_key(name, self())
 
       :ok = :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
-      refute_received {:telemetry, nil, [:debug, :me], 2, _}
+      refute_receive {:collector, {:telemetry, nil, [:debug, :me], 2, _}}, 10
 
-      :ok = TelemetryServer.collector_info_exec(:enable)
-
-      receive do
-        {:collector_update_info, func} ->
-          TelemetryRegistry.update_info(self(), func)
-      end
+      :ok = TelemetryServer.enable_key(name, self())
 
       :ok = :telemetry.execute([:debug, :me], %{system_time: 3}, %{})
-      assert_received {:telemetry, nil, [:debug, :me], 3, _}
+      assert_receive {:collector, {:telemetry, nil, [:debug, :me], 3, _}}, 10
     end
   end
 

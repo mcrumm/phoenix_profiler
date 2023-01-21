@@ -2,18 +2,16 @@ defmodule PhoenixProfiler.Profile do
   # An internal data structure for a request profile.
   @moduledoc false
   defstruct [
-    :collector_pid,
+    :endpoint,
     :info,
     :node,
     :server,
-    :start_time,
     :system,
     :system_time,
     :token,
-    :url
+    :url,
+    data: %{}
   ]
-
-  @type info :: nil | :enable | :disable
 
   @type system :: %{
           :otp => String.t(),
@@ -24,38 +22,35 @@ defmodule PhoenixProfiler.Profile do
         }
 
   @type t :: %__MODULE__{
-          :collector_pid => nil | pid(),
-          :info => info(),
+          :data => map(),
+          :endpoint => module(),
+          :info => nil | :disable | :enable,
           :token => String.t(),
           :server => module(),
           :node => node(),
-          :start_time => integer(),
           :system => system(),
-          :system_time => integer(),
+          :system_time => nil | integer(),
           :url => String.t()
         }
 
   @doc """
   Returns a new profile.
   """
-  def new(node \\ node(), server, token, info, base_url, system_time)
-      when is_atom(server) and is_binary(token) and
-             is_atom(info) and info in [nil, :enable, :disable] and
-             is_binary(base_url) and is_integer(system_time) do
-    %__MODULE__{
-      info: info,
-      node: node,
-      server: server,
-      start_time: System.monotonic_time(),
-      system: PhoenixProfiler.ProfileStore.system(server),
-      system_time: system_time,
-      token: token,
-      url: build_url(server, token, base_url)
-    }
-  end
-
-  defp build_url(server, token, base_url) do
+  def new(endpoint, server, token, base_url, info)
+      when is_atom(endpoint) and is_atom(server) and
+             is_binary(token) and is_binary(base_url) and
+             is_atom(info) do
     params = %{nav: inspect(server), panel: :request, token: token}
-    base_url <> "?" <> URI.encode_query(params)
+    url = base_url <> "?" <> URI.encode_query(params)
+
+    %__MODULE__{
+      endpoint: endpoint,
+      info: info,
+      node: node(),
+      server: server,
+      system: PhoenixProfiler.ProfileStore.system(server),
+      token: token,
+      url: url
+    }
   end
 end
