@@ -5,17 +5,6 @@ defmodule PhoenixProfiler do
              |> String.split("<!-- MDOC -->")
              |> Enum.fetch!(1)
 
-  @doc """
-  Returns the child specification to start the profiler
-  under a supervision tree.
-  """
-  def child_spec(opts) do
-    %{
-      id: opts[:name] || PhoenixProfiler,
-      start: {PhoenixProfiler.Supervisor, :start_link, [opts]}
-    }
-  end
-
   @behaviour Plug
 
   @impl Plug
@@ -110,15 +99,15 @@ defmodule PhoenixProfiler do
   @doc """
   Resets the storage of the given `profiler`.
   """
-  defdelegate reset(profiler), to: PhoenixProfiler.ProfileStore
+  defdelegate reset, to: PhoenixProfiler.Server
 
   @doc """
-  Returns all running PhoenixProfiler names.
-  It is important to notice that no order is guaranteed.
+  Returns system-level data collected by the profiler at start.
   """
-  def all_running do
-    for {{PhoenixProfiler, name}, %PhoenixProfiler.ProfileStore{}} <- :persistent_term.get(),
-        GenServer.whereis(name),
-        do: name
+  def system do
+    case :persistent_term.get(PhoenixProfiler) do
+      %{system: %{} = system} -> system
+      _ -> nil
+    end
   end
 end

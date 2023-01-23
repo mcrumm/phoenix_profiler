@@ -5,8 +5,6 @@ defmodule PhoenixProfiler.ToolbarLive do
   require Logger
   alias PhoenixProfiler.ProfileStore
   alias PhoenixProfiler.Routes
-  alias PhoenixProfiler.TelemetryRegistry
-  alias PhoenixProfiler.Utils
 
   toolbar_css_path = Application.app_dir(:phoenix_profiler, "priv/static/toolbar.css")
   @external_resource toolbar_css_path
@@ -46,10 +44,6 @@ defmodule PhoenixProfiler.ToolbarLive do
         nil -> assign_error_toolbar(socket)
         remote_profile -> assign_toolbar(socket, remote_profile)
       end
-
-    if connected?(socket) do
-      {:ok, _} = TelemetryRegistry.register(profile.server, Utils.transport_pid(socket), nil)
-    end
 
     {:ok, socket, temporary_assigns: [exits: []]}
   end
@@ -174,11 +168,6 @@ defmodule PhoenixProfiler.ToolbarLive do
       |> apply_lifecycle(stage, action, data)
       |> apply_event_duration(stage, action, data)
 
-    {:noreply, socket}
-  end
-
-  def handle_info({:collector_update_info, func}, socket) do
-    TelemetryRegistry.update_info(transport_pid(socket), func)
     {:noreply, socket}
   end
 
