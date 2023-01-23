@@ -2,7 +2,7 @@ defmodule PhoenixProfiler.Utils do
   @moduledoc false
   alias Phoenix.LiveView
   alias PhoenixProfiler.Profile
-  alias PhoenixProfiler.TelemetryServer
+  alias PhoenixProfiler.Server
 
   @default_profiler_link_base "/dashboard/_profiler"
 
@@ -36,11 +36,10 @@ defmodule PhoenixProfiler.Utils do
   def enable_profiler(conn_or_socket, endpoint, config, system_time)
       when is_atom(endpoint) and is_list(config) and is_integer(system_time) do
     with :ok <- check_requires_profile(conn_or_socket),
-         :ok <- maybe_check_socket_connection(conn_or_socket),
-         {:ok, profiler} <- check_profiler_running(config) do
+         :ok <- maybe_check_socket_connection(conn_or_socket) do
       conn_or_socket
-      |> new_profile(endpoint, profiler, config, system_time)
-      |> start_collector(profiler)
+      |> new_profile(endpoint, config, system_time)
+      |> start_collector()
       |> telemetry_execute(:start, %{system_time: system_time})
     else
       {:error, reason} -> enable_profiler_error(conn_or_socket, reason)
@@ -63,10 +62,13 @@ defmodule PhoenixProfiler.Utils do
     check_socket_connection(socket)
   end
 
-  defp new_profile(conn_or_socket, endpoint, profiler, config, system_time) do
+  defp new_profile(conn_or_socket, endpoint, config, system_time) do
     info = if config[:enable] == false, do: :disable, else: :enable
     profiler_base_url = profiler_base_url(endpoint, config)
-    profile = Profile.new(profiler, random_unique_id(), info, profiler_base_url, system_time)
+
+    profile = Profile.new(endpoint, random_unique_id(), info, profiler_base_url, system_time)
+    Server.put_token(profile)
+
     put_private(conn_or_socket, :phoenix_profiler, profile)
   end
 
@@ -77,31 +79,10 @@ defmodule PhoenixProfiler.Utils do
   defp profiler_link_base(path) when is_binary(path) and path != "", do: path
   defp profiler_link_base(_), do: @default_profiler_link_base
 
-  defp start_collector(%Plug.Conn{} = conn, server) do
-    profile = conn.private.phoenix_profiler
-
-    collector_pid =
-      if is_pid(profile.collector_pid) and Process.alive?(profile.collector_pid) do
-        TelemetryServer.collector_info_exec(profile.info)
-        {:ok, profile.collector_pid}
-      else
-        TelemetryServer.listen(server, conn.owner, nil, profile.info)
-      end
-      |> case do
-        {:ok, collector_pid} -> collector_pid
-        {:error, {:already_registered, collector_pid}} -> collector_pid
-      end
-
-    put_private(conn, :phoenix_profiler, %{profile | collector_pid: collector_pid})
-  end
-
-  defp start_collector(%LiveView.Socket{} = socket, _server) do
-    # ToolbarLive acts as the LiveView Socket collector so we never
-    # start a collector here, but we can execute telemetry to notify it
-    # that the state changed.
-    info = socket.private.phoenix_profiler.info
-    TelemetryServer.collector_info_exec(info)
-    socket
+  defp start_collector(conn_or_socket) do
+    profile = conn_or_socket.private.phoenix_profiler
+    Server.collector_info_exec(profile.info)
+    conn_or_socket
   end
 
   @doc """
@@ -114,7 +95,7 @@ defmodule PhoenixProfiler.Utils do
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
     # notify state change and ensure profile info is :enable
     profile = conn_or_socket.private.phoenix_profiler
-    TelemetryServer.collector_info_exec(:enable)
+    Server.collector_info_exec(:enable)
     put_private(conn_or_socket, :phoenix_profiler, %{profile | info: :enable})
   end
 
@@ -160,7 +141,7 @@ defmodule PhoenixProfiler.Utils do
   def disable_profiler(%LiveView.Socket{} = socket), do: socket
 
   defp unregister_collector(conn_or_socket) do
-    TelemetryServer.collector_info_exec(:disable)
+    Server.collector_info_exec(:disable)
     conn_or_socket
   end
 
@@ -174,25 +155,6 @@ defmodule PhoenixProfiler.Utils do
       :ok
     else
       {:error, :waiting_for_connection}
-    end
-  end
-
-  # Note: if we ever call this from the dashboard, we will
-  # need to ensure we are checking the proper node.
-  defp check_profiler_running(config) do
-    cond do
-      config == [] ->
-        {:error, :profiler_not_available}
-
-      profiler = config[:server] ->
-        if GenServer.whereis(profiler) do
-          {:ok, profiler}
-        else
-          {:error, :profiler_not_running}
-        end
-
-      true ->
-        {:error, :profiler_not_available}
     end
   end
 
@@ -250,31 +212,7 @@ defmodule PhoenixProfiler.Utils do
   @doc false
   def on_send_resp(conn, %Profile{} = profile) do
     duration = System.monotonic_time() - profile.start_time
-    conn = telemetry_execute(conn, :stop, %{duration: duration})
-
-    data =
-      PhoenixProfiler.TelemetryCollector.reduce(
-        profile.collector_pid,
-        %{metrics: %{endpoint_duration: nil}},
-        fn
-          {:telemetry, _, _, _, %{endpoint_duration: duration}}, acc ->
-            %{acc | metrics: Map.put(acc.metrics, :endpoint_duration, duration)}
-
-          {:telemetry, _, _, _, %{metrics: _} = entry}, acc ->
-            {metrics, rest} = map_pop!(entry, :metrics)
-            acc = Map.merge(acc, rest)
-            %{acc | metrics: Map.merge(acc.metrics, metrics)}
-
-          {:telemetry, _, _, _, data}, acc ->
-            Map.merge(acc, data)
-        end
-      )
-
-    profile
-    |> PhoenixProfiler.ProfileStore.table()
-    |> :ets.insert({profile.token, data})
-
-    conn
+    telemetry_execute(conn, :stop, %{duration: duration})
   end
 
   defp telemetry_execute(%LiveView.Socket{} = socket, _, _), do: socket

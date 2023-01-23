@@ -14,6 +14,7 @@ Application.ensure_all_started(:esbuild)
 
 # Configures the endpoint
 Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
+  phoenix_profiler: [enable: true],
   url: [host: "localhost"],
   secret_key_base: "Hu4qQN3iKzTV4fJxhorPQlA/osH9fAMtbtjVS58PFgfw3ja5Z18Q/WSNR9wP4OfW",
   live_view: [signing_salt: "hMegieSe"],
@@ -31,8 +32,7 @@ Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
       ~r"lib/phoenix_profiler/.*(ex)$",
       ~r"dev/templates/.*(eex)$"
     ]
-  ],
-  phoenix_profiler: [server: DemoWeb.Profiler]
+  ]
 )
 
 defmodule DemoWeb.ErrorView do
@@ -377,8 +377,6 @@ Application.put_env(:phoenix, :serve_endpoints, true)
 
 Task.start(fn ->
   children = [
-    {PhoenixProfiler, name: DemoWeb.OtherProfiler},
-    {PhoenixProfiler, name: DemoWeb.Profiler},
     {Phoenix.PubSub, [name: Demo.PubSub, adapter: Phoenix.PubSub.PG2]},
     DemoWeb.Endpoint
   ]

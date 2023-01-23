@@ -1,70 +1,8 @@
 defmodule PhoenixProfiler.ProfileStore do
-  # GenServer that is the owner of the ETS table for requests
+  # Helpers for fetching profile data from local and remote nodes.
   @moduledoc false
-  use GenServer
   alias PhoenixProfiler.Profile
   alias PhoenixProfiler.Utils
-
-  defstruct [:tab, :system]
-
-  @doc """
-  Resets the profiler, deleting all stored requests.
-  """
-  @callback reset :: :ok
-
-  @default_sweep_interval :timer.hours(24)
-
-  def start_link(init_arg) do
-    GenServer.start_link(__MODULE__, init_arg)
-  end
-
-  @doc """
-  Deletes all objects in the profiler table.
-  """
-  def reset(name) do
-    if tab = tab(name) do
-      :ets.delete_all_objects(tab)
-      :ok
-    end
-  end
-
-  @doc """
-  Returns system-level data collected by the profiler at start.
-  """
-  def system(name) do
-    case :persistent_term.get({PhoenixProfiler, name}) do
-      %__MODULE__{system: system} -> system
-      _ -> nil
-    end
-  end
-
-  @impl GenServer
-  def init({server, options}) do
-    system = Utils.system()
-    tab = :ets.new(server, [:set, :public, {:write_concurrency, true}])
-
-    :persistent_term.put({PhoenixProfiler, server}, %__MODULE__{
-      system: system,
-      tab: tab
-    })
-
-    request_sweep_interval = options[:request_sweep_interval] || @default_sweep_interval
-    schedule_sweep(self(), request_sweep_interval)
-
-    {:ok,
-     %{
-       server: server,
-       requests: tab,
-       request_sweep_interval: request_sweep_interval
-     }}
-  end
-
-  @impl GenServer
-  def handle_info(:sweep, state) do
-    schedule_sweep(self(), state.request_sweep_interval)
-    :ets.delete_all_objects(state.requests)
-    {:noreply, state}
-  end
 
   @doc """
   Returns the profiler for a given `conn` if it exists.
@@ -77,15 +15,26 @@ defmodule PhoenixProfiler.ProfileStore do
   end
 
   @doc """
-  Returns the profiler for a given `profiler` and a given `token` if it exists.
+  Returns the profile for a given `token` if it exists.
   """
-  def get(profiler, token) do
-    case :ets.lookup(tab(profiler), token) do
+  def get(token) do
+    case PhoenixProfiler.Server.lookup_entries(token) do
       [] ->
         nil
 
-      [{_token, profile}] ->
-        profile
+      entries ->
+        Enum.reduce(entries, %{metrics: %{endpoint_duration: nil}}, fn
+          {^token, _event, _event_ts, %{endpoint_duration: duration}}, acc ->
+            %{acc | metrics: Map.put(acc.metrics, :endpoint_duration, duration)}
+
+          {^token, _event, _event_ts, %{metrics: _} = entry}, acc ->
+            {metrics, rest} = PhoenixProfiler.Utils.map_pop!(entry, :metrics)
+            acc = Map.merge(acc, rest)
+            %{acc | metrics: Map.merge(acc.metrics, metrics)}
+
+          {^token, _event, _event_ts, data}, acc ->
+            Map.merge(acc, data)
+        end)
     end
   end
 
@@ -110,8 +59,8 @@ defmodule PhoenixProfiler.ProfileStore do
     remote_get(profile.node, profile.server, profile.token)
   end
 
-  def remote_get(node, profiler, token) do
-    :rpc.call(node, __MODULE__, :get, [profiler, token])
+  def remote_get(node, _profiler, token) do
+    :rpc.call(node, __MODULE__, :get, [token])
   end
 
   @doc """
@@ -128,14 +77,7 @@ defmodule PhoenixProfiler.ProfileStore do
     tab(profiler)
   end
 
-  defp tab(profiler) do
-    case :persistent_term.get({PhoenixProfiler, profiler}) do
-      %__MODULE__{tab: tab} -> tab
-      _ -> nil
-    end
-  end
-
-  defp schedule_sweep(server, time) do
-    Process.send_after(server, :sweep, time)
+  defp tab(_profiler) do
+    PhoenixProfiler.Server.Profile
   end
 end

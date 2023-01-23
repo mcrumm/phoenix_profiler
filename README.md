@@ -24,12 +24,11 @@ Provides a **development tool** that gives detailed information about the execut
 To start using the profiler, you will need the following steps:
 
 1. Add the `phoenix_profiler` dependency
-2. Define a profiler on your supervision tree
-3. Enable the profiler on your Endpoint
-4. Configure LiveView
-5. Add the `PhoenixProfiler` plug
-6. Mount the profiler on your LiveViews
-7. Add the profiler page on your LiveDashboard (optional)
+2. Enable the profiler on your Endpoint
+3. Configure LiveView
+4. Add the `PhoenixProfiler` plug
+5. Mount the profiler on your LiveViews
+6. Add the profiler page on your LiveDashboard (optional)
 
 ### 1. Add the phoenix_profiler dependency
 
@@ -39,45 +38,21 @@ Add phoenix_profiler to your `mix.exs`:
 {:phoenix_profiler, "~> 0.2.0"}
 ```
 
-### 2. Define a profiler on your supervision tree
-
-You define a profiler on your main application's telemetry supervision
-tree (usually in `lib/my_app_web/telemetry.ex`):
-
-```elixir
-    children = [
-      {PhoenixProfiler, name: MyAppWeb.Profiler},
-      # :telemetry_poller, etc.
-    ]
-```
-
-Note that the profiler must be running for data to be collected,
-so it must come before any Endpoint modules in your supervision tree.
-
-The following options are available:
-
-* `:name` - The name of the profiler server. This option is required.
-
-* `:request_sweep_interval` - How often to sweep the ETS table where
-  the profiles are stored. Default is `24h` in milliseconds.
-
-### 3. Enable the profiler on your Endpoint
+### 2. Enable the profiler on your Endpoint
 
 PhoenixProfiler is disabled by default. In order to enable it,
 you must update your endpoint's `:dev` configuration to include the
-`:phoenix_profiler` options:
+`:phoenix_profiler` option:
 
 ```elixir
 # config/dev.exs
 config :my_app, MyAppWeb.Endpoint,
-  phoenix_profiler: [server: MyAppWeb.Profiler]
+  phoenix_profiler: []
 ```
 
 All web configuration is done inside the `:phoenix_profiler` key on the endpoint.
 
 The following options are available:
-
-* `:server` - The name of the profiler server. This option is required.
 
 * `:enable` - When set to `false`, disables profiling by default. You can
   always enable profiling on a request via `enable/1`. Defaults to `true`.
