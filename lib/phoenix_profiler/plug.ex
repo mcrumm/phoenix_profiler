@@ -2,7 +2,6 @@ defmodule PhoenixProfiler.Plug do
   @moduledoc false
   import Plug.Conn
   alias PhoenixProfiler.Profile
-  alias PhoenixProfiler.ToolbarView
   require Logger
 
   @token_header_key "x-debug-token"
@@ -106,8 +105,7 @@ defmodule PhoenixProfiler.Plug do
             name: "Phoenix Web Debug Toolbar"
           )
 
-        ToolbarView
-        |> Phoenix.View.render("index.html", %{
+        PhoenixProfiler.ToolbarLive.toolbar(%{
           conn: conn,
           session: %{"_" => profile},
           profile: profile,

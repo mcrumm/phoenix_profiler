@@ -40,6 +40,7 @@ defmodule PhoenixProfiler.MixProject do
   defp deps do
     phoenix() ++
       [
+        {:phoenix_html, ">= 3.2.0 and < 4.0.0"},
         {:phoenix_live_view, "~> 0.18.0 or ~> 0.17.0 or ~> 0.16.0"},
         {:phoenix_live_dashboard, "~> 0.7.0 or ~> 0.6.0 or ~> 0.5.0", optional: true},
         # Dev Dependencies
