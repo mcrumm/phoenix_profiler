@@ -1,7 +1,7 @@
 defmodule PhoenixProfiler.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @phoenix_version_requirement ">= 1.5.9"
 
   def project do
