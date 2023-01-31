@@ -307,7 +307,7 @@ defmodule PhoenixProfiler.Utils do
     end
   end
 
-  if String.to_integer(System.otp_release()) >= '24' do
+  if String.to_integer(System.otp_release()) >= 24 do
     defdelegate queue_fold(func, initial, queue), to: :queue, as: :fold
   else
     # https://github.com/erlang/otp/blob/9f87c568cd3cdb621cf4cae69ccce880be4ea1b6/lib/stdlib/src/queue.erl#L442
