@@ -138,9 +138,9 @@ defmodule EmbeddedLive.Switch do
   def render(assigns) do
     ~H"""
     <div style="display:flex;align-items:baseline;">
-      <a href="javascript:void(0);" phx-click="toggle" phx-click-value={@value}>
+      <button type="button" phx-click="toggle" phx-click-value={@value}>
         <%= @label <> " " <> (if @checked, do: "on", else: "off") %>
-      </a>
+      </button>
     </div>
     """
   end
