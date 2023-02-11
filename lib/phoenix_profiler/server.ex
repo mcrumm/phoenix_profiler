@@ -97,7 +97,7 @@ defmodule PhoenixProfiler.Server do
     Process.flag(:trap_exit, true)
 
     :persistent_term.put(PhoenixProfiler, %{system: PhoenixProfiler.Utils.system()})
-    :ets.new(@entry_table, [:named_table, :public, :set])
+    :ets.new(@entry_table, [:named_table, :public, :duplicate_bag])
 
     :telemetry.attach_many(
       {__MODULE__, self()},

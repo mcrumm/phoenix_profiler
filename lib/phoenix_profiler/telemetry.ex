@@ -38,7 +38,7 @@ defmodule PhoenixProfiler.Telemetry do
         {:keep,
          %{
            at: profile.system_time,
-           conn: %{conn | resp_body: nil, assigns: Map.delete(conn.assigns, :content)},
+           conn: prune_values(conn),
            metrics: %{
              memory: collect_memory(conn.owner),
              total_duration: measures.duration
@@ -86,5 +86,29 @@ defmodule PhoenixProfiler.Telemetry do
   defp collect_memory(pid) when is_pid(pid) do
     {:memory, bytes} = Process.info(pid, :memory)
     div(bytes, @kB)
+  end
+
+  @phoenix_private_keys [
+    :phoenix_action,
+    :phoenix_controller,
+    :phoenix_endpoint,
+    :phoenix_flash,
+    :phoenix_format,
+    :phoenix_layout,
+    :phoenix_root_layout,
+    :phoenix_router,
+    :phoenix_view
+  ]
+  defp prune_values(%Plug.Conn{} = conn) do
+    conn = conn |> Plug.Conn.delete_req_header("cookie")
+
+    %{
+      conn
+      | cookies: %{},
+        req_cookies: %{},
+        resp_body: nil,
+        assigns: Map.delete(conn.assigns, :content),
+        private: Map.take(conn.private, @phoenix_private_keys)
+    }
   end
 end
