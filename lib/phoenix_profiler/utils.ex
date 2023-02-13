@@ -66,11 +66,14 @@ defmodule PhoenixProfiler.Utils do
     info = if config[:enable] == false, do: :disable, else: :enable
     profiler_base_url = profiler_base_url(endpoint, config)
 
-    profile = Profile.new(endpoint, random_unique_id(), info, profiler_base_url, system_time)
-    Server.put_token(profile)
+    {:ok, token} = Server.put_owner_token(owner_pid(conn_or_socket))
+    profile = Profile.new(endpoint, token, info, profiler_base_url, system_time)
 
     put_private(conn_or_socket, :phoenix_profiler, profile)
   end
+
+  defp owner_pid(%Plug.Conn{} = conn), do: conn.owner
+  defp owner_pid(%LiveView.Socket{} = socket), do: transport_pid(socket)
 
   defp profiler_base_url(endpoint, config) do
     endpoint.url() <> profiler_link_base(config[:profiler_link_base])

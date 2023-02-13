@@ -24,7 +24,7 @@ defmodule PhoenixProfiler.PlugTest do
     assert [url] = Plug.Conn.get_resp_header(conn, @profiler_header_key)
 
     assert url ==
-             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
+             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Endpoint&panel=request&token=#{token}"
   end
 
   test "skips debug token when disabled at the Endpoint" do

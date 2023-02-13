@@ -45,6 +45,8 @@ defmodule PhoenixProfiler.ToolbarLive do
         remote_profile -> assign_toolbar(socket, remote_profile)
       end
 
+    socket = subscribe(socket)
+
     {:ok, socket, temporary_assigns: [exits: []]}
   end
 
@@ -158,8 +160,41 @@ defmodule PhoenixProfiler.ToolbarLive do
     end
   end
 
+  defp subscribe(socket) do
+    if connected?(socket) do
+      subscribe(socket, PhoenixProfiler.Utils.transport_pid(socket))
+    else
+      socket
+    end
+  end
+
+  defp subscribe(socket, transport_pid) do
+    case PhoenixProfiler.Server.subscribe(transport_pid) do
+      {:ok, _token} -> :ok
+      :error -> Process.send_after(self(), {:subscribe, transport_pid}, 1000)
+    end
+
+    socket
+  end
+
   @impl Phoenix.LiveView
-  def handle_info({:telemetry, _, [:phoenix, :live_view, _, _] = event, _event_ts, data}, socket) do
+  def handle_info({:subscribe, transport_pid} = msg, socket) do
+    dbg(msg)
+
+    socket =
+      if PhoenixProfiler.Utils.transport_pid(socket) == transport_pid,
+        do: subscribe(socket, transport_pid),
+        else: socket
+
+    {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_info(
+        {PhoenixProfiler.Server, _token,
+         {:telemetry, [:phoenix, :live_view, _, _] = event, _time, data}},
+        socket
+      ) do
     [_, _, stage, action] = event
 
     socket =
