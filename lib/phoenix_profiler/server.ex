@@ -5,6 +5,8 @@ defmodule PhoenixProfiler.Server do
   @disable_event [:phoenix_profiler, :internal, :collector, :disable]
   @enable_event [:phoenix_profiler, :internal, :collector, :enable]
 
+  @listener_table __MODULE__.Listener
+  @live_table __MODULE__.Live
   @entry_table __MODULE__.Entry
 
   @default_sweep_interval :timer.hours(24)
@@ -42,6 +44,41 @@ defmodule PhoenixProfiler.Server do
   end
 
   @doc """
+  Subscribes the caller to events for the given `owner` pid.
+
+  While subscribed, you will receive messages in the following form:
+
+      {PhoenixProfiler.Server, token, {:telemetry, event_name, system_time, data}}
+
+  ...with the following values:
+
+   * `token` - The profiler token returned when the caller subscribes.
+
+   * `event_name` - The event name from `:telemetry`.
+
+   * `system_time` - The timestamp as provided by the `:system_time`
+     measurement if it exists, or the system time when the event
+     was collected.
+
+   * `data` - The data returned by the filter provided to the
+     TelemetryServer. The default value is an empty map `%{}`.
+  """
+  @spec subscribe(owner :: pid()) :: {:ok, token :: String.t()} | :error
+  def subscribe(owner) when is_pid(owner) do
+    with {:ok, token} <- fetch_owner_token(owner) do
+      :ets.insert_new(@listener_table, {token, self()})
+      {:ok, token}
+    end
+  end
+
+  @doc """
+  Unsubscribes the caller from events for the given `token`.
+  """
+  def unsubscribe(token) do
+    :ets.delete_object(@listener_table, {token, self()})
+  end
+
+  @doc """
   Returns a list of entries for a given `token`.
   """
   def lookup_entries(token) do
@@ -51,8 +88,30 @@ defmodule PhoenixProfiler.Server do
   @doc """
   Puts the profiler token on the process dictionary.
   """
-  def put_token(%{token: token}) do
+  @spec put_owner_token(owner :: pid()) :: {:ok, token :: String.t()}
+  def put_owner_token(owner \\ self()) when is_pid(owner) do
+    token =
+      case fetch_owner_token(owner) do
+        {:ok, token} ->
+          token
+
+        :error ->
+          token = PhoenixProfiler.Utils.random_unique_id()
+          true = :ets.insert(@live_table, {owner, token})
+          # todo: GenServer.cast(__MODULE__, {:monitor, owner})
+          token
+      end
+
     Process.put(@process_dict_key, token)
+
+    {:ok, token}
+  end
+
+  defp fetch_owner_token(owner) do
+    case :ets.lookup(@live_table, owner) do
+      [{^owner, token}] -> {:ok, token}
+      [] -> :error
+    end
   end
 
   @doc """
@@ -97,6 +156,8 @@ defmodule PhoenixProfiler.Server do
     Process.flag(:trap_exit, true)
 
     :persistent_term.put(PhoenixProfiler, %{system: PhoenixProfiler.Utils.system()})
+    :ets.new(@live_table, [:named_table, :public, :set])
+    :ets.new(@listener_table, [:named_table, :public, :bag])
     :ets.new(@entry_table, [:named_table, :public, :duplicate_bag])
 
     :telemetry.attach_many(
@@ -124,24 +185,35 @@ defmodule PhoenixProfiler.Server do
   end
 
   def handle_execute(event, measurements, metadata, %{filter: filter}) do
-    with {:ok, token} <- find_token() do
-      # todo: ensure span ref is set on data (or message) if it exists
-      data = filter_event(filter, _arg = nil, event, measurements, metadata)
-      event_ts = measurements[:system_time] || System.system_time()
+    # capture system_time early in case we need it
+    system_time = System.system_time()
 
-      if data do
-        :ets.insert(@entry_table, {token, event, event_ts, data})
-      end
+    with {:ok, token} <- find_token(),
+         {:keep, data} <- filter_event(filter, _arg = nil, event, measurements, metadata) do
+      # todo: ensure span ref is set on data (or message) if it exists
+      event_ts = measurements[:system_time] || system_time
+      true = :ets.insert(@entry_table, {token, event, event_ts, data})
+      notify_subscribers(token, event, event_ts, data)
+    else
+      _ -> :ok
     end
   end
 
   defp filter_event(filter, arg, event, measurements, metadata) do
     # todo: rescue/catch, detach telemetry, and warn on error
     case filter.(arg, event, measurements, metadata) do
-      :keep -> %{}
-      {:keep, data} when is_map(data) -> data
-      :skip -> nil
+      :keep -> {:keep, nil}
+      {:keep, %{}} = keep -> keep
+      :skip -> :skip
     end
+  end
+
+  defp notify_subscribers(token, event, event_ts, data) do
+    subscribers = :ets.lookup(@listener_table, token)
+
+    Enum.each(subscribers, fn {_, pid} ->
+      send(pid, {__MODULE__, token, {:telemetry, event, event_ts, data}})
+    end)
   end
 
   defp schedule_sweep(server \\ self(), time) do

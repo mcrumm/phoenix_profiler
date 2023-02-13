@@ -20,9 +20,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert [url] = Plug.Conn.get_resp_header(conn, @profiler_header_key)
 
     assert url ==
-             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
-
-    assert profiler = ProfileStore.profiler(conn)
+             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Endpoint&panel=request&token=#{token}"
 
     %{
       conn: %Plug.Conn{
@@ -39,7 +37,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
         status: 200
       },
       metrics: metrics
-    } = ProfileStore.get(profiler, token)
+    } = ProfileStore.get(token)
 
     assert metrics.total_duration > 0
     assert metrics.endpoint_duration > 0
@@ -50,8 +48,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     conn = get(conn, "/plug-router")
     assert [token] = Plug.Conn.get_resp_header(conn, @token_header_key)
     assert [_] = Plug.Conn.get_resp_header(conn, @profiler_header_key)
-    assert profiler = ProfileStore.profiler(conn)
-    assert ProfileStore.get(profiler, token)
+    assert ProfileStore.get(token)
   end
 
   test "profiling an api request", %{conn: conn} do
@@ -61,9 +58,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert [url] = Plug.Conn.get_resp_header(conn, @profiler_header_key)
 
     assert url ==
-             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Profiler&panel=request&token=#{token}"
-
-    assert profiler = ProfileStore.profiler(conn)
+             "http://localhost:4000/dashboard/_profiler?nav=PhoenixProfilerTest.Endpoint&panel=request&token=#{token}"
 
     %{
       conn: %Plug.Conn{
@@ -80,7 +75,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
         status: 200
       },
       metrics: metrics
-    } = ProfileStore.get(profiler, token)
+    } = ProfileStore.get(token)
 
     assert metrics.endpoint_duration > 0
     assert metrics.memory > 0
@@ -95,6 +90,6 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert %PhoenixProfiler.Profile{info: :disable, server: server, token: token} =
              conn.private.phoenix_profiler
 
-    refute ProfileStore.get(server, token)
+    refute ProfileStore.get(token)
   end
 end

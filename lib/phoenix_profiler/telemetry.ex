@@ -13,7 +13,11 @@ defmodule PhoenixProfiler.Telemetry do
     [:phxprof, :plug, :stop]
   ]
 
-  @events plug_events ++ live_view_events
+  testing_events = [
+    [:phoenix_profiler, :internal, :this_is_only_used_for_testing]
+  ]
+
+  @events plug_events ++ live_view_events ++ testing_events
 
   @doc """
   Returns a list of built-in telemetry events to collect.

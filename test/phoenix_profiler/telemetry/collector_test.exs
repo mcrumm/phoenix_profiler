@@ -1,10 +1,6 @@
 defmodule PhoenixProfiler.TelemetryCollectorTest do
   use ExUnit.Case
-  alias PhoenixProfiler.TelemetryCollector
-  alias PhoenixProfiler.TelemetryRegistry
-  alias PhoenixProfiler.TelemetryServer
-
-  doctest TelemetryCollector
+  alias PhoenixProfiler.Server
 
   describe "collecting telemetry" do
     test "events from watched pid" do
