@@ -71,7 +71,7 @@ defmodule PhoenixProfiler.Utils do
     info = if config[:enable] == false, do: :disable, else: :enable
     profiler_base_url = profiler_base_url(endpoint, config)
 
-    {:ok, token} = Server.put_owner_token(owner_pid(conn_or_socket))
+    {:ok, token} = Server.put_owner_token(owner_pid(conn_or_socket), endpoint)
     profile = Profile.new(endpoint, token, info, profiler_base_url, system_time)
 
     put_private(conn_or_socket, :phoenix_profiler, profile)
