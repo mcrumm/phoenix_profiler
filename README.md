@@ -135,9 +135,6 @@ web module (usually in `lib/my_app_web.ex`):
   end
 ```
 
-Note the [`on_mount`](`Phoenix.LiveView.on_mount/1`) macro requires LiveView 0.16+. For earlier versions,
-see `PhoenixProfiler.enable/1`.
-
 This is all. Run `mix phx.server` and observe the toolbar on your browser requests.
 
 ### 7. Add the profiler page on your LiveDashboard (optional)
