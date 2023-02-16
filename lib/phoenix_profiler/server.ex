@@ -5,6 +5,7 @@ defmodule PhoenixProfiler.Server do
   @disable_event [:phoenix_profiler, :internal, :collector, :disable]
   @enable_event [:phoenix_profiler, :internal, :collector, :enable]
 
+  @disable_table __MODULE__.Disable
   @listener_table __MODULE__.Listener
   @live_table __MODULE__.Live
   @entry_table __MODULE__.Entry
@@ -135,13 +136,16 @@ defmodule PhoenixProfiler.Server do
   end
 
   @doc """
-  Executes the collector event for `info` for the current process.
+  Executes the collector event for the given `profile`.
   """
-  def collector_info_exec(:disable), do: telemetry_exec(@disable_event)
-  def collector_info_exec(:enable), do: telemetry_exec(@enable_event)
+  def collector_info_exec(%PhoenixProfiler.Profile{} = profile) do
+    event =
+      case profile.info do
+        :enable -> @enable_event
+        :disable -> @disable_event
+      end
 
-  defp telemetry_exec(event) do
-    :telemetry.execute(event, %{system_time: System.system_time()}, %{})
+    :telemetry.execute(event, %{system_time: System.system_time()}, %{profile: profile})
   end
 
   @impl GenServer
@@ -156,6 +160,7 @@ defmodule PhoenixProfiler.Server do
     Process.flag(:trap_exit, true)
 
     :persistent_term.put(PhoenixProfiler, %{system: PhoenixProfiler.Utils.system()})
+    :ets.new(@disable_table, [:named_table, :public, :set])
     :ets.new(@live_table, [:named_table, :public, :set])
     :ets.new(@listener_table, [:named_table, :public, :bag])
     :ets.new(@entry_table, [:named_table, :public, :duplicate_bag])
@@ -178,9 +183,13 @@ defmodule PhoenixProfiler.Server do
   @doc """
   Forwards telemetry events to a registered collector, if it exists.
   """
-  def handle_execute([_, _, _, _info] = event, _, _, _)
-      when event in [@disable_event, @enable_event] do
-    # todo: handle enable/disable
+  def handle_execute(@enable_event, _, %{profile: profile}, _) do
+    :ets.delete(@disable_table, profile.token)
+    :ok
+  end
+
+  def handle_execute(@disable_event, _, %{profile: profile}, _) do
+    :ets.insert_new(@disable_table, {profile.token, self()})
     :ok
   end
 
@@ -189,6 +198,7 @@ defmodule PhoenixProfiler.Server do
     system_time = System.system_time()
 
     with {:ok, token} <- find_token(),
+         [] <- :ets.lookup(@disable_table, token),
          {:keep, data} <- filter_event(filter, _arg = nil, event, measurements, metadata) do
       # todo: ensure span ref is set on data (or message) if it exists
       event_ts = measurements[:system_time] || system_time

@@ -18,7 +18,7 @@ defmodule PhoenixProfiler.UtilsTest do
     end
   end
 
-  describe "maybe_mount_profile1/" do
+  describe "maybe_mount_profile/1" do
     test "when the socket is disconnected, is a no-op" do
       socket = build_socket()
       refute socket.private[:phoenix_profiler]
