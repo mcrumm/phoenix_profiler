@@ -29,13 +29,13 @@ defmodule PhoenixProfiler.Utils do
   """
   def enable_profiler(conn_or_socket) do
     endpoint = endpoint(conn_or_socket)
-    config = endpoint.config(:phoenix_profiler, false)
+    config = endpoint.config(:phoenix_profiler, [])
     enable_profiler(conn_or_socket, endpoint, config, System.system_time())
   end
 
   @doc false
-  def enable_profiler(conn_or_socket, _endpoint, bad, _system_time) when bad in [nil, false] do
-    enable_profiler_error(conn_or_socket, :profiler_not_available)
+  def enable_profiler(conn_or_socket, _endpoint, nil, _system_time) do
+    enable_profiler_error(conn_or_socket, :profiler_not_configured)
   end
 
   def enable_profiler(conn_or_socket, endpoint, config, system_time)
@@ -122,7 +122,7 @@ defmodule PhoenixProfiler.Utils do
     """
   end
 
-  defp enable_profiler_error(_, :profiler_not_available) do
+  defp enable_profiler_error(_, :profiler_not_configured) do
     raise "attempted to enable profiling but no profiler is configured on the endpoint"
   end
 
