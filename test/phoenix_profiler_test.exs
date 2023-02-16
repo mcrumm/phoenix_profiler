@@ -6,7 +6,7 @@ defmodule PhoenixProfilerUnitTest do
   doctest PhoenixProfiler
 
   defmodule EndpointMock do
-    def config(:phoenix_profiler, _), do: [enable: true]
+    def config(:phoenix_profiler, _), do: []
     def url, do: "http://endpoint:4000"
   end
 
