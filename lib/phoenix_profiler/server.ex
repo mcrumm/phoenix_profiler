@@ -6,6 +6,7 @@ defmodule PhoenixProfiler.Server do
   @enable_event [:phoenix_profiler, :internal, :collector, :enable]
 
   @disable_table __MODULE__.Disable
+  @endpoint_table __MODULE__.Endpoint
   @listener_table __MODULE__.Listener
   @live_table __MODULE__.Live
   @entry_table __MODULE__.Entry
@@ -42,6 +43,17 @@ defmodule PhoenixProfiler.Server do
           {:cont, acc}
       end
     end)
+  end
+
+  @doc """
+  Returns a list of known endpoints.
+
+  It is important to note that the order is not guaranteed.
+  """
+  def known_endpoints do
+    for {{PhoenixProfiler.Endpoint, endpoint}, _} <- :persistent_term.get() do
+      endpoint
+    end
   end
 
   @doc """
@@ -89,8 +101,8 @@ defmodule PhoenixProfiler.Server do
   @doc """
   Puts the profiler token on the process dictionary.
   """
-  @spec put_owner_token(owner :: pid()) :: {:ok, token :: String.t()}
-  def put_owner_token(owner \\ self()) when is_pid(owner) do
+  @spec put_owner_token(owner :: pid(), endpoint :: atom()) :: {:ok, token :: String.t()}
+  def put_owner_token(owner \\ self(), endpoint) when is_pid(owner) and is_atom(endpoint) do
     token =
       case fetch_owner_token(owner) do
         {:ok, token} ->
@@ -98,6 +110,8 @@ defmodule PhoenixProfiler.Server do
 
         :error ->
           token = PhoenixProfiler.Utils.random_unique_id()
+          :persistent_term.put({PhoenixProfiler.Endpoint, endpoint}, nil)
+          true = :ets.insert(@endpoint_table, {endpoint, token})
           true = :ets.insert(@live_table, {owner, token})
           # todo: GenServer.cast(__MODULE__, {:monitor, owner})
           token
@@ -161,6 +175,7 @@ defmodule PhoenixProfiler.Server do
 
     :persistent_term.put(PhoenixProfiler, %{system: PhoenixProfiler.Utils.system()})
     :ets.new(@disable_table, [:named_table, :public, :set])
+    :ets.new(@endpoint_table, [:named_table, :public, :bag])
     :ets.new(@live_table, [:named_table, :public, :set])
     :ets.new(@listener_table, [:named_table, :public, :bag])
     :ets.new(@entry_table, [:named_table, :public, :duplicate_bag])

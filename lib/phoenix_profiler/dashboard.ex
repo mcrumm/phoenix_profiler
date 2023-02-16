@@ -53,7 +53,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     defp running_profilers(node) do
-      case :rpc.call(node, PhoenixProfiler, :all_running, []) do
+      case :rpc.call(node, PhoenixProfiler, :known_endpoints, []) do
         [] ->
           {:error, :no_profilers_available}
 

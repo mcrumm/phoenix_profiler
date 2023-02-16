@@ -109,4 +109,11 @@ defmodule PhoenixProfiler do
       _ -> nil
     end
   end
+
+  @doc """
+  Returns a list of endpoints with profiles.
+
+  Note that no order is guaranteed.
+  """
+  defdelegate known_endpoints, to: PhoenixProfiler.Server
 end

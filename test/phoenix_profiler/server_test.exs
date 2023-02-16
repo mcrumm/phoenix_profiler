@@ -9,12 +9,12 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "returns {:ok, token} for a registered owner" do
-      {:ok, token} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, token} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       assert {:ok, ^token} = Server.subscribe(self())
     end
 
     test "sends telemetry for owner" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())
 
       time = System.unique_integer()
@@ -24,7 +24,7 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "receives telemetry for $callers" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())
 
       inner_1 = System.unique_integer()
@@ -41,7 +41,7 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "disable and enable telemetry messages" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())
       profile = %PhoenixProfiler.Profile{token: token}
 
@@ -62,7 +62,7 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "disable and enable are idempotent" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())
       profile = %PhoenixProfiler.Profile{token: token}
 

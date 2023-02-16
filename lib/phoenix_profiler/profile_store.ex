@@ -32,14 +32,16 @@ defmodule PhoenixProfiler.ProfileStore do
   Returns all profiles for a given `endpoint`.
   """
   def list(endpoint) do
-    :ets.tab2list(tab(endpoint))
+    PhoenixProfiler.Server.Endpoint
+    |> :ets.match({endpoint, :"$1"})
+    |> :lists.flatten()
   end
 
   @doc """
   Returns a filtered list of profiles.
   """
   def list_advanced(endpoint, _search, sort_by, sort_dir, _limit) do
-    Utils.sort_by(list(endpoint), fn {_, profile} -> profile[sort_by] end, sort_dir)
+    Utils.sort_by(list(endpoint), fn profile -> profile end, sort_dir)
   end
 
   @doc """
@@ -68,6 +70,6 @@ defmodule PhoenixProfiler.ProfileStore do
   end
 
   defp tab(_profiler) do
-    PhoenixProfiler.Server.Profile
+    PhoenixProfiler.Server.Entry
   end
 end
