@@ -39,9 +39,8 @@ defmodule PhoenixProfiler do
   profiler is enabled. In LiveView v0.16+ it is invoked automatically when
   you define `on_mount PhoenixProfiler` on your LiveView.
 
-  This function will raise if the endpoint is not configured with a profiler,
-  or if the configured profiler is not running. For LiveView specifically,
-  this function also raises if the given socket is not connected.
+  This function raises if the endpoint is not configured with `:phoenix_profiler`.
+  For LiveView, this function also raises if the given socket is not connected.
 
   ## Example
 

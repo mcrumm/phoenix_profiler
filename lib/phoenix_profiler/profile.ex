@@ -3,9 +3,9 @@ defmodule PhoenixProfiler.Profile do
   @moduledoc false
   defstruct [
     :collector_pid,
+    :endpoint,
     :info,
     :node,
-    :server,
     :start_time,
     :system,
     :system_time,
@@ -25,9 +25,9 @@ defmodule PhoenixProfiler.Profile do
 
   @type t :: %__MODULE__{
           :collector_pid => nil | pid(),
+          :endpoint => module(),
           :info => info(),
           :token => String.t(),
-          :server => module(),
           :node => node(),
           :start_time => integer(),
           :system => system(),
@@ -38,24 +38,24 @@ defmodule PhoenixProfiler.Profile do
   @doc """
   Returns a new profile.
   """
-  def new(node \\ node(), server, token, info, base_url, system_time)
-      when is_atom(server) and is_binary(token) and
+  def new(node \\ node(), endpoint, token, info, base_url, system_time)
+      when is_atom(endpoint) and is_binary(token) and
              is_atom(info) and info in [nil, :enable, :disable] and
              is_binary(base_url) and is_integer(system_time) do
     %__MODULE__{
+      endpoint: endpoint,
       info: info,
       node: node,
-      server: server,
       start_time: System.monotonic_time(),
       system: PhoenixProfiler.system(),
       system_time: system_time,
       token: token,
-      url: build_url(server, token, base_url)
+      url: build_url(endpoint, token, base_url)
     }
   end
 
-  defp build_url(server, token, base_url) do
-    params = %{nav: inspect(server), panel: :request, token: token}
+  defp build_url(endpoint, token, base_url) do
+    params = %{nav: inspect(endpoint), panel: :request, token: token}
     base_url <> "?" <> URI.encode_query(params)
   end
 end

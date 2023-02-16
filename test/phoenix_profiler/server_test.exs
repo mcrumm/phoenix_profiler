@@ -40,50 +40,48 @@ defmodule PhoenixProfiler.ServerTest do
       assert_receive_telemetry(token, inner_2)
     end
 
-    test "disable and enable collector" do
-      start_supervised!({Server, server: name = unique_debug_name(), events: [[:debug, :me]]})
+    test "disable and enable telemetry messages" do
+      {:ok, _} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, token} = Server.subscribe(self())
+      profile = %PhoenixProfiler.Profile{token: token}
 
-      {:ok, collector_pid} = Server.listen(name, self())
+      :ok = test_telemetry(msg_1 = System.unique_integer())
+      assert_receive_telemetry(token, msg_1)
 
-      :ok = :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
-      :ok = Server.collector_info_exec(:disable)
-      :timer.sleep(1)
-      :ok = :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
-      :ok = Server.collector_info_exec(:enable)
-      :timer.sleep(1)
-      :ok = :telemetry.execute([:debug, :me], %{system_time: 3}, %{})
+      :ok = Server.collector_info_exec(%{profile | info: :disable})
+      :ok = test_telemetry(msg_2 = System.unique_integer())
 
-      assert reduce_events(collector_pid) == [
-               {1, [:debug, :me]},
-               {3, [:debug, :me]}
-             ]
+      :ok = Server.collector_info_exec(%{profile | info: :enable})
+      :ok = test_telemetry(msg_3 = System.unique_integer())
 
-      Process.exit(collector_pid, :normal)
+      # Ensure we receive the 3rd message...
+      assert_receive_telemetry(token, msg_3)
+
+      # ...then we can ensure we never received the 2nd message.
+      refute_received_telemetry(token, msg_2)
     end
 
     test "disable and enable are idempotent" do
-      start_supervised!({Server, server: name = unique_debug_name(), events: [[:debug, :me]]})
+      {:ok, _} = PhoenixProfiler.Server.put_owner_token()
+      {:ok, token} = Server.subscribe(self())
+      profile = %PhoenixProfiler.Profile{token: token}
 
-      {:ok, collector_pid} = Server.listen(name, self())
+      :ok = test_telemetry(msg_1 = System.unique_integer())
 
-      :ok = :telemetry.execute([:debug, :me], %{system_time: 1}, %{})
-      :ok = Server.collector_info_exec(:disable)
-      :timer.sleep(1)
-      :ok = Server.collector_info_exec(:disable)
-      :timer.sleep(1)
-      :ok = :telemetry.execute([:debug, :me], %{system_time: 2}, %{})
-      :ok = Server.collector_info_exec(:enable)
-      :timer.sleep(1)
-      :ok = Server.collector_info_exec(:enable)
-      :timer.sleep(1)
-      :ok = :telemetry.execute([:debug, :me], %{system_time: 3}, %{})
+      :ok = Server.collector_info_exec(%{profile | info: :disable})
+      :ok = Server.collector_info_exec(%{profile | info: :disable})
 
-      assert reduce_events(collector_pid) == [
-               {1, [:debug, :me]},
-               {3, [:debug, :me]}
-             ]
+      :ok = test_telemetry(msg_2 = System.unique_integer())
 
-      Process.exit(collector_pid, :normal)
+      :ok = Server.collector_info_exec(%{profile | info: :enable})
+      :ok = Server.collector_info_exec(%{profile | info: :enable})
+
+      :ok = test_telemetry(msg_3 = System.unique_integer())
+
+      assert_receive_telemetry(token, msg_1)
+      assert_receive_telemetry(token, msg_3)
+
+      refute_received_telemetry(token, msg_2)
     end
   end
 
@@ -98,12 +96,8 @@ defmodule PhoenixProfiler.ServerTest do
                     {:telemetry, @test_telemetry_event, ^time, nil}}
   end
 
-  defp reduce_events(collector_pid) do
-    PhoenixProfiler.TelemetryCollector.reduce(collector_pid, [], fn
-      {:telemetry, _, event, event_ts, _}, acc ->
-        acc ++ [{event_ts, event}]
-    end)
+  defp refute_received_telemetry(token, time) do
+    refute_received {PhoenixProfiler.Server, ^token,
+                     {:telemetry, @test_telemetry_event, ^time, nil}}
   end
-
-  defp unique_debug_name, do: :"profiler_#{System.unique_integer([:positive, :monotonic])}"
 end

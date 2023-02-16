@@ -18,7 +18,7 @@ defmodule PhoenixProfiler.Utils do
   end
 
   defp configured?(conn_or_socket) do
-    endpoint(conn_or_socket).config(:phoenix_profiler, false) != false
+    not is_nil(endpoint(conn_or_socket).config(:phoenix_profiler))
   end
 
   @doc """
@@ -29,8 +29,13 @@ defmodule PhoenixProfiler.Utils do
   """
   def enable_profiler(conn_or_socket) do
     endpoint = endpoint(conn_or_socket)
-    config = endpoint.config(:phoenix_profiler) || []
+    config = endpoint.config(:phoenix_profiler, false)
     enable_profiler(conn_or_socket, endpoint, config, System.system_time())
+  end
+
+  @doc false
+  def enable_profiler(conn_or_socket, _endpoint, bad, _system_time) when bad in [nil, false] do
+    enable_profiler_error(conn_or_socket, :profiler_not_available)
   end
 
   def enable_profiler(conn_or_socket, endpoint, config, system_time)
@@ -83,8 +88,7 @@ defmodule PhoenixProfiler.Utils do
   defp profiler_link_base(_), do: @default_profiler_link_base
 
   defp start_collector(conn_or_socket) do
-    profile = conn_or_socket.private.phoenix_profiler
-    Server.collector_info_exec(profile.info)
+    Server.collector_info_exec(conn_or_socket.private.phoenix_profiler)
     conn_or_socket
   end
 
@@ -97,9 +101,9 @@ defmodule PhoenixProfiler.Utils do
 
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
     # notify state change and ensure profile info is :enable
-    profile = conn_or_socket.private.phoenix_profiler
-    Server.collector_info_exec(:enable)
-    put_private(conn_or_socket, :phoenix_profiler, %{profile | info: :enable})
+    profile = %{conn_or_socket.private.phoenix_profiler | info: :enable}
+    Server.collector_info_exec(profile)
+    put_private(conn_or_socket, :phoenix_profiler, profile)
   end
 
   defp enable_profiler_error(%LiveView.Socket{}, :waiting_for_connection) do
@@ -122,10 +126,6 @@ defmodule PhoenixProfiler.Utils do
     raise "attempted to enable profiling but no profiler is configured on the endpoint"
   end
 
-  defp enable_profiler_error(_, :profiler_not_running) do
-    raise "attempted to enable profiling but the profiler is not running"
-  end
-
   @doc """
   Disables the profiler on a given `conn` or `socket`.
 
@@ -135,18 +135,13 @@ defmodule PhoenixProfiler.Utils do
         %{__struct__: kind, private: %{phoenix_profiler: %Profile{} = profile}} = conn_or_socket
       )
       when kind in [Plug.Conn, LiveView.Socket] do
-    conn_or_socket
-    |> put_private(:phoenix_profiler, %{profile | info: :disable})
-    |> unregister_collector()
+    new_profile = %{profile | info: :disable}
+    Server.collector_info_exec(new_profile)
+    put_private(conn_or_socket, :phoenix_profiler, new_profile)
   end
 
   def disable_profiler(%Plug.Conn{} = conn), do: conn
   def disable_profiler(%LiveView.Socket{} = socket), do: socket
-
-  defp unregister_collector(conn_or_socket) do
-    Server.collector_info_exec(:disable)
-    conn_or_socket
-  end
 
   @doc """
   Checks whether or not a socket is connected.
