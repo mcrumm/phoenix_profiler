@@ -47,7 +47,7 @@ you must update your endpoint's `:dev` configuration to include the
 ```elixir
 # config/dev.exs
 config :my_app, MyAppWeb.Endpoint,
-  phoenix_profiler: [enable: true]
+  phoenix_profiler: []
 ```
 
 All web configuration is done inside the `:phoenix_profiler` key on the endpoint.
