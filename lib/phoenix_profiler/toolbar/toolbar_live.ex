@@ -169,6 +169,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   defp subscribe(socket, transport_pid) do
+    # todo: stop retrying after a resonable amount of time (proabably not a LiveView).
     case PhoenixProfiler.Server.subscribe(transport_pid) do
       {:ok, _token} -> :ok
       :error -> Process.send_after(self(), {:subscribe, transport_pid}, 1000)
@@ -178,9 +179,7 @@ defmodule PhoenixProfiler.ToolbarLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info({:subscribe, transport_pid} = msg, socket) do
-    dbg(msg)
-
+  def handle_info({:subscribe, transport_pid}, socket) do
     socket =
       if PhoenixProfiler.Utils.transport_pid(socket) == transport_pid,
         do: subscribe(socket, transport_pid),
