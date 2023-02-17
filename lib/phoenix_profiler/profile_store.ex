@@ -31,17 +31,18 @@ defmodule PhoenixProfiler.ProfileStore do
   @doc """
   Returns all profiles for a given `endpoint`.
   """
-  def list(endpoint) do
+  def list(endpoint, _limit \\ nil) do
     PhoenixProfiler.Server.Endpoint
     |> :ets.match({endpoint, :"$1"})
     |> :lists.flatten()
+    |> Enum.map(&{&1, get(&1)})
   end
 
   @doc """
   Returns a filtered list of profiles.
   """
   def list_advanced(endpoint, _search, sort_by, sort_dir, _limit) do
-    Utils.sort_by(list(endpoint), fn profile -> profile end, sort_dir)
+    Utils.sort_by(list(endpoint), fn {_, profile} -> profile[sort_by] end, sort_dir)
   end
 
   @doc """
@@ -51,7 +52,7 @@ defmodule PhoenixProfiler.ProfileStore do
     remote_get(profile.node, profile.endpoint, profile.token)
   end
 
-  def remote_get(node, _profiler, token) do
+  def remote_get(node, _endpoint, token) do
     :rpc.call(node, __MODULE__, :get, [token])
   end
 

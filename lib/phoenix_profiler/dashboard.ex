@@ -23,76 +23,76 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
 
     @impl true
     def init(opts) do
-      profilers = opts[:profilers] || :auto_discover
-      {:ok, %{profilers: profilers}, [{:application, :phoenix_profiler}]}
+      endpoints = opts[:endpoints] || :auto_discover
+      {:ok, %{endpoints: endpoints}, [{:application, :phoenix_profiler}]}
     end
 
     @impl true
-    def menu_link(%{profilers: profilers}, _capabilities) do
-      if profilers == [] do
+    def menu_link(%{endpoints: endpoints}, _capabilities) do
+      if endpoints == [] do
         {:disabled, @page_title, @disabled_link}
       else
         {:ok, @page_title}
       end
     end
 
-    defp profilers_or_auto_discover(profiler_config, node) do
+    defp endpoints_or_auto_discover(endpoint_config, node) do
       cond do
-        profiler_config == [] ->
-          {:error, :no_profilers_available}
+        endpoint_config == [] ->
+          {:error, :no_endpoints_available}
 
-        is_list(profiler_config) ->
-          {:ok, profiler_config}
+        is_list(endpoint_config) ->
+          {:ok, endpoint_config}
 
-        profiler_config == :auto_discover ->
-          running_profilers(node)
+        endpoint_config == :auto_discover ->
+          known_endpoints(node)
 
         true ->
-          {:error, :no_profilers_available}
+          {:error, :no_endpoints_available}
       end
     end
 
-    defp running_profilers(node) do
+    defp known_endpoints(node) do
       case :rpc.call(node, PhoenixProfiler, :known_endpoints, []) do
         [] ->
-          {:error, :no_profilers_available}
+          {:error, :no_endpoints_available}
 
-        profilers when is_list(profilers) ->
-          {:ok, profilers}
+        endpoints when is_list(endpoints) ->
+          {:ok, endpoints}
 
         {:badrpc, _error} ->
-          {:error, :cannot_list_running_profilers}
+          {:error, :cannot_list_known_endpoints}
       end
     end
 
     @impl true
-    def mount(params, %{profilers: profilers}, socket) do
-      case profilers_or_auto_discover(profilers, socket.assigns.page.node) do
-        {:ok, profilers} ->
-          socket = assign(socket, :profilers, profilers)
-          profiler = nav_profiler(params, profilers)
+    def mount(params, %{endpoints: endpoints}, socket) do
+      case endpoints_or_auto_discover(endpoints, socket.assigns.page.node) do
+        {:ok, endpoints} ->
+          socket = assign(socket, :endpoints, endpoints)
+          endpoint = nav_endpoint(params, endpoints)
 
           case Utils.check_socket_connection(socket) do
-            :ok -> {:ok, assign(socket, profiler: profiler, error: nil)}
-            {:error, reason} -> {:ok, assign(socket, profiler: nil, error: reason)}
+            :ok -> {:ok, assign(socket, endpoint: endpoint, error: nil)}
+            {:error, reason} -> {:ok, assign(socket, endpoint: nil, error: reason)}
           end
 
         {:error, reason} ->
-          {:ok, assign(socket, profiler: nil, error: reason)}
+          {:ok, assign(socket, endpoint: nil, error: reason)}
       end
     end
 
-    defp nav_profiler(params, profilers) do
+    defp nav_endpoint(params, endpoints) do
       nav = params["nav"]
       nav = if nav && nav != "", do: nav
-      nav && Enum.find(profilers, fn name -> inspect(name) == nav end)
+      nav && Enum.find(endpoints, fn name -> inspect(name) == nav end)
     end
 
     @impl true
     def handle_params(params, _uri, socket) do
       socket =
         if token = params["token"] do
-          case ProfileStore.remote_get(socket.assigns.page.node, socket.assigns.profiler, token) do
+          case ProfileStore.remote_get(socket.assigns.page.node, socket.assigns.endpoint, token) do
             nil -> assign(socket, error: :token_not_found)
             profile -> assign(socket, profile: profile)
           end
@@ -109,18 +109,18 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
         render_error(assigns)
       else
         items =
-          for name <- assigns.profilers do
+          for name <- assigns.endpoints do
             name = inspect(name)
 
             {name,
-             name: name, render: fn -> render_profiler_or_error(assigns) end, method: :redirect}
+             name: name, render: fn -> render_endpoint_or_error(assigns) end, method: :redirect}
           end
 
         nav_bar(items: items)
       end
     end
 
-    defp render_profiler_or_error(assigns) do
+    defp render_endpoint_or_error(assigns) do
       if assigns[:error] do
         render_error(assigns)
       else
@@ -145,26 +145,20 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
           :waiting_for_connection ->
             "Waiting for connection..."
 
-          :profiler_not_found ->
-            "This profiler is not available for this node."
-
-          :profiler_is_not_running ->
-            "This profiler is not running on this node."
-
           :phoenix_profiler_is_not_available ->
             "PhoenixProfiler is not available on remote node."
 
-          :no_profilers_available ->
-            "There are no profilers running on this node."
+          :no_endpoints_available ->
+            "There are no known endpoints on this node."
 
-          :cannot_list_running_profilers ->
-            "Could not list running profilers at remote node. Please try again later."
+          :cannot_list_known_endpoints ->
+            "Could not list known endpoints at remote node. Please try again later."
 
           {:badrpc, _} ->
             "Could not send request to node. Try again later."
 
           :token_not_found ->
-            "This token is not available for this profiler on this node."
+            "This token is not available for this endpoint on this node."
         end
 
       card(value: error_message)
@@ -243,7 +237,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
         columns: columns(),
         id: :phxprof_requests_table,
         row_attrs: &row_attrs/1,
-        row_fetcher: fn params, node -> fetch_profiles(params, assigns.profiler, node) end,
+        row_fetcher: fn params, node -> fetch_profiles(params, assigns.endpoint, node) end,
         rows_name: "requests",
         title: "Requests"
       )
@@ -294,10 +288,11 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
       {[], 0}
     end
 
-    defp fetch_profiles(params, profiler, node) do
+    defp fetch_profiles(params, endpoint, node) do
       %{search: search, sort_by: sort_by, sort_dir: sort_dir, limit: limit} = params
 
-      {profiles, total} = fetch_profiles(node, profiler, search, sort_by, sort_dir, limit)
+      {profiles, total} =
+        fetch_profiles(node, endpoint, search, sort_by, sort_dir, limit) |> dbg()
 
       rows =
         for {token, prof} <- profiles do
@@ -313,9 +308,9 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
       {rows, total}
     end
 
-    defp fetch_profiles(node, profiler, search, sort_by, sort_dir, limit) do
+    defp fetch_profiles(node, endpoint, search, sort_by, sort_dir, limit) do
       profiles =
-        ProfileStore.remote_list_advanced(node, profiler, search, sort_by, sort_dir, limit)
+        ProfileStore.remote_list_advanced(node, endpoint, search, sort_by, sort_dir, limit)
 
       {profiles, length(profiles)}
     end
