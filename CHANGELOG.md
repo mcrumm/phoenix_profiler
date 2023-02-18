@@ -18,9 +18,19 @@ children = [
 ]
 ```
 
+... and remove the `:server` option from the `:phoenix_profiler` options on your Endpoint config:
+
+```diff
+# config/dev.exs
+config :my_app, MyAppWeb.Endpoint,
+-  phoenix_profiler: [server: MyAppWeb.Profiler]
++  phoenix_profiler: []
+```
+
 ### Removed
 
 - `PhoenixProfiler.child_spec/1`
+- The `:server` option from the Endpoint config.
 
 ## [0.2.1] - 2023-01-26
 
