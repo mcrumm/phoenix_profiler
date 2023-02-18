@@ -87,7 +87,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
     assert Plug.Conn.get_resp_header(conn, @token_header_key) == []
     assert Plug.Conn.get_resp_header(conn, @profiler_header_key) == []
 
-    assert %PhoenixProfiler.Profile{info: :disable, token: token} = conn.private.phoenix_profiler
+    assert %PhoenixProfiler.Profile{token: token} = conn.private.phoenix_profiler
 
     refute ProfileStore.get(token)
   end

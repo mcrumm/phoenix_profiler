@@ -3,7 +3,6 @@ defmodule PhoenixProfiler.Profile do
   @moduledoc false
   defstruct [
     :endpoint,
-    :info,
     :node,
     :start_time,
     :system,
@@ -11,8 +10,6 @@ defmodule PhoenixProfiler.Profile do
     :token,
     :url
   ]
-
-  @type info :: nil | :enable | :disable
 
   @type system :: %{
           :otp => String.t(),
@@ -24,7 +21,6 @@ defmodule PhoenixProfiler.Profile do
 
   @type t :: %__MODULE__{
           :endpoint => module(),
-          :info => info(),
           :token => String.t(),
           :node => node(),
           :start_time => integer(),
@@ -36,13 +32,11 @@ defmodule PhoenixProfiler.Profile do
   @doc """
   Returns a new profile.
   """
-  def new(node \\ node(), endpoint, token, info, base_url, system_time)
+  def new(node \\ node(), endpoint, token, base_url, system_time)
       when is_atom(endpoint) and is_binary(token) and
-             is_atom(info) and info in [nil, :enable, :disable] and
              is_binary(base_url) and is_integer(system_time) do
     %__MODULE__{
       endpoint: endpoint,
-      info: info,
       node: node,
       start_time: System.monotonic_time(),
       system: PhoenixProfiler.system(),
