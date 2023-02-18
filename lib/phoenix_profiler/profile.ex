@@ -2,7 +2,6 @@ defmodule PhoenixProfiler.Profile do
   # An internal data structure for a request profile.
   @moduledoc false
   defstruct [
-    :collector_pid,
     :endpoint,
     :info,
     :node,
@@ -24,7 +23,6 @@ defmodule PhoenixProfiler.Profile do
         }
 
   @type t :: %__MODULE__{
-          :collector_pid => nil | pid(),
           :endpoint => module(),
           :info => info(),
           :token => String.t(),
