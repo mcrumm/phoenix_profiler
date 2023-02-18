@@ -5,7 +5,7 @@ Application.put_env(:phoenix_profiler, PhoenixProfilerTest.Endpoint,
   render_errors: [view: PhoenixProfilerTest.ErrorView],
   check_origin: false,
   pubsub_server: PhoenixProfilerTest.PubSub,
-  phoenix_profiler: [enable: true]
+  phoenix_profiler: []
 )
 
 Application.put_env(:phoenix_profiler, PhoenixProfilerTest.EndpointDisabled,
