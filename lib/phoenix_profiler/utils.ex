@@ -99,10 +99,8 @@ defmodule PhoenixProfiler.Utils do
   def endpoint(%LiveView.Socket{endpoint: endpoint}), do: endpoint
 
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
-    # notify state change and ensure profile info is :enable
-    profile = %{conn_or_socket.private.phoenix_profiler | info: :enable}
     Server.profiling(true)
-    put_private(conn_or_socket, :phoenix_profiler, profile)
+    conn_or_socket
   end
 
   defp enable_profiler_error(%LiveView.Socket{}, :waiting_for_connection) do
