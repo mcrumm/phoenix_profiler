@@ -25,19 +25,16 @@ defmodule PhoenixProfiler.UtilsTest do
       assert PhoenixProfiler.Utils.maybe_mount_profile(socket) == socket
     end
 
-    test "when the profiler is enabled on the endpoint, configures an enabled profile" do
-      socket = build_socket() |> connect() |> PhoenixProfiler.Utils.maybe_mount_profile()
-      assert %PhoenixProfiler.Profile{info: :enable} = socket.private.phoenix_profiler
-    end
+    test "puts a profile on the socket when the profiler is configured on the endpoint" do
+      for endpoint <- [PhoenixProfilerTest.Endpoint, PhoenixProfilerTest.EndpointDisabled] do
+        socket =
+          endpoint
+          |> build_socket()
+          |> connect()
+          |> PhoenixProfiler.Utils.maybe_mount_profile()
 
-    test "when the profiler is disabled on the endpoint, configures a disabled profile" do
-      socket =
-        PhoenixProfilerTest.EndpointDisabled
-        |> build_socket()
-        |> connect()
-        |> PhoenixProfiler.Utils.maybe_mount_profile()
-
-      assert %PhoenixProfiler.Profile{info: :disable} = socket.private.phoenix_profiler
+        assert %PhoenixProfiler.Profile{} = socket.private.phoenix_profiler
+      end
     end
 
     test "when the profiler is not defined on the endpoint, is a no-op" do

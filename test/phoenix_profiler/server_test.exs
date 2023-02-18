@@ -43,15 +43,14 @@ defmodule PhoenixProfiler.ServerTest do
     test "disable and enable telemetry messages" do
       {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())
-      profile = %PhoenixProfiler.Profile{token: token}
 
       :ok = test_telemetry(msg_1 = System.unique_integer())
       assert_receive_telemetry(token, msg_1)
 
-      :ok = Server.collector_info_exec(%{profile | info: :disable})
+      Server.profiling(false)
       :ok = test_telemetry(msg_2 = System.unique_integer())
 
-      :ok = Server.collector_info_exec(%{profile | info: :enable})
+      Server.profiling(true)
       :ok = test_telemetry(msg_3 = System.unique_integer())
 
       # Ensure we receive the 3rd message...
@@ -64,17 +63,16 @@ defmodule PhoenixProfiler.ServerTest do
     test "disable and enable are idempotent" do
       {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())
-      profile = %PhoenixProfiler.Profile{token: token}
 
       :ok = test_telemetry(msg_1 = System.unique_integer())
 
-      :ok = Server.collector_info_exec(%{profile | info: :disable})
-      :ok = Server.collector_info_exec(%{profile | info: :disable})
+      _ = Server.profiling(false)
+      _ = Server.profiling(false)
 
       :ok = test_telemetry(msg_2 = System.unique_integer())
 
-      :ok = Server.collector_info_exec(%{profile | info: :enable})
-      :ok = Server.collector_info_exec(%{profile | info: :enable})
+      _ = Server.profiling(true)
+      _ = Server.profiling(true)
 
       :ok = test_telemetry(msg_3 = System.unique_integer())
 

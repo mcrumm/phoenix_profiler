@@ -44,7 +44,7 @@ defmodule PhoenixProfiler.Utils do
          :ok <- maybe_check_socket_connection(conn_or_socket) do
       conn_or_socket
       |> new_profile(endpoint, config, system_time)
-      |> start_collector()
+      |> start_profiling(config)
       |> telemetry_execute(:start, %{system_time: system_time})
     else
       {:error, reason} -> enable_profiler_error(conn_or_socket, reason)
@@ -68,11 +68,10 @@ defmodule PhoenixProfiler.Utils do
   end
 
   defp new_profile(conn_or_socket, endpoint, config, system_time) do
-    info = if config[:enable] == false, do: :disable, else: :enable
     profiler_base_url = profiler_base_url(endpoint, config)
 
     {:ok, token} = Server.put_owner_token(owner_pid(conn_or_socket), endpoint)
-    profile = Profile.new(endpoint, token, info, profiler_base_url, system_time)
+    profile = Profile.new(endpoint, token, profiler_base_url, system_time)
 
     put_private(conn_or_socket, :phoenix_profiler, profile)
   end
@@ -87,8 +86,8 @@ defmodule PhoenixProfiler.Utils do
   defp profiler_link_base(path) when is_binary(path) and path != "", do: path
   defp profiler_link_base(_), do: @default_profiler_link_base
 
-  defp start_collector(conn_or_socket) do
-    Server.collector_info_exec(conn_or_socket.private.phoenix_profiler)
+  defp start_profiling(conn_or_socket, config) do
+    Server.profiling(if config[:enable] == false, do: false, else: true)
     conn_or_socket
   end
 
@@ -102,7 +101,7 @@ defmodule PhoenixProfiler.Utils do
   defp enable_profiler_error(conn_or_socket, :profile_already_exists) do
     # notify state change and ensure profile info is :enable
     profile = %{conn_or_socket.private.phoenix_profiler | info: :enable}
-    Server.collector_info_exec(profile)
+    Server.profiling(true)
     put_private(conn_or_socket, :phoenix_profiler, profile)
   end
 
@@ -131,13 +130,10 @@ defmodule PhoenixProfiler.Utils do
 
   If a profile is not present on the data structure, this function has no effect.
   """
-  def disable_profiler(
-        %{__struct__: kind, private: %{phoenix_profiler: %Profile{} = profile}} = conn_or_socket
-      )
+  def disable_profiler(%{__struct__: kind} = conn_or_socket)
       when kind in [Plug.Conn, LiveView.Socket] do
-    new_profile = %{profile | info: :disable}
-    Server.collector_info_exec(new_profile)
-    put_private(conn_or_socket, :phoenix_profiler, new_profile)
+    _ = Server.profiling(false)
+    conn_or_socket
   end
 
   def disable_profiler(%Plug.Conn{} = conn), do: conn

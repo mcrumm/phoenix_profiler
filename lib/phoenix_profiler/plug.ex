@@ -39,12 +39,16 @@ defmodule PhoenixProfiler.Plug do
 
   defp before_send_profile(conn, endpoint, config) do
     register_before_send(conn, fn conn ->
-      case Map.get(conn.private, :phoenix_profiler) do
-        %Profile{info: :enable} = profile ->
-          conn
-          |> apply_profile_headers(profile)
-          |> PhoenixProfiler.Utils.on_send_resp(profile)
-          |> maybe_inject_debug_toolbar(profile, endpoint, config)
+      case conn.private do
+        %{phoenix_profiler: %Profile{} = profile} ->
+          if PhoenixProfiler.Server.profiling?() do
+            conn
+            |> apply_profile_headers(profile)
+            |> PhoenixProfiler.Utils.on_send_resp(profile)
+            |> maybe_inject_debug_toolbar(profile, endpoint, config)
+          else
+            conn
+          end
 
         _ ->
           conn

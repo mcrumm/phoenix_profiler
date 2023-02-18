@@ -57,7 +57,7 @@ defmodule PhoenixProfilerUnitTest do
         |> PhoenixProfiler.Utils.put_private(:phoenix_endpoint, EndpointMock)
         |> PhoenixProfiler.enable()
 
-      %Profile{endpoint: EndpointMock, info: :enable} = conn.private.phoenix_profiler
+      %Profile{endpoint: EndpointMock} = conn.private.phoenix_profiler
     end
   end
 
@@ -83,7 +83,7 @@ defmodule PhoenixProfilerUnitTest do
 
     test "puts a profile on the socket" do
       socket = build_socket() |> connect() |> PhoenixProfiler.enable()
-      assert %Profile{endpoint: EndpointMock, info: :enable} = socket.private.phoenix_profiler
+      assert %Profile{endpoint: EndpointMock} = socket.private.phoenix_profiler
     end
   end
 
@@ -101,15 +101,17 @@ defmodule PhoenixProfilerUnitTest do
       |> PhoenixProfiler.Utils.put_private(:phoenix_endpoint, EndpointMock)
       |> PhoenixProfiler.enable()
 
-    assert conn.private.phoenix_profiler.info == :enable
-    conn = PhoenixProfiler.disable(conn)
-    assert conn.private.phoenix_profiler.info == :disable
+    assert PhoenixProfiler.Server.profiling?() == true
+
+    PhoenixProfiler.disable(conn)
+    assert PhoenixProfiler.Server.profiling?() == false
   end
 
   test "disable/1 with LiveView.Socket" do
     socket = build_socket() |> connect() |> PhoenixProfiler.enable()
-    assert socket.private.phoenix_profiler.info == :enable
-    socket = PhoenixProfiler.disable(socket)
-    assert socket.private.phoenix_profiler.info == :disable
+    assert PhoenixProfiler.Server.profiling?() == true
+
+    PhoenixProfiler.disable(socket)
+    assert PhoenixProfiler.Server.profiling?() == false
   end
 end
