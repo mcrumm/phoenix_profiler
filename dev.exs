@@ -14,7 +14,7 @@ Application.ensure_all_started(:esbuild)
 
 # Configures the endpoint
 Application.put_env(:phoenix_profiler, DemoWeb.Endpoint,
-  phoenix_profiler: [enable: true],
+  phoenix_profiler: [],
   url: [host: "localhost"],
   secret_key_base: "Hu4qQN3iKzTV4fJxhorPQlA/osH9fAMtbtjVS58PFgfw3ja5Z18Q/WSNR9wP4OfW",
   live_view: [signing_salt: "hMegieSe"],
