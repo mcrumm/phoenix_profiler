@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+The `PhoenixProfiler` server is now started by the application. Remove the child spec from your application supervisor:
+
+```diff
+# lib/my_app/application.ex
+children = [
+-      {PhoenixProfiler, name: MyAppWeb.Profiler},
+      # :telemetry_poller, etc.
+]
+```
+
+### Removed
+
+- `PhoenixProfiler.child_spec/1`
+
 ## [0.2.1] - 2023-01-26
 
 - Remove implicit dependency on phoenix_view
