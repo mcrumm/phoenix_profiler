@@ -291,13 +291,10 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     defp fetch_profiles(params, endpoint, node) do
       %{search: search, sort_by: sort_by, sort_dir: sort_dir, limit: limit} = params
 
-      {profiles, total} =
-        fetch_profiles(node, endpoint, search, sort_by, sort_dir, limit) |> dbg()
+      {profiles, total} = fetch_profiles(node, endpoint, search, sort_by, sort_dir, limit)
 
       rows =
-        for {token, prof} <- profiles do
-          %{at: at, conn: %Plug.Conn{} = conn} = prof
-
+        for {token, %{at: at, conn: %Plug.Conn{} = conn}} <- profiles do
           conn
           |> Map.take([:host, :status, :method, :remote_ip])
           |> Map.put(:url, Plug.Conn.request_url(conn))
