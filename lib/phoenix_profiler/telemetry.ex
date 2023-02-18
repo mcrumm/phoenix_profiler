@@ -32,19 +32,15 @@ defmodule PhoenixProfiler.Telemetry do
   end
 
   def collect(_, [:phxprof, :plug, :stop], measures, %{conn: conn}) do
-    if PhoenixProfiler.Server.profiling?() do
-      {:keep,
-       %{
-         at: conn.private.phoenix_profiler.system_time,
-         conn: prune_values(conn),
-         metrics: %{
-           memory: collect_memory(conn.owner),
-           total_duration: measures.duration
-         }
-       }}
-    else
-      :skip
-    end
+    {:keep,
+     %{
+       at: conn.private.phoenix_profiler.system_time,
+       conn: prune_values(conn),
+       metrics: %{
+         memory: collect_memory(conn.owner),
+         total_duration: measures.duration
+       }
+     }}
   end
 
   def collect(_, [:phoenix, :live_view | _] = event, measures, %{socket: socket} = meta) do
