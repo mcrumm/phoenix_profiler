@@ -87,7 +87,8 @@ defmodule PhoenixProfiler.Utils do
   defp profiler_link_base(_), do: @default_profiler_link_base
 
   defp start_profiling(conn_or_socket, config) do
-    Server.profiling(if config[:enable] == false, do: false, else: true)
+    # disable profiling if disabled on the endpoint config
+    if config[:enable] == false, do: Server.profiling(false)
     conn_or_socket
   end
 
