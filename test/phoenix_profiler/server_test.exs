@@ -40,6 +40,40 @@ defmodule PhoenixProfiler.ServerTest do
       assert_receive_telemetry(token, inner_2)
     end
 
+    test "monitors owner pid and cleans up tables on :DOWN", %{test: test} do
+      test_pid = self()
+
+      task =
+        Task.async(fn ->
+          {:ok, token} = Server.put_owner_token(test)
+          send(test_pid, {:token, token, self()})
+
+          receive do
+            :done -> :ok
+          end
+        end)
+
+      assert_receive {:token, token, task_pid}
+      ref = Process.monitor(task_pid)
+
+      assert [{^task_pid, ^token}] = :ets.lookup(Server.Live, task_pid)
+
+      {:ok, ^token} = Server.subscribe(task_pid)
+      assert [{^token, ^test_pid}] = :ets.lookup(Server.Listener, token)
+
+      send(task_pid, :done)
+
+      :ok = Task.await(task)
+      assert_receive {:DOWN, ^ref, _, ^task_pid, _}
+
+      # force sync by registering/subscribing in another process
+      {:ok, _} = Server.put_owner_token(test)
+      {:ok, _} = Server.subscribe(self())
+
+      assert :ets.lookup(Server.Live, task_pid) == []
+      assert :ets.lookup(Server.Listener, token) == []
+    end
+
     test "disable and enable telemetry messages" do
       {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
       {:ok, token} = Server.subscribe(self())

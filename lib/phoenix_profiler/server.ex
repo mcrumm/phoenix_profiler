@@ -66,7 +66,7 @@ defmodule PhoenixProfiler.Server do
   Returns whether or not profiling is enabled for the current process.
   """
   def profiling? do
-    Process.get(@disable_key) != true
+    if Process.get(@disable_key), do: false, else: true
   end
 
   @doc """
@@ -126,7 +126,7 @@ defmodule PhoenixProfiler.Server do
           :persistent_term.put({PhoenixProfiler.Endpoint, endpoint}, nil)
           true = :ets.insert(@endpoint_table, {endpoint, token})
           true = :ets.insert(@live_table, {owner, token})
-          # todo: GenServer.cast(__MODULE__, {:monitor, owner})
+          GenServer.cast(__MODULE__, {:monitor, owner})
           token
       end
 
@@ -162,10 +162,30 @@ defmodule PhoenixProfiler.Server do
     GenServer.start_link(__MODULE__, config, name: __MODULE__)
   end
 
+  @impl true
+  def handle_cast({:monitor, owner}, state) do
+    _ = Process.monitor(owner)
+    {:noreply, state}
+  end
+
   @impl GenServer
   def handle_info(:sweep, state) do
     schedule_sweep(state.request_sweep_interval)
     :ets.delete_all_objects(@entry_table)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _, _, owner, _}, state) do
+    case :ets.lookup(@live_table, owner) do
+      [{^owner, token}] ->
+        :ets.delete(@live_table, owner)
+        :ets.delete(@listener_table, token)
+
+      [] ->
+        :ok
+    end
+
     {:noreply, state}
   end
 
