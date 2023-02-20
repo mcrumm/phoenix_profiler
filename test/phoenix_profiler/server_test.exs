@@ -9,12 +9,12 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "returns {:ok, token} for a registered owner" do
-      {:ok, token} = PhoenixProfiler.Server.put_owner_token(:endpoint)
+      {:ok, token} = PhoenixProfiler.Server.make_observable(:endpoint)
       assert {:ok, ^token} = Server.subscribe(self())
     end
 
     test "sends telemetry for owner" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
+      {:ok, _} = PhoenixProfiler.Server.make_observable(:endpoint)
       {:ok, token} = Server.subscribe(self())
 
       time = System.unique_integer()
@@ -24,7 +24,7 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "receives telemetry for $callers" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
+      {:ok, _} = PhoenixProfiler.Server.make_observable(:endpoint)
       {:ok, token} = Server.subscribe(self())
 
       inner_1 = System.unique_integer()
@@ -45,7 +45,7 @@ defmodule PhoenixProfiler.ServerTest do
 
       task =
         Task.async(fn ->
-          {:ok, token} = Server.put_owner_token(test)
+          {:ok, token} = Server.make_observable(test)
           send(test_pid, {:token, token, self()})
 
           receive do
@@ -67,7 +67,7 @@ defmodule PhoenixProfiler.ServerTest do
       assert_receive {:DOWN, ^ref, _, ^task_pid, _}
 
       # force sync by registering/subscribing in another process
-      {:ok, _} = Server.put_owner_token(test)
+      {:ok, _} = Server.make_observable(test)
       {:ok, _} = Server.subscribe(self())
 
       assert :ets.lookup(Server.Live, task_pid) == []
@@ -75,7 +75,7 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "disable and enable telemetry messages" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
+      {:ok, _} = PhoenixProfiler.Server.make_observable(:endpoint)
       {:ok, token} = Server.subscribe(self())
 
       :ok = test_telemetry(msg_1 = System.unique_integer())
@@ -95,7 +95,7 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "disable and enable are idempotent" do
-      {:ok, _} = PhoenixProfiler.Server.put_owner_token(:endpoint)
+      {:ok, _} = PhoenixProfiler.Server.make_observable(:endpoint)
       {:ok, token} = Server.subscribe(self())
 
       :ok = test_telemetry(msg_1 = System.unique_integer())
@@ -118,7 +118,7 @@ defmodule PhoenixProfiler.ServerTest do
   end
 
   test "reset/0 deletes all objects in the entry tables", %{test: test} do
-    {:ok, _} = Server.put_owner_token(test)
+    {:ok, _} = Server.make_observable(test)
 
     tab = Server.Entry
 

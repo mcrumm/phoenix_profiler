@@ -70,7 +70,7 @@ defmodule PhoenixProfiler.Utils do
   defp new_profile(conn_or_socket, endpoint, config, system_time) do
     profiler_base_url = profiler_base_url(endpoint, config)
 
-    {:ok, token} = Server.put_owner_token(owner_pid(conn_or_socket), endpoint)
+    {:ok, token} = Server.make_observable(owner_pid(conn_or_socket), endpoint)
     profile = Profile.new(endpoint, token, profiler_base_url, system_time)
 
     put_private(conn_or_socket, :phoenix_profiler, profile)

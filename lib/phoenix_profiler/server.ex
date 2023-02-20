@@ -112,10 +112,10 @@ defmodule PhoenixProfiler.Server do
   end
 
   @doc """
-  Puts the profiler token on the process dictionary.
+  Makes the caller observable by listeners.
   """
-  @spec put_owner_token(owner :: pid(), endpoint :: atom()) :: {:ok, token :: String.t()}
-  def put_owner_token(owner \\ self(), endpoint) when is_pid(owner) and is_atom(endpoint) do
+  @spec make_observable(owner :: pid(), endpoint :: atom()) :: {:ok, token :: String.t()}
+  def make_observable(owner \\ self(), endpoint) when is_pid(owner) and is_atom(endpoint) do
     token =
       case fetch_owner_token(owner) do
         {:ok, token} ->
