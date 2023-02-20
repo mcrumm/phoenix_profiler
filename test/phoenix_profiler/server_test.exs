@@ -117,6 +117,38 @@ defmodule PhoenixProfiler.ServerTest do
     end
   end
 
+  test "reset/0 deletes all objects in the entry tables", %{test: test} do
+    {:ok, _} = Server.put_owner_token(test)
+
+    tab = Server.Entry
+
+    :ets.insert(tab, {"a", %{}})
+    :ets.insert(tab, {"b", %{}})
+    :ets.insert(tab, {"c", %{}})
+
+    # called thru the delegate for coverage
+    PhoenixProfiler.reset()
+
+    assert :ets.tab2list(tab) == []
+    assert :ets.tab2list(Server.Endpoint) == []
+  end
+
+  test "sweeping entries" do
+    tab = Server.Entry
+
+    :ets.insert(tab, {"a", %{}})
+    :ets.insert(tab, {"b", %{}})
+    :ets.insert(tab, {"c", %{}})
+    :ets.insert(tab, {"d", %{}})
+
+    pid = Process.whereis(PhoenixProfiler.Server)
+    send(pid, :sweep)
+    :timer.sleep(100)
+
+    assert :ets.tab2list(tab) == []
+    assert :ets.tab2list(Server.Endpoint) == []
+  end
+
   @test_telemetry_event [:phoenix_profiler, :internal, :this_is_only_used_for_testing]
 
   defp test_telemetry(time) do
