@@ -11,18 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The `PhoenixProfiler` server is now started by the application. Remove the child spec from your telemetry supervisor:
 
 ```diff
-# lib/my_app_web/telemetry.ex
-children = [
--      {PhoenixProfiler, name: MyAppWeb.Profiler},
-      # :telemetry_poller, etc.
-]
+ # lib/my_app_web/telemetry.ex
+ children = [
+-  {PhoenixProfiler, name: MyAppWeb.Profiler},
+   # :telemetry_poller, etc.
+ ]
 ```
 
 ... and remove the `:server` option from the `:phoenix_profiler` options on your Endpoint config:
 
 ```diff
-# config/dev.exs
-config :my_app, MyAppWeb.Endpoint,
+ # config/dev.exs
+ config :my_app, MyAppWeb.Endpoint,
 -  phoenix_profiler: [server: MyAppWeb.Profiler]
 +  phoenix_profiler: []
 ```
