@@ -27,8 +27,13 @@ config :my_app, MyAppWeb.Endpoint,
 +  phoenix_profiler: []
 ```
 
+### Changed
+
+- `PhoenixProfiler.reset/1` is now `PhoenixProfiler.reset/0`.
+
 ### Removed
 
+- `PhoenixProfiler.all_running/0`
 - `PhoenixProfiler.child_spec/1`
 - The `:server` option from the Endpoint config.
 
