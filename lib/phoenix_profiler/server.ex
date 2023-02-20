@@ -143,10 +143,11 @@ defmodule PhoenixProfiler.Server do
   end
 
   @doc """
-  Deletes all objects in the profiler table.
+  Deletes all objects in the entry tables.
   """
   def reset do
     :ets.delete_all_objects(@entry_table)
+    :ets.delete_all_objects(@endpoint_table)
     :ok
   end
 
@@ -171,7 +172,7 @@ defmodule PhoenixProfiler.Server do
   @impl GenServer
   def handle_info(:sweep, state) do
     schedule_sweep(state.request_sweep_interval)
-    :ets.delete_all_objects(@entry_table)
+    reset()
     {:noreply, state}
   end
 
