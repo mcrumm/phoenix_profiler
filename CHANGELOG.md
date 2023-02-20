@@ -8,10 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-The `PhoenixProfiler` server is now started by the application. Remove the child spec from your application supervisor:
+The `PhoenixProfiler` server is now started by the application. Remove the child spec from your telemetry supervisor:
 
 ```diff
-# lib/my_app/application.ex
+# lib/my_app/telemetry.ex
 children = [
 -      {PhoenixProfiler, name: MyAppWeb.Profiler},
       # :telemetry_poller, etc.
