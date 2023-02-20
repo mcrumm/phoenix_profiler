@@ -34,7 +34,7 @@ jobs:
               otp: 25
             lint: lint
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: erlef/setup-beam@v1
         with:
@@ -46,7 +46,7 @@ jobs:
           echo "PHOENIX_PROFILER_PHOENIX_VERSION=${{ matrix.phoenix }}" >> $GITHUB_ENV
         if: ${{ matrix.phoenix }}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{matrix.phoenix}}-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}-v2
