@@ -111,9 +111,13 @@ defmodule PhoenixProfiler do
   end
 
   @doc """
-  Returns a list of endpoints with profiles.
+  Returns a list of known endpoints.
 
-  Note that no order is guaranteed.
+  It is important to note that the order is not guaranteed.
   """
-  defdelegate known_endpoints, to: PhoenixProfiler.Server
+  def known_endpoints do
+    for {{PhoenixProfiler.Endpoint, endpoint}, _} <- :persistent_term.get() do
+      endpoint
+    end
+  end
 end

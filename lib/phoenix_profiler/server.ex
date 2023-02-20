@@ -43,17 +43,6 @@ defmodule PhoenixProfiler.Server do
   end
 
   @doc """
-  Returns a list of known endpoints.
-
-  It is important to note that the order is not guaranteed.
-  """
-  def known_endpoints do
-    for {{PhoenixProfiler.Endpoint, endpoint}, _} <- :persistent_term.get() do
-      endpoint
-    end
-  end
-
-  @doc """
   Update the profiling status of the caller.
 
   Returns the previous status, or `nil` if the status was not yet set.
