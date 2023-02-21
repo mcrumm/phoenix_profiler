@@ -77,6 +77,7 @@ defmodule PhoenixProfiler.ServerTest do
 
           # Give ETS two tries to return an empty list.
           unless :ets.lookup(Server.Live, pid) == [] do
+            :timer.sleep(1)
             assert :ets.lookup(Server.Live, pid) == []
           end
 
