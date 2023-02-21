@@ -41,37 +41,47 @@ defmodule PhoenixProfiler.ServerTest do
     end
 
     test "monitors owner pid and cleans up tables on :DOWN", %{test: test} do
-      test_pid = self()
+      parent = self()
 
-      task =
-        Task.async(fn ->
+      {pid, ref} =
+        spawn_monitor(fn ->
           {:ok, token} = Server.make_observable(test)
-          send(test_pid, {:token, token, self()})
+          send(parent, {:token, token})
 
           receive do
-            :done -> :ok
+            :exit -> nil
           end
         end)
 
-      assert_receive {:token, token, task_pid}
-      ref = Process.monitor(task_pid)
+      assert_receive {:token, token}, 1_000, "didn't get a token"
 
-      assert [{^task_pid, ^token}] = :ets.lookup(Server.Live, task_pid)
+      assert [{^pid, ^token}] = :ets.lookup(Server.Live, pid)
 
-      {:ok, ^token} = Server.subscribe(task_pid)
-      assert [{^token, ^test_pid}] = :ets.lookup(Server.Listener, token)
+      {:ok, ^token} = Server.subscribe(pid)
+      assert [{^token, ^parent}] = :ets.lookup(Server.Listener, token)
 
-      send(task_pid, :done)
+      send(pid, :exit)
 
-      :ok = Task.await(task)
-      assert_receive {:DOWN, ^ref, _, ^task_pid, _}
+      receive do
+        {:DOWN, ^ref, :process, ^pid, :normal} ->
+          # force sync by registering/subscribing in another process
+          spawn(fn ->
+            {:ok, _} = Server.make_observable(test)
+            {:ok, _} = Server.subscribe(self())
+            send(parent, :continue)
+          end)
 
-      # force sync by registering/subscribing in another process
-      {:ok, _} = Server.make_observable(test)
-      {:ok, _} = Server.subscribe(self())
+          receive do
+            :continue -> :ok
+          end
 
-      assert :ets.lookup(Server.Live, task_pid) == []
-      assert :ets.lookup(Server.Listener, token) == []
+          # Give ETS two tries to return an empty list.
+          unless :ets.lookup(Server.Live, pid) == [] do
+            assert :ets.lookup(Server.Live, pid) == []
+          end
+
+          assert :ets.lookup(Server.Listener, pid) == []
+      end
     end
 
     test "disable and enable telemetry messages" do
