@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Phoenix.LiveDashboard) do
+if Application.compile_env(:phoenix_profiler, :use_dashboard?, true) and Code.ensure_loaded?(Phoenix.LiveDashboard) do
   defmodule PhoenixProfiler.Dashboard do
     @moduledoc """
     [`LiveDashboard`](`Phoenix.LiveDashboard`) integration for PhoenixProfiler.
