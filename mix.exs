@@ -41,8 +41,8 @@ defmodule PhoenixProfiler.MixProject do
     phoenix() ++
       [
         {:phoenix_html, ">= 3.2.0 and < 4.0.0"},
-        {:phoenix_live_view, "~> 0.18.0 or ~> 0.17.0 or ~> 0.16.0"},
-        {:phoenix_live_dashboard, "~> 0.7.0 or ~> 0.6.0 or ~> 0.5.0", optional: true},
+        {:phoenix_live_view, "~> 0.19.0 or ~> 0.18.0 or ~> 0.17.0 or ~> 0.16.0"},
+        {:phoenix_live_dashboard, "~> 0.8.0 or ~> 0.7.0 or ~> 0.6.0 or ~> 0.5.0", optional: true},
         # Dev Dependencies
         {:phoenix_live_reload, "~> 1.3", only: :dev},
         {:plug_cowboy, "~> 2.0", only: :dev},
