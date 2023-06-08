@@ -114,6 +114,10 @@ This is all. Run `mix phx.server` and observe the toolbar on your browser reques
 
 ### 7. Add the profiler page on your LiveDashboard (optional)
 
+**The dashboard page is not compatible with `:live_dashboard ~> 0.8`**
+To disable the dashboard entirely, and allow the Profiler to compile,
+add `config :phoenix_profiler, use_dashboard?: false` to your config.
+
 Note this section is required for the LiveDashboard integration. If you are
 not using LiveDashboard, you may technically skip this step, although it is
 highly recommended that you
