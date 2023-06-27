@@ -104,7 +104,7 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     @impl true
-    def render_page(assigns) do
+    def render(assigns) do
       if assigns[:error] do
         render_error(assigns)
       else
@@ -116,8 +116,18 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
              name: name, render: fn -> render_endpoint_or_error(assigns) end, method: :redirect}
           end
 
-        nav_bar(items: items)
+        profiler_nav_bar(items: items)
       end
+    end
+
+    defp profiler_nav_bar(assigns) do
+      ~H"""
+      <.live_nav_bar id={@id} page={@page}>
+        <:item name={name} :for={{name, item} <- @items}>
+          <%= item[:render].() %>
+        </:item>
+      </.live_nav_bar>
+      """
     end
 
     defp render_endpoint_or_error(assigns) do
@@ -165,16 +175,14 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     end
 
     defp render_profile_nav(assigns) do
-      nav_bar(
-        items: [
-          request: [
-            name: "Request / Response",
-            render: fn -> render_panel(:request, assigns) end
-          ]
-        ],
-        nav_param: :panel,
-        extra_params: [:nav, :token]
-      )
+      # TODO Where does name: "Request / Response" go?
+      ~H"""
+      <.live_nav_bar id={@id} page={@page}>
+        <:item name="items">
+          <%= render_panel(:request, assigns) %>
+        </:item>
+      </.live_nav_bar>
+      """
     end
 
     defp render_todo do
@@ -184,93 +192,111 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
     defp render_panel(:request, assigns) do
       conn = assigns.profile.conn
 
-      nav_bar(
-        items: [
-          path_params: [
-            name: "Path Params",
-            render: fn -> render_params_table(conn, :path_params) end
-          ],
-          query_params: [
-            name: "Query Params",
-            render: fn -> render_params_table(conn, :query_params) end
-          ],
-          body_params: [
-            name: "Body Params",
-            render: fn -> render_params_table(conn, :body_params) end
-          ],
-          request_headers: [
-            name: "Request Headers",
-            render: fn -> render_params_table(conn, :req_headers, "Request Headers") end
-          ],
-          request_cookies: [
-            name: "Request Cookies",
-            render: fn -> render_params_table(conn, :req_cookies, "Request Cookies") end
-          ],
-          session: [
-            name: "Session",
-            render: fn -> render_todo() end
-          ],
-          response_headers: [
-            name: "Response Headers",
-            render: fn ->
-              render_params_table(conn, :resp_headers, "Response Headers")
-            end
-          ],
-          response_cookies: [
-            name: "Response Cookies",
-            render: fn ->
-              render_params_table(conn, :resp_cookies, "Response Cookies")
-            end
-          ],
-          flashes: [
-            name: "Flashes",
-            render: fn -> render_todo() end
-          ]
+      items = [
+        path_params: [
+          name: "Path Params",
+          render: fn -> render_params_table(conn, :path_params) end
         ],
-        nav_param: :tab,
-        extra_params: [:nav, :panel, :token]
-      )
+        query_params: [
+          name: "Query Params",
+          render: fn -> render_params_table(conn, :query_params) end
+        ],
+        body_params: [
+          name: "Body Params",
+          render: fn -> render_params_table(conn, :body_params) end
+        ],
+        request_headers: [
+          name: "Request Headers",
+          render: fn -> render_params_table(conn, :req_headers, "Request Headers") end
+        ],
+        request_cookies: [
+          name: "Request Cookies",
+          render: fn -> render_params_table(conn, :req_cookies, "Request Cookies") end
+        ],
+        session: [
+          name: "Session",
+          render: fn -> render_todo() end
+        ],
+        response_headers: [
+          name: "Response Headers",
+          render: fn ->
+            render_params_table(conn, :resp_headers, "Response Headers")
+          end
+        ],
+        response_cookies: [
+          name: "Response Cookies",
+          render: fn ->
+            render_params_table(conn, :resp_cookies, "Response Cookies")
+          end
+        ],
+        flashes: [
+          name: "Flashes",
+          render: fn -> render_todo() end
+        ]
+      ]
+
+      assigns = Map.put(assigns, :items, items)
+
+      ~H"""
+      <.live_nav_bar id={@id} page={@page}>
+        <:item name={name} :for={{name, item} <- @items}>
+          <%= item[:render].() %>
+        </:item>
+      </.live_nav_bar>
+      """
     end
 
     defp render_profiles_table(assigns) do
-      table(
-        columns: columns(),
-        id: :phxprof_requests_table,
-        row_attrs: &row_attrs/1,
-        row_fetcher: fn params, node -> fetch_profiles(params, assigns.endpoint, node) end,
-        rows_name: "requests",
-        title: "Requests"
-      )
+      ~H"""
+      <.live_table
+        id="phxprof_requests_table"
+        title="Requests"
+        page={@page}
+        row_attrs={&row_attrs/1}
+        row_fetcher={fn params, node -> fetch_profiles(params, assigns.endpoint, node) end}
+        rows_name="requests"
+      >
+        <:col
+          :for={col <- columns()}
+          field={col.field}
+          header={col.header}
+          sortable={col.sortable}
+          :let={value}
+        >
+          <%= if(col.format, do: col.format.(value), else: value) %>
+        </:col>
+      </.live_table>
+      """
     end
 
     defp render_params_table(conn, field, title \\ nil) do
-      table(
-        id: :"#{field}_table",
-        columns: [
-          %{
-            field: :key,
-            sortable: :asc
-          },
-          %{
-            field: :value,
-            sortable: nil
-          }
-        ],
-        row_fetcher: fn %{sort_by: sort_by, sort_dir: sort_dir}, _node ->
-          rows =
-            case Map.get(conn, field) do
-              %Plug.Conn.Unfetched{} ->
-                []
+      row_fetcher = fn %{sort_by: sort_by, sort_dir: sort_dir}, _node ->
+        rows =
+          case Map.get(conn, field) do
+            %Plug.Conn.Unfetched{} ->
+              []
 
-              params when is_map(params) or is_list(params) ->
-                params = for {key, value} <- params, do: %{key: pp(key), value: pp(value)}
-                Utils.sort_by(params, fn params -> params[sort_by] end, sort_dir)
-            end
+            params when is_map(params) or is_list(params) ->
+              params = for {key, value} <- params, do: %{key: pp(key), value: pp(value)}
+              Utils.sort_by(params, fn params -> params[sort_by] end, sort_dir)
+          end
 
-          {rows, length(rows)}
-        end,
-        title: title || Phoenix.Naming.humanize(field)
-      )
+        {rows, length(rows)}
+      end
+
+      assigns = %{conn: conn, field: field, title: title, row_fetcher: row_fetcher, page: conn}
+
+      ~H"""
+      <.live_table
+        id={"#{@field}_table"}
+        title={@title || Phoenix.Naming.humanize(@field)}
+        page={@page}
+        row_fetcher={@row_fetcher}
+      >
+        <:col field={:key} sortable={:asc} />
+        <:col field={:value} />
+      </.live_table>
+      """
     end
 
     # for printing
