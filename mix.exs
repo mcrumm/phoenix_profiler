@@ -50,7 +50,7 @@ defmodule PhoenixProfiler.MixProject do
         {:jason, "~> 1.0", only: [:dev, :test, :docs]},
         {:ex_doc, "~> 0.25", only: :docs},
         {:esbuild, "~> 0.2", runtime: false, only: :dev},
-        {:floki, ">= 0.26.0", only: :test},
+        {:floki, ">= 0.26.0", only: :test}
       ]
   end
 
