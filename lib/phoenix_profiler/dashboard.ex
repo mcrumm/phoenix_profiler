@@ -116,13 +116,13 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
              name: name, render: fn -> render_endpoint_or_error(assigns) end, method: :redirect}
           end
 
-        profiler_nav_bar(items: items)
+        profiler_nav_bar(%{items: items, page: assigns[:page]})
       end
     end
 
     defp profiler_nav_bar(assigns) do
       ~H"""
-      <.live_nav_bar id={@id} page={@page}>
+      <.live_nav_bar id="profiler_nav_bar" page={@page}>
         <:item name={name} :for={{name, item} <- @items}>
           <%= item[:render].() %>
         </:item>
@@ -171,7 +171,9 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
             "This token is not available for this endpoint on this node."
         end
 
-      card(value: error_message)
+      ~H"""
+      <.card><%= error_message %></.card>
+      """
     end
 
     defp render_profile_nav(assigns) do
@@ -259,8 +261,8 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
         <:col
           :for={col <- columns()}
           field={col.field}
-          header={col.header}
-          sortable={col.sortable}
+          header={col[:header]}
+          sortable={col[:sortable]}
           :let={value}
         >
           <%= if(col.format, do: col.format.(value), else: value) %>
