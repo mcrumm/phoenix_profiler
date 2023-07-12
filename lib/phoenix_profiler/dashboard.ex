@@ -171,9 +171,9 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
             "This token is not available for this endpoint on this node."
         end
 
-      ~H"""
-      <.card><%= error_message %></.card>
-      """
+      assigns
+      |> Map.put(:error_message, error_message)
+      |> card()
     end
 
     defp render_profile_nav(assigns) do
