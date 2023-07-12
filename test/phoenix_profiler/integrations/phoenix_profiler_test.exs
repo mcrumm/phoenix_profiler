@@ -32,7 +32,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
           phoenix_controller: PhoenixProfilerTest.PageController,
           phoenix_endpoint: PhoenixProfilerTest.Endpoint,
           phoenix_router: PhoenixProfilerTest.Router,
-          phoenix_view: PhoenixProfilerTest.PageView
+          phoenix_view: %{_: PhoenixProfilerTest.PageView}
         },
         status: 200
       },
@@ -70,7 +70,7 @@ defmodule PhoenixProfiler.PhoenixProfilerTest do
           phoenix_controller: PhoenixProfilerTest.APIController,
           phoenix_endpoint: PhoenixProfilerTest.Endpoint,
           phoenix_router: PhoenixProfilerTest.Router,
-          phoenix_view: PhoenixProfilerTest.APIView
+          phoenix_view: %{_: PhoenixProfilerTest.APIView}
         },
         status: 200
       },

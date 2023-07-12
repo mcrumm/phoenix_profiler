@@ -131,7 +131,7 @@ defmodule DemoWeb.PageView do
 end
 
 defmodule EmbeddedLive.Switch do
-  use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
+  use Phoenix.LiveView, layout: {DemoWeb.LayoutView, :live}
 
   on_mount PhoenixProfiler
 
@@ -204,7 +204,7 @@ defmodule DemoWeb.AppLive.Hooks do
 end
 
 defmodule DemoWeb.AppLive.Index do
-  use Phoenix.LiveView, layout: {DemoWeb.LayoutView, "live.html"}
+  use Phoenix.LiveView, layout: {DemoWeb.LayoutView, :live}
   use Phoenix.HTML
   alias DemoWeb.Router.Helpers, as: Routes
 
