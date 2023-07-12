@@ -267,10 +267,20 @@ if Code.ensure_loaded?(Phoenix.LiveDashboard) do
           sortable={col[:sortable]}
           :let={value}
         >
-          <%= if(col.format, do: col.format.(value), else: value) %>
+          <%= render_profile_column(col, value) %>
         </:col>
       </.live_table>
       """
+    end
+
+    defp render_profile_column(col, data) do
+      value = data[col.field]
+
+      if col[:format] do
+        col.format.(value)
+      else
+        value
+      end
     end
 
     defp render_params_table(conn, field, title \\ nil) do
